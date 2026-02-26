@@ -845,6 +845,307 @@
       hydrateCost();
       wireThresholdInputs();
     });
+
+    // ── Agent Tree ──────────────────────────────────────────────────────────
+    // Stuck threshold: 60s default, overridable via ?stuck_threshold=N URL param
+    const STUCK_THRESHOLD_MS = (() => {
+      const p = new URLSearchParams(window.location.search);
+      return (parseInt(p.get('stuck_threshold') || '60', 10)) * 1000;
+    })();
+
+    // In-memory tree state
+    const agentTree = {
+      sessions: new Map(), // session_id -> { sessionId, children: [agentId,...], cost: 0, tokens: 0 }
+      agents:   new Map(), // agent_id   -> { agentId, parentSessionId, agentType, state, lastActivityTs, cost, tokens }
+    };
+
+    // Currently selected agent row (session_id for filtering)
+    let activeSessionFilter = null;
+
+    // ── Formatters ──────────────────────────────────────────────────────────
+
+    function formatTokensCompact(n) {
+      n = n || 0;
+      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+      if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'k';
+      return String(n);
+    }
+
+    function formatAgentCost(tokens, costUsd) {
+      return `${formatTokensCompact(tokens)} / $${Number(costUsd || 0).toFixed(2)}`;
+    }
+
+    function formatIdle(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return m > 0 ? `idle ${m}m ${rem}s` : `idle ${s}s`;
+    }
+
+    // ── State mutations ──────────────────────────────────────────────────────
+
+    function ensureSession(sessionId) {
+      if (!agentTree.sessions.has(sessionId)) {
+        agentTree.sessions.set(sessionId, { sessionId, children: [], cost: 0, tokens: 0 });
+      }
+      return agentTree.sessions.get(sessionId);
+    }
+
+    function addAgent({ agentId, agentType, parentSessionId, ts, highlight = false }) {
+      const session = ensureSession(parentSessionId);
+      if (!session.children.includes(agentId)) session.children.push(agentId);
+      agentTree.agents.set(agentId, {
+        agentId,
+        parentSessionId,
+        agentType: agentType || '',
+        state: 'active',
+        lastActivityTs: ts || Date.now(),
+        cost: 0,
+        tokens: 0,
+        highlight,
+      });
+    }
+
+    function updateAgentState(agentId, state, ts) {
+      const agent = agentTree.agents.get(agentId);
+      if (agent) {
+        agent.state = state;
+        agent.lastActivityTs = ts || Date.now();
+      }
+    }
+
+    function updateAgentCost(agentId, cost, tokens) {
+      const agent = agentTree.agents.get(agentId);
+      if (agent) {
+        agent.cost = cost || 0;
+        agent.tokens = tokens || 0;
+        // Update parent session rolled-up cost
+        const session = agentTree.sessions.get(agent.parentSessionId);
+        if (session) {
+          let totalCost = 0;
+          let totalTokens = 0;
+          for (const childId of session.children) {
+            const child = agentTree.agents.get(childId);
+            if (child) { totalCost += child.cost; totalTokens += child.tokens; }
+          }
+          session.cost = totalCost;
+          session.tokens = totalTokens;
+        }
+      }
+    }
+
+    // ── Rendering ────────────────────────────────────────────────────────────
+
+    function findTopSpender() {
+      let maxCost = -1;
+      let topId = null;
+      for (const [agentId, agent] of agentTree.agents) {
+        if (agent.cost > maxCost) { maxCost = agent.cost; topId = agentId; }
+      }
+      return topId;
+    }
+
+    function createAgentRow({ label, cost, tokens, state, depth, agentId, sessionId, highlight }) {
+      const row = document.createElement('div');
+      row.className = `agent-row depth-${depth} state-${state}`;
+      if (agentId)   row.dataset.agentId   = agentId;
+      if (sessionId) row.dataset.sessionId = sessionId;
+      if (highlight) {
+        row.classList.add('just-spawned');
+        // Remove class after animation completes (1.2s)
+        setTimeout(() => row.classList.remove('just-spawned'), 1400);
+      }
+
+      // State indicator dot
+      const indicator = document.createElement('span');
+      indicator.className = 'agent-indicator';
+      indicator.textContent = state === 'active' ? '\u25CF' : state === 'errored' ? '\u2715' : '\u25CB';
+
+      // Label
+      const labelEl = document.createElement('span');
+      labelEl.className = 'agent-label';
+      labelEl.textContent = label;
+
+      // Cost (inline)
+      const costEl = document.createElement('span');
+      costEl.className = 'agent-cost';
+      costEl.textContent = formatAgentCost(tokens, cost);
+
+      // Idle time (shown only when stuck)
+      const idleEl = document.createElement('span');
+      idleEl.className = 'agent-idle';
+      idleEl.style.display = 'none';
+
+      row.appendChild(indicator);
+      row.appendChild(labelEl);
+      row.appendChild(costEl);
+      row.appendChild(idleEl);
+
+      // Click handler: toggle session filter
+      row.addEventListener('click', () => {
+        const targetSession = sessionId || (agentId ? agentTree.agents.get(agentId)?.parentSessionId : null);
+        if (!targetSession) return;
+        if (activeSessionFilter === targetSession) {
+          activeSessionFilter = null;
+        } else {
+          activeSessionFilter = targetSession;
+        }
+        filterLog(activeSessionFilter);
+        renderAgentTree(); // re-render to update selected class
+      });
+
+      return row;
+    }
+
+    function renderAgentTree() {
+      const container = document.getElementById('agent-tree-body');
+      container.innerHTML = '';
+
+      const topSpenderId = findTopSpender();
+
+      for (const [sessionId, session] of agentTree.sessions) {
+        // Parent session row (depth 0)
+        const parentRow = createAgentRow({
+          label:     sessionId.slice(0, 8),
+          cost:      session.cost,
+          tokens:    session.tokens,
+          state:     'active',
+          depth:     0,
+          sessionId: sessionId,
+        });
+        if (activeSessionFilter === sessionId) parentRow.classList.add('selected');
+        container.appendChild(parentRow);
+
+        // Child rows (depth 1)
+        for (const agentId of session.children) {
+          const agent = agentTree.agents.get(agentId);
+          if (!agent) continue;
+          const isTopSpender = agentId === topSpenderId && agent.cost > 0;
+          const childRow = createAgentRow({
+            label:   agent.agentType || agentId.slice(0, 8),
+            cost:    agent.cost,
+            tokens:  agent.tokens,
+            state:   agent.state,
+            depth:   1,
+            agentId: agentId,
+            highlight: agent.highlight,
+          });
+          if (isTopSpender) childRow.classList.add('top-spender');
+          if (activeSessionFilter === agent.parentSessionId) childRow.classList.add('selected');
+          agent.highlight = false; // clear after first render
+          container.appendChild(childRow);
+        }
+      }
+    }
+
+    // ── Log Filter ────────────────────────────────────────────────────────────
+
+    function filterLog(sessionId) {
+      const badge = document.getElementById('log-filter-badge');
+      // Show or hide all agent-section details elements
+      document.querySelectorAll('.agent-section').forEach(details => {
+        const sid = details.dataset.sessionId;
+        details.style.display = (!sessionId || sid === sessionId) ? '' : 'none';
+      });
+      if (sessionId) {
+        badge.textContent = `filtered: ${sessionId.slice(0, 8)}`;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // ── Stuck Detection ───────────────────────────────────────────────────────
+
+    setInterval(() => {
+      const now = Date.now();
+      for (const [agentId, agent] of agentTree.agents) {
+        if (agent.state !== 'active') continue;
+        const idle = now - agent.lastActivityTs;
+        const row = document.querySelector(`[data-agent-id="${agentId}"]`);
+        if (!row) continue;
+        const idleEl = row.querySelector('.agent-idle');
+        if (idle >= STUCK_THRESHOLD_MS) {
+          row.classList.add('stuck');
+          if (idleEl) { idleEl.textContent = formatIdle(idle); idleEl.style.display = ''; }
+        } else {
+          row.classList.remove('stuck');
+          if (idleEl) idleEl.style.display = 'none';
+        }
+      }
+    }, 5_000);
+
+    // ── SSE event handlers ────────────────────────────────────────────────────
+
+    function handleAgentSpawn(msg) {
+      addAgent({ agentId: msg.agentId, agentType: msg.agentType, parentSessionId: msg.parentSessionId, ts: msg.ts, highlight: true });
+      renderAgentTree();
+    }
+
+    function handleAgentUpdate(msg) {
+      updateAgentState(msg.agentId, msg.state, msg.ts);
+      renderAgentTree();
+    }
+
+    // Update lastActivityTs on every PreToolUse event (clears stuck state on next interval tick)
+    // Patch the existing appendRow to also update lastActivityTs for agents in the same session
+    const _origAppendRow = appendRow;
+    window.appendRow = function(event) {
+      if (event.hook_type === 'PreToolUse') {
+        // Update lastActivityTs for all active agents in this session
+        for (const [agentId, agent] of agentTree.agents) {
+          if (agent.parentSessionId === event.session_id && agent.state === 'active') {
+            agent.lastActivityTs = event.timestamp || Date.now();
+          }
+        }
+      }
+      _origAppendRow(event);
+    };
+
+    // ── Hydration ─────────────────────────────────────────────────────────────
+
+    async function hydrateAgentTree() {
+      try {
+        const agents = await fetch('/api/agents').then(r => r.json());
+        for (const a of agents) {
+          addAgent({
+            agentId:         a.agent_id,
+            agentType:       a.agent_type,
+            parentSessionId: a.parent_session_id,
+            ts:              a.last_activity_ts,
+            highlight:       false,
+          });
+          if (a.state !== 'active') updateAgentState(a.agent_id, a.state, a.last_activity_ts);
+        }
+        renderAgentTree();
+      } catch (e) {
+        console.warn('[agents] hydration failed:', e.message);
+      }
+    }
+
+    // ── Wire into SSE subscription ─────────────────────────────────────────────
+    // A second EventSource connects to /events to handle agent_spawn, agent_update,
+    // and per-agent cost_update events without interfering with the existing SSE handler.
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await hydrateAgentTree();
+
+      const agentEs = new EventSource('/events');
+      agentEs.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'agent_spawn')  { handleAgentSpawn(msg);  return; }
+        if (msg.type === 'agent_update') { handleAgentUpdate(msg); return; }
+        if (msg.type === 'cost_update' && msg.agentId) {
+          // Per-agent cost update — attribute to individual agent
+          const totalTokens = (msg.tokens.input || 0) + (msg.tokens.output || 0) +
+                              (msg.tokens.cacheRead || 0) + (msg.tokens.cacheWrite || 0);
+          updateAgentCost(msg.agentId, msg.cost, totalTokens);
+          renderAgentTree();
+        }
+        // All other event types handled by existing EventSource — no double-rendering
+      };
+      agentEs.onerror = () => console.warn('[agents-sse] reconnecting...');
+    });
   </script>
 </body>
 </html>
