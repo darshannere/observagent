@@ -8,7 +8,7 @@ progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 3 in progress — Plan 01 complete, Plans 02-04 remaining
+**Current focus:** Phase 3 in progress — Plans 01-02 complete, Plans 03-04 remaining
 
 ## Current Position
 
 Phase: 03-cost-and-token-tracking
-Plan: 01 of 4 complete
-Status: Active — JSONL ingestion backbone complete
-Last activity: 2026-02-26 — Completed 03-01 (schema + costEngine + jsonlWatcher)
+Plan: 02 of 4 complete
+Status: Active — API routes and JSONL watcher startup complete
+Last activity: 2026-02-26 — Completed 03-02 (/api/cost, /api/config, startJsonlWatcher wired into server.js)
 
-Progress: [████████░░] 50%
+Progress: [█████████░] 58%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [████████░░] 50%
 
 *Updated after each plan completion*
 | Phase 03-cost-and-token-tracking P01 | 134 | 3 tasks | 3 files |
+| Phase 03-cost-and-token-tracking P02 | ~4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 03-cost-and-token-tracking]: stop_reason null dedup rule: skip assistant records where stop_reason is null/undefined to prevent double-counting streaming-start duplicates
 - [Phase 03-cost-and-token-tracking]: Lazy prepared statement in jsonlWatcher: upsertStmt created on first processFile call since db is only available after startJsonlWatcher(db) is called
 - [Phase 03-cost-and-token-tracking]: 300ms debounce per JSONL file prevents CPU thrash during active Claude Code sessions writing JSONL rapidly
+- [03-02]: startJsonlWatcher called after fastify.listen fires — server must accept requests before potentially slow initial JSONL scan begins
+- [03-02]: No default threshold values for budget_threshold_usd and ctx_fill_threshold_pct — null when unset means no false alarms
+- [03-02]: Inline db.prepare().run() for DELETE threshold — one-off on rare user-clear action; module-level prepared statement unnecessary
 
 ### Pending Todos
 
@@ -101,5 +105,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 03-01-PLAN.md — JSONL ingestion backbone complete (schema extension, costEngine, jsonlWatcher). Next: Phase 3 Plan 02.
+Stopped at: Completed 03-02-PLAN.md — API routes and JSONL watcher startup complete (/api/cost, /api/config GET+POST, startJsonlWatcher wired into server.js). Next: Phase 3 Plan 03.
 Resume file: None

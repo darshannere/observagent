@@ -25,7 +25,7 @@
 - [x] **COST-01**: User can see token usage (input, output, cache read, cache write) per agent and per session
 - [x] **COST-02**: User can see context window fill percentage per agent with a visual warning at 80%+
 - [x] **COST-03**: User can see a live running dollar cost total updating in real-time as agents work
-- [ ] **COST-04**: User can set a session cost budget threshold and receive an in-dashboard alert when exceeded
+- [x] **COST-04**: User can set a session cost budget threshold and receive an in-dashboard alert when exceeded
 
 ### Multi-Agent Observability
 
@@ -93,7 +93,7 @@
 | COST-01 | Phase 3 | Complete |
 | COST-02 | Phase 3 | Complete |
 | COST-03 | Phase 3 | Complete |
-| COST-04 | Phase 3 | Pending |
+| COST-04 | Phase 3 | Complete |
 | AGENT-01 | Phase 4 | Pending |
 | AGENT-02 | Phase 4 | Pending |
 | AGENT-03 | Phase 4 | Pending |
