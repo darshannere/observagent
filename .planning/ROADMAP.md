@@ -49,7 +49,12 @@ Plans:
   2. User can see failed tool calls visually distinguished (highlighted/colored) in the live log immediately when they occur
   3. User can see the latency (elapsed time) for each tool call displayed next to the call in the log
   4. Agent tree, cost meters, and health indicator areas are present on the screen (may show empty/placeholder state until later phases populate them)
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Backend: pendingCalls pairing Map in ingest.js + dashboard route (GET /) + hydration API (GET /api/events)
+- [ ] 02-02-PLAN.md — Frontend: complete public/index.html dashboard (4-panel dark layout, SSE log, timers, toasts, hydration)
+- [ ] 02-03-PLAN.md — Human verification: end-to-end visual confirmation of Phase 2 dashboard
 
 ### Phase 3: Cost and Token Tracking
 **Goal**: Developers can see exactly what a session costs in dollars and tokens, with real-time updates and a warning before they burn through their budget
@@ -111,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-02-26 |
-| 2. Live Event Dashboard | 0/TBD | Not started | - |
+| 2. Live Event Dashboard | 0/3 | Not started | - |
 | 3. Cost and Token Tracking | 0/TBD | Not started | - |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |
 | 5. Session History and Discovery | 0/TBD | Not started | - |
