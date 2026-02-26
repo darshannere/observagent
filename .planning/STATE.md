@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T07:33:29.513Z"
+last_updated: "2026-02-26T08:11:37Z"
 progress:
-  total_phases: 1
+  total_phases: 7
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation) — COMPLETE
-Plan: 04 (gap closure) — COMPLETE (all tasks verified)
-Status: Phase 1 done. Ready for Phase 2 (Dashboard UI).
-Last activity: 2026-02-26 — Plan 01-04 fully complete; human verification confirmed DB rows from real tool calls; INGEST-01 satisfied
+Phase: 2 of 7 (Live Event Dashboard) — IN PROGRESS
+Plan: 01 (ingest pairing + routes) — COMPLETE (all tasks verified)
+Status: Phase 2 started. Plan 02-01 complete. Ready for Plan 02-02 (dashboard HTML/JS).
+Last activity: 2026-02-26 — Plan 02-01 complete; pendingCalls pairing verified, GET / and GET /api/events working
 
-Progress: [████░░░░░░] 20%
+Progress: [█████░░░░░] 25%
 
 ## Performance Metrics
 
@@ -41,9 +41,10 @@ Progress: [████░░░░░░] 20%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | ~12 min | ~3 min |
+| 02-live-event-dashboard | 1 | ~5 min | ~5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min), 01-04 (3min)
+- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min), 01-04 (3min), 02-01 (5min)
 - Trend: stable, fast
 
 *Updated after each plan completion*
@@ -74,6 +75,10 @@ Recent decisions affecting current work:
 - [01-04]: No matcher key on relay.py hook entries — fires on ALL tool calls, maximum observability
 - [01-04]: Preserve gsd-context-monitor.js as separate matcher object — hooks are additive, both run independently
 - [01-04]: settings.json is global Claude Code config outside git repo — hook change takes effect in next Claude Code session
+- [02-01]: pendingCalls Map at module scope — required for cross-request state persistence, pairing runs before 202 reply
+- [02-01]: 5-minute TTL with 60-second scan — balances memory safety vs scan overhead for orphaned tool calls
+- [02-01]: Prepared statements at registration time in api.js — consistent with WriteQueue pattern from Phase 1
+- [02-01]: dashboard.js reads index.html once at startup (readFileSync) — zero per-request I/O for static asset
 
 ### Pending Todos
 
@@ -88,5 +93,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 01-04-PLAN.md fully complete — both tasks done, human verification approved (DB jumped 14->65 events, PreToolUse+PostToolUse firing, INGEST-01 satisfied). Phase 1 complete. Ready for Phase 2.
+Stopped at: 02-01-PLAN.md fully complete — both tasks done, verified: GET / returns 200, GET /api/events returns JSON, PostToolUse duration_ms non-null in SQLite. INGEST-02 and DASH-02 satisfied.
 Resume file: None
