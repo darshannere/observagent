@@ -34,11 +34,19 @@
 
     .dashboard {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 240px 1fr 1fr;
       grid-template-rows: 1fr 1fr;
       gap: 1px;
       height: 100vh;
       background: var(--border);
+    }
+
+    #panel-agents {
+      grid-row: 1 / -1; /* spans both rows */
+    }
+
+    #panel-log {
+      grid-row: 1 / -1; /* spans both rows */
     }
 
     .panel {
@@ -264,24 +272,103 @@
       outline: none;
       border-color: var(--green);
     }
+
+    /* ── Agent Tree Panel ─────────────────────────────────── */
+    #agent-tree-body {
+      padding: 4px 0;
+    }
+
+    .agent-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 3px;
+      border-left: 3px solid transparent;
+      user-select: none;
+    }
+    .agent-row:hover { background: rgba(255,255,255,0.04); }
+    .agent-row.selected {
+      background: rgba(255,255,255,0.07);
+      border-left-color: var(--green);
+    }
+    .agent-row.depth-0 {
+      font-weight: 500;
+      padding-left: 8px;
+    }
+    .agent-row.depth-1 {
+      padding-left: 22px; /* indent child rows */
+    }
+
+    /* Lifecycle state indicators */
+    .agent-indicator {
+      font-size: 8px;
+      flex-shrink: 0;
+    }
+    .agent-row.state-active  .agent-indicator { color: var(--green); }
+    .agent-row.state-completed { opacity: 0.55; }
+    .agent-row.state-errored .agent-indicator { color: var(--red); }
+
+    /* Stuck state */
+    .agent-row.stuck {
+      background: rgba(210, 153, 34, 0.10);
+      border-left-color: var(--yellow);
+    }
+    .agent-row.stuck .agent-label { color: var(--yellow); }
+    .agent-idle {
+      font-size: 10px;
+      color: var(--yellow);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* Label and cost */
+    .agent-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .agent-cost {
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-family: var(--mono);
+    }
+    .agent-row.top-spender .agent-cost {
+      color: var(--yellow);
+      font-weight: 600;
+    }
+
+    /* Spawn highlight — brief flash then fades */
+    @keyframes agentSpawn {
+      0%   { background: rgba(63, 185, 80, 0.20); }
+      100% { background: transparent; }
+    }
+    .agent-row.just-spawned {
+      animation: agentSpawn 1.2s ease-out forwards;
+    }
   </style>
 </head>
 <body>
   <div class="dashboard">
+    <!-- Column 1, rows 1+2: Agent Tree (spans full height) -->
+    <div class="panel" id="panel-agents">
+      <div class="panel-header">Agent Tree</div>
+      <div class="panel-body" id="agent-tree-body"></div>
+    </div>
+
+    <!-- Column 2, rows 1+2: Tool Call Log (spans full height) -->
     <div class="panel" id="panel-log">
-      <div class="panel-header">Tool Call Log</div>
+      <div class="panel-header">Tool Call Log <span id="log-filter-badge" style="display:none;font-size:10px;color:var(--green);margin-left:6px;"></span></div>
       <div class="panel-body" id="tool-log"></div>
     </div>
-    <div class="panel">
-      <div class="panel-header">Agent Tree</div>
-      <div class="panel-body">
-        <div class="placeholder">
-          <span>Agent Tree</span>
-          <span class="phase-label">Available in Phase 4</span>
-        </div>
-      </div>
-    </div>
-    <!-- Cost & Tokens Panel -->
+
+    <!-- Column 3, row 1: Cost & Tokens Panel -->
     <div class="panel" id="cost-panel">
       <!-- Alert banner: hidden until threshold exceeded. Stays visible, does not auto-dismiss. -->
       <div id="cost-alert"></div>
@@ -334,12 +421,13 @@
 
       </div>
     </div>
+    <!-- Column 3, row 2: Health -->
     <div class="panel">
       <div class="panel-header">Health</div>
       <div class="panel-body">
         <div class="placeholder">
           <span>Health Indicators</span>
-          <span class="phase-label">Available in Phase 4</span>
+          <span class="phase-label">Available in Phase 5</span>
         </div>
       </div>
     </div>
