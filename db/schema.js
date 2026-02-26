@@ -1,5 +1,10 @@
 import Database from 'better-sqlite3';
 
+function addColumnIfNotExists(db, table, col, typeDef) {
+  const exists = db.prepare(`PRAGMA table_info(${table})`).all().find(c => c.name === col);
+  if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${typeDef}`);
+}
+
 export function initDb(path = './observagent.db') {
   const db = new Database(path);
 
@@ -51,6 +56,10 @@ export function initDb(path = './observagent.db') {
     CREATE INDEX IF NOT EXISTS idx_agent_nodes_parent
       ON agent_nodes(parent_session_id);
   `);
+
+  addColumnIfNotExists(db, 'session_cost', 'project_name', "TEXT NOT NULL DEFAULT ''");
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_session_cost_project ON session_cost(project_name, last_event_ts DESC)`);
+  console.log('[db] project_name column and index ready');
 
   console.log('[db] initialized — WAL mode active');
   console.log('[db] session_cost and observagent_config tables ready');
