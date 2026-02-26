@@ -14,7 +14,19 @@ setInterval(() => {
 }, 60_000); // scan every 60 seconds
 
 export async function ingestRoutes(fastify, options) {
-  const { writeQueue } = options;
+  const { writeQueue, db } = options;
+
+  // Prepared statements for agent_nodes — called at registration time
+  const upsertAgentNode = db.prepare(`
+    INSERT INTO agent_nodes (agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts)
+    VALUES (@agent_id, @parent_session_id, @agent_type, @state, @spawned_at, @last_activity_ts)
+    ON CONFLICT(agent_id) DO UPDATE SET
+      state            = excluded.state,
+      last_activity_ts = excluded.last_activity_ts
+  `);
+  const updateAgentState = db.prepare(
+    `UPDATE agent_nodes SET state = @state, last_activity_ts = @last_activity_ts WHERE agent_id = @agent_id`
+  );
 
   fastify.post('/ingest', async (request, reply) => {
     const raw = request.body;
@@ -55,6 +67,35 @@ export async function ingestRoutes(fastify, options) {
     // setImmediate guarantees the response flush happens in the current tick
     // before the queue write starts in the next tick
     setImmediate(() => {
+      // SubagentStart: insert agent node + broadcast spawn event
+      if (event.hook_type === 'SubagentStart') {
+        const agentId   = raw.agent_id   || '';
+        const agentType = raw.agent_type || '';
+        if (agentId) {
+          upsertAgentNode.run({
+            agent_id:          agentId,
+            parent_session_id: event.session_id,
+            agent_type:        agentType,
+            state:             'active',
+            spawned_at:        event.timestamp,
+            last_activity_ts:  event.timestamp,
+          });
+          broadcast({ type: 'agent_spawn', agentId, agentType, parentSessionId: event.session_id, ts: event.timestamp });
+        }
+        return; // SubagentStart is not a tool call — do not insert into events table
+      }
+
+      // SubagentStop: update agent state + broadcast update event
+      if (event.hook_type === 'SubagentStop') {
+        const agentId = raw.agent_id || '';
+        if (agentId) {
+          updateAgentState.run({ state: 'completed', last_activity_ts: event.timestamp, agent_id: agentId });
+          broadcast({ type: 'agent_update', agentId, state: 'completed', ts: event.timestamp });
+        }
+        return; // SubagentStop is not a tool call — do not insert into events table
+      }
+
+      // PreToolUse / PostToolUse — existing behavior unchanged
       writeQueue.enqueue(event);
       broadcast(event);
     });

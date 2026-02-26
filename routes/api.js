@@ -31,6 +31,12 @@ export async function apiRoutes(fastify, options) {
     WHERE date(last_event_ts) = date('now')
   `);
 
+  const stmtAgents = db.prepare(`
+    SELECT agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts
+    FROM agent_nodes
+    ORDER BY spawned_at ASC
+  `);
+
   const stmtGetConfig = db.prepare(
     `SELECT value FROM observagent_config WHERE key = ?`
   );
@@ -38,6 +44,10 @@ export async function apiRoutes(fastify, options) {
   const stmtSetConfig = db.prepare(`
     INSERT OR REPLACE INTO observagent_config (key, value) VALUES (?, ?)
   `);
+
+  fastify.get('/api/agents', (request, reply) => {
+    reply.send(stmtAgents.all());
+  });
 
   fastify.get('/api/events', (request, reply) => {
     const { session_id } = request.query;

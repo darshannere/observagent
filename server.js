@@ -20,8 +20,8 @@ const writeQueue = new WriteQueue(db);
 // Register SSE plugin before routes
 fastify.register(FastifySSEPlugin);
 
-// Register routes — pass writeQueue to ingest route via options
-fastify.register(ingestRoutes, { writeQueue });
+// Register routes — pass writeQueue and db to ingest route via options
+fastify.register(ingestRoutes, { writeQueue, db });
 fastify.register(sseRoutes);
 fastify.register(dashboardRoutes);
 fastify.register(apiRoutes, { db });
