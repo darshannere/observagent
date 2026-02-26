@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Dashboard UI
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation)
-Plan: 3 of 3 in current phase
-Status: Checkpoint — awaiting human verification
-Last activity: 2026-02-26 — Plan 01-03 Tasks 1+2 complete; checkpoint at Task 3 (end-to-end pipeline verification)
+Phase: 1 of 7 (Foundation) — COMPLETE
+Plan: 3 of 3 — COMPLETE
+Status: Phase 1 complete — all 5 success criteria verified end-to-end
+Last activity: 2026-02-26 — Plan 01-03 all tasks complete; end-to-end pipeline verified (relay.py -> SQLite -> SSE broadcast, 10 concurrent writes, zero SQLITE_BUSY errors)
 
-Progress: [██░░░░░░░░] 10%
+Progress: [███░░░░░░░] 15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 3
+- Average duration: ~3 min/plan
+- Total execution time: ~9 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 3 | ~9 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: none yet
-- Trend: -
+- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min)
+- Trend: stable, fast
 
 *Updated after each plan completion*
 
@@ -54,10 +54,14 @@ Recent decisions affecting current work:
 - [01-02]: Pure stdlib (sys, json, urllib.request, urllib.error) — zero pip install required, works in any Python 3.x
 - [01-02]: Metadata-only payload (4 fields) — tool_input and tool_response explicitly excluded as security boundary
 - [01-02]: Silent pass on all exceptions — Claude Code session cleanliness is non-negotiable
+- [01-03]: setImmediate wraps enqueue+broadcast in /ingest — guarantees 202 flushed in current tick before DB write in next tick
+- [01-03]: Raw SSE via reply.raw.write for broadcast — fastify-sse-v2 registered for routes, broadcast uses reply.raw for direct stream control
+- [01-03]: writeQueue injected via fastify.register options — avoids module-level singleton, enables future testing
+- [01-03]: Localhost-only bind (127.0.0.1) — local monitoring tool, no external exposure by default
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -68,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 01-03-PLAN.md Task 3 checkpoint — routes/ingest.js, routes/sse.js, server.js built and verified locally; awaiting human end-to-end pipeline verification
+Stopped at: Phase 1 complete — 01-03-PLAN.md all tasks done, SUMMARY created, STATE updated. Ready for Phase 2 (dashboard UI).
 Resume file: None
