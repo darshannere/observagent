@@ -74,7 +74,7 @@ Each task was committed atomically:
 2. **Task 2: Create SQLite schema module (db/schema.js)** - `5dbb187` (feat)
 3. **Task 3: Create write queue and SSE client registry** - `2d241a0` (feat)
 
-**Plan metadata:** (pending final docs commit)
+**Plan metadata:** `38869a3` (docs: complete foundation plan)
 
 ## Files Created/Modified
 - `package.json` - ES module project config: type module, main server.js, start script, fastify/better-sqlite3/fastify-sse-v2 deps
