@@ -20,7 +20,8 @@ export function initDb(path = './observagent.db') {
     );
 
     CREATE TABLE IF NOT EXISTS session_cost (
-      session_id        TEXT    PRIMARY KEY,
+      session_id        TEXT    NOT NULL,
+      agent_id          TEXT    NOT NULL DEFAULT '',
       model             TEXT    NOT NULL,
       input_tokens      INTEGER NOT NULL DEFAULT 0,
       output_tokens     INTEGER NOT NULL DEFAULT 0,
@@ -29,7 +30,8 @@ export function initDb(path = './observagent.db') {
       cache_write_1h    INTEGER NOT NULL DEFAULT 0,
       total_cost_usd    REAL    NOT NULL DEFAULT 0.0,
       last_event_ts     TEXT,
-      updated_at        INTEGER NOT NULL
+      updated_at        INTEGER NOT NULL,
+      PRIMARY KEY (session_id, agent_id)
     );
     CREATE INDEX IF NOT EXISTS idx_session_cost_ts ON session_cost(last_event_ts);
 
