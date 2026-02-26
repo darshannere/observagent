@@ -83,7 +83,13 @@ Plans:
   1. User can see a visual agent tree showing parent session at the top with child sessions (spawned via Task tool) nested beneath it — hierarchy updates live as new sub-agents are spawned
   2. User can see cost (token counts and dollar amount) broken down per individual agent in a multi-agent run, making it clear which sub-agent is consuming the most resources
   3. User can see a stuck-agent warning indicator on any agent that has had no tool activity for 60 or more seconds
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Backend foundation: agent_nodes schema + relay.py SubagentStart/Stop + ingest.js handlers + GET /api/agents
+- [ ] 04-02-PLAN.md — Per-agent cost: extend jsonlWatcher to discover subagent JSOLs + composite session_cost primary key + agentId in cost_update SSE
+- [ ] 04-03-PLAN.md — Frontend: 3-column layout + agent tree panel (hierarchy, inline cost, lifecycle states, stuck detection, log filter)
+- [ ] 04-04-PLAN.md — Human verification: visual confirmation of all three AGENT-xx requirements
 
 ### Phase 5: Session History and Discovery
 **Goal**: Developers can browse and search all past sessions, not just the live one — and extract raw data for offline analysis
@@ -125,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 4/4 | Complete | 2026-02-26 |
 | 2. Live Event Dashboard | 4/4 | Complete   | 2026-02-26 |
 | 3. Cost and Token Tracking | 4/4 | Complete | 2026-02-26 |
-| 4. Multi-Agent Observability | 0/TBD | Not started | - |
+| 4. Multi-Agent Observability | 0/4 | Not started | - |
 | 5. Session History and Discovery | 0/TBD | Not started | - |
 | 6. CLI and Zero-Config Setup | 0/TBD | Not started | - |
 | 7. Agent Timeline View | 0/TBD | Not started | - |
