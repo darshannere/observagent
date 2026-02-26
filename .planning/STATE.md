@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-26 — Plan 01-02 complete (hooks/relay.py: fire-and-forget hook relay, stdlib-only, 500ms timeout, exit 0 always)
+Plan: 3 of 3 in current phase
+Status: Checkpoint — awaiting human verification
+Last activity: 2026-02-26 — Plan 01-03 Tasks 1+2 complete; checkpoint at Task 3 (end-to-end pipeline verification)
 
 Progress: [██░░░░░░░░] 10%
 
@@ -68,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-02-PLAN.md — hooks/relay.py hook relay written, tested, committed.
+Stopped at: 01-03-PLAN.md Task 3 checkpoint — routes/ingest.js, routes/sse.js, server.js built and verified locally; awaiting human end-to-end pipeline verification
 Resume file: None
