@@ -161,6 +161,109 @@
       font-size: 11px;
       opacity: 0.6;
     }
+
+    /* ── Cost Panel ─────────────────────────────────────────────── */
+    #cost-alert {
+      display: none;
+      background: rgba(248,81,73,0.12);
+      border-bottom: 1px solid var(--red);
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--red);
+      line-height: 1.4;
+    }
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2px 0;
+    }
+    .cost-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .cost-value {
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .token-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px 8px;
+      margin: 6px 0;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+    .token-grid span { color: var(--text); }
+    .ctx-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress-track {
+      height: 7px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 3px 0 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 4px;
+      transition: width 0.3s ease, background 0.3s ease;
+      width: 0%;
+    }
+    .progress-fill.warning { background: var(--yellow); }
+    .progress-fill.danger  { background: var(--red); }
+    .model-breakdown {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      margin: 4px 0 6px;
+      line-height: 1.6;
+    }
+    .model-breakdown .model-name { color: var(--text); }
+    .threshold-section {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .threshold-section label {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .threshold-section input[type="number"] {
+      width: 70px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+    .threshold-section input[type="number"]:focus {
+      outline: none;
+      border-color: var(--green);
+    }
   </style>
 </head>
 <body>
