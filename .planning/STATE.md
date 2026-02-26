@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 1 of TBD in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Plan 01-01 complete (Node.js foundation: package.json, db/schema.js, lib/writeQueue.js, lib/sseClients.js)
+Last activity: 2026-02-26 — Plan 01-02 complete (hooks/relay.py: fire-and-forget hook relay, stdlib-only, 500ms timeout, exit 0 always)
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [██░░░░░░░░] 10%
 
 ## Performance Metrics
 
@@ -50,6 +50,10 @@ Recent decisions affecting current work:
 - [01-01]: WriteQueue uses setImmediate (not async/await) — yields to event loop between writes without adding I/O overhead
 - [01-01]: Prepared statement in WriteQueue constructor, not per-call — single parse cost amortized across all events
 - [01-01]: SSE broadcast silently removes stale clients on error rather than throwing — prevents one dead client blocking all others
+- [01-02]: TIMEOUT_SECONDS = 0.5 named constant — documents the 500ms constraint, not a magic number
+- [01-02]: Pure stdlib (sys, json, urllib.request, urllib.error) — zero pip install required, works in any Python 3.x
+- [01-02]: Metadata-only payload (4 fields) — tool_input and tool_response explicitly excluded as security boundary
+- [01-02]: Silent pass on all exceptions — Claude Code session cleanliness is non-negotiable
 
 ### Pending Todos
 
@@ -64,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-01-PLAN.md — Node.js foundation modules bootstrapped and committed.
+Stopped at: Completed 01-02-PLAN.md — hooks/relay.py hook relay written, tested, committed.
 Resume file: None
