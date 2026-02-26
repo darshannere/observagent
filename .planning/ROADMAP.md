@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Node.js scaffold + SQLite schema (WAL mode) + write queue + SSE client registry
+- [x] 01-01-PLAN.md — Node.js scaffold + SQLite schema (WAL mode) + write queue + SSE client registry
 - [ ] 01-02-PLAN.md — Hook relay script (relay.py): fire-and-forget, silent fail, 500ms timeout
 - [ ] 01-03-PLAN.md — Fastify server + /ingest route (202-before-write) + /events SSE route + E2E verification
 
@@ -109,7 +109,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Ready to execute | - |
+| 1. Foundation | 1/3 | In progress | - |
 | 2. Live Event Dashboard | 0/TBD | Not started | - |
 | 3. Cost and Token Tracking | 0/TBD | Not started | - |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |

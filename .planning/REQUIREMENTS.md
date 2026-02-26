@@ -16,7 +16,7 @@
 
 ### Event Ingestion
 
-- [ ] **INGEST-01**: System captures Claude Code tool call events in real-time via PreToolUse/PostToolUse hooks
+- [x] **INGEST-01**: System captures Claude Code tool call events in real-time via PreToolUse/PostToolUse hooks
 - [ ] **INGEST-02**: User can see a live tool call log per agent showing what tools ran and in what order
 - [ ] **INGEST-03**: User can see when an agent errors or a tool call fails, highlighted in the dashboard
 
@@ -87,7 +87,7 @@
 | SETUP-02 | Phase 3 | Pending |
 | SETUP-03 | Phase 6 | Pending |
 | SETUP-04 | Phase 6 | Pending |
-| INGEST-01 | Phase 1 | Pending |
+| INGEST-01 | Phase 1 | Complete |
 | INGEST-02 | Phase 2 | Pending |
 | INGEST-03 | Phase 2 | Pending |
 | COST-01 | Phase 3 | Pending |

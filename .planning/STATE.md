@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-26 — Roadmap created, all 20 v1 requirements mapped to 7 phases
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-26 — Plan 01-01 complete (Node.js foundation: package.json, db/schema.js, lib/writeQueue.js, lib/sseClients.js)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 5%
 
 ## Performance Metrics
 
@@ -46,6 +46,10 @@ Recent decisions affecting current work:
 - [Init]: better-sqlite3 + WAL mode + write queue — mandatory from day one to handle GSD's 4+ parallel agents
 - [Init]: Hook relay must be fire-and-forget, server must 202 before any DB write — single most dangerous failure mode is blocking Claude Code
 - [Init]: Agent hierarchy via PreToolUse hook (parent session ID) — never timing-based inference
+- [01-01]: WAL mode + NORMAL synchronous set before DDL — required for concurrent hook agents from day one
+- [01-01]: WriteQueue uses setImmediate (not async/await) — yields to event loop between writes without adding I/O overhead
+- [01-01]: Prepared statement in WriteQueue constructor, not per-call — single parse cost amortized across all events
+- [01-01]: SSE broadcast silently removes stale clients on error rather than throwing — prevents one dead client blocking all others
 
 ### Pending Todos
 
@@ -60,5 +64,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Roadmap created and written to disk. Ready to begin Phase 1 planning.
+Stopped at: Completed 01-01-PLAN.md — Node.js foundation modules bootstrapped and committed.
 Resume file: None
