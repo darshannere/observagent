@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Hook relay + event ingestion pipeline + SQLite store + SSE bus proven end-to-end
 - [x] **Phase 2: Live Event Dashboard** - Real-time tool call log, error highlights, latency per call, unified live screen
-- [ ] **Phase 3: Cost and Token Tracking** - JSONL watcher, token usage display, live cost meter, budget alerts
+- [x] **Phase 3: Cost and Token Tracking** - JSONL watcher, token usage display, live cost meter, budget alerts
 - [ ] **Phase 4: Multi-Agent Observability** - Agent tree visualization, per-agent cost breakdown, stuck-agent detection
 - [ ] **Phase 5: Session History and Discovery** - Session list, filter by date/cost/model/error, JSONL/CSV export
 - [ ] **Phase 6: CLI and Zero-Config Setup** - npx observagent init, observagent start, observagent doctor
@@ -70,10 +70,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — SQLite schema extension (session_cost + observagent_config tables) + costEngine.js (pricing, cost formula, dedup rule) + jsonlWatcher.js (auto-discovery, file watching, SSE broadcast)
-- [ ] 03-02-PLAN.md — API routes (/api/cost, /api/config GET+POST) + server.js wiring (startJsonlWatcher on startup)
-- [ ] 03-03-PLAN.md — Frontend cost panel: CSS + HTML structure + JS (hydration, SSE live updates, threshold inputs, alert banner)
-- [ ] 03-04-PLAN.md — Human verification: visual confirmation of cost panel, context fill bar, budget alert, threshold persistence
+- [x] 03-01-PLAN.md — SQLite schema extension (session_cost + observagent_config tables) + costEngine.js (pricing, cost formula, dedup rule) + jsonlWatcher.js (auto-discovery, file watching, SSE broadcast)
+- [x] 03-02-PLAN.md — API routes (/api/cost, /api/config GET+POST) + server.js wiring (startJsonlWatcher on startup)
+- [x] 03-03-PLAN.md — Frontend cost panel: CSS + HTML structure + JS (hydration, SSE live updates, threshold inputs, alert banner)
+- [x] 03-04-PLAN.md — Human verification: visual confirmation of cost panel, context fill bar, budget alert, threshold persistence
 
 ### Phase 4: Multi-Agent Observability
 **Goal**: Developers running multi-agent workflows can see the full agent hierarchy, know which agent is costing the most, and be alerted when an agent appears stuck
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-02-26 |
 | 2. Live Event Dashboard | 4/4 | Complete   | 2026-02-26 |
-| 3. Cost and Token Tracking | 2/4 | In Progress|  |
+| 3. Cost and Token Tracking | 4/4 | Complete | 2026-02-26 |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |
 | 5. Session History and Discovery | 0/TBD | Not started | - |
 | 6. CLI and Zero-Config Setup | 0/TBD | Not started | - |
