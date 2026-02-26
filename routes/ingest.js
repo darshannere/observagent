@@ -27,7 +27,7 @@ export async function ingestRoutes(fastify, options) {
       tool_call_id: raw.tool_call_id || null,
       timestamp:    Date.now(),
       duration_ms:  null,
-      exit_status:  null,
+      exit_status:  raw.exit_status ?? null,
     };
 
     // PreToolUse/PostToolUse pairing — duration_ms computed here, BEFORE broadcast, so SSE clients receive final value
