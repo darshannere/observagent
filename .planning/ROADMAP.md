@@ -32,12 +32,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A browser tab connected to the SSE endpoint receives the event without page refresh
   4. Server returns 202 before any database write occurs (validated by log order)
   5. SQLite runs in WAL mode with a write queue — concurrent events from parallel agents do not produce BUSY errors
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [x] 01-01-PLAN.md — Node.js scaffold + SQLite schema (WAL mode) + write queue + SSE client registry
 - [x] 01-02-PLAN.md — Hook relay script (relay.py): fire-and-forget, silent fail, 500ms timeout
 - [x] 01-03-PLAN.md — Fastify server + /ingest route (202-before-write) + /events SSE route + E2E verification
+- [ ] 01-04-PLAN.md — Gap closure: register relay.py in ~/.claude/settings.json (PreToolUse + PostToolUse)
 
 ### Phase 2: Live Event Dashboard
 **Goal**: Developers can watch their Claude Code session live — every tool call logged in order, failures highlighted, and per-call latency visible on a single screen
