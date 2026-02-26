@@ -13,7 +13,7 @@ ObservAgent is built in seven phases that follow the only sensible order: prove 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Hook relay + event ingestion pipeline + SQLite store + SSE bus proven end-to-end
-- [ ] **Phase 2: Live Event Dashboard** - Real-time tool call log, error highlights, latency per call, unified live screen
+- [x] **Phase 2: Live Event Dashboard** - Real-time tool call log, error highlights, latency per call, unified live screen
 - [ ] **Phase 3: Cost and Token Tracking** - JSONL watcher, token usage display, live cost meter, budget alerts
 - [ ] **Phase 4: Multi-Agent Observability** - Agent tree visualization, per-agent cost breakdown, stuck-agent detection
 - [ ] **Phase 5: Session History and Discovery** - Session list, filter by date/cost/model/error, JSONL/CSV export
@@ -52,9 +52,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Backend: pendingCalls pairing Map in ingest.js + dashboard route (GET /) + hydration API (GET /api/events)
-- [ ] 02-02-PLAN.md — Frontend: complete public/index.html dashboard (4-panel dark layout, SSE log, timers, toasts, hydration)
-- [ ] 02-03-PLAN.md — Human verification: end-to-end visual confirmation of Phase 2 dashboard
+- [x] 02-01-PLAN.md — Backend: pendingCalls pairing Map in ingest.js + dashboard route (GET /) + hydration API (GET /api/events)
+- [x] 02-02-PLAN.md — Frontend: complete public/index.html dashboard (4-panel dark layout, SSE log, timers, toasts, hydration)
+- [x] 02-03-PLAN.md — Human verification: end-to-end visual confirmation of Phase 2 dashboard
 
 ### Phase 3: Cost and Token Tracking
 **Goal**: Developers can see exactly what a session costs in dollars and tokens, with real-time updates and a warning before they burn through their budget
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-02-26 |
-| 2. Live Event Dashboard | 1/3 | In Progress|  |
+| 2. Live Event Dashboard | 3/3 | Complete | 2026-02-26 |
 | 3. Cost and Token Tracking | 0/TBD | Not started | - |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |
 | 5. Session History and Discovery | 0/TBD | Not started | - |
