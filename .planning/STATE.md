@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-02-26T18:59:36Z"
+last_updated: "2026-02-26T22:04:04Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 13
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 4 in progress — 04-01 complete (agent_nodes backend), remaining plans: agent tree UI, per-agent cost, stuck detection
+**Current focus:** Phase 4 in progress — 04-01 and 04-02 complete, remaining plans: agent tree UI (04-03), stuck detection (04-04)
 
 ## Current Position
 
 Phase: 04-multi-agent-observability
-Plan: 01 of N complete
-Status: Phase 4 In Progress — 04-01 complete (agent_nodes backend, relay extension, /api/agents endpoint)
-Last activity: 2026-02-26 — Completed 04-01 (agent_nodes schema, SubagentStart/SubagentStop handlers, /api/agents hydration endpoint)
+Plan: 02 of N complete
+Status: Phase 4 In Progress — 04-02 complete (per-agent cost via composite primary key and subagent JSONL discovery)
+Last activity: 2026-02-26 — Completed 04-02 (session_cost composite PK, subagent JSONL discovery, agentId in SSE events)
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 | Phase 03-cost-and-token-tracking P02 | ~4min | 2 tasks | 2 files |
 | Phase 03-cost-and-token-tracking P03 | 2min | 2 tasks | 1 files |
 | Phase 04-multi-agent-observability P01 | ~8min | 2 tasks | 5 files |
+| Phase 04-multi-agent-observability P02 | ~2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,10 @@ Recent decisions affecting current work:
 - [04-01]: Early return after SubagentStart/SubagentStop handlers in setImmediate — explicit guard ensures agent events never reach writeQueue.enqueue()
 - [04-01]: upsertAgentNode uses ON CONFLICT DO UPDATE — handles re-spawn of same agent_id gracefully without crashing (idempotent)
 - [04-01]: relay.py extracts agent_transcript_path for SubagentStop — stored for future per-agent cost correlation in Phase 4.3
+- [04-02]: Composite PRIMARY KEY (session_id, agent_id) with agent_id DEFAULT '' — parent sessions use empty string, subagents use hex extracted by stripping 'agent-' prefix
+- [04-02]: sessionIdOverride parameter for processFile — subagent JSONL filename is agent-{hex}.jsonl but DB session_id must be parent session directory name
+- [04-02]: Silent continue on readdir(subagentsDir) ENOENT — subagents/ is optional; crashing or logging would pollute startup output
+- [04-02]: agentId field in cost_update SSE event — frontend can now attribute cost to individual agent tree rows; empty string for parent sessions is intentional sentinel
 
 ### Pending Todos
 
@@ -112,5 +117,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 04-01-PLAN.md — agent_nodes backend, relay.py SubagentStart/SubagentStop, /api/agents endpoint. All integration tests pass. Ready for 04-02 (agent tree rendering).
+Stopped at: Completed 04-02-PLAN.md — per-agent cost tracking via composite (session_id, agent_id) PK, subagent JSONL discovery, agentId in cost_update SSE events. Ready for 04-03 (agent tree UI).
 Resume file: None
