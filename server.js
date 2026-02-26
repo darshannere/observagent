@@ -4,6 +4,8 @@ import { initDb } from './db/schema.js';
 import { WriteQueue } from './lib/writeQueue.js';
 import { ingestRoutes } from './routes/ingest.js';
 import { sseRoutes } from './routes/sse.js';
+import { dashboardRoutes } from './routes/dashboard.js';
+import { apiRoutes } from './routes/api.js';
 
 const fastify = Fastify({ logger: false }); // manual stdout logging; Fastify's built-in logger is disabled
 
@@ -20,6 +22,8 @@ fastify.register(FastifySSEPlugin);
 // Register routes — pass writeQueue to ingest route via options
 fastify.register(ingestRoutes, { writeQueue });
 fastify.register(sseRoutes);
+fastify.register(dashboardRoutes);
+fastify.register(apiRoutes, { db });
 
 // Start server
 fastify.listen({ port: 4999, host: '127.0.0.1' }, (err) => {
