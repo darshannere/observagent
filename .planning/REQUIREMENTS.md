@@ -83,32 +83,32 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase ? | Pending |
-| SETUP-02 | Phase ? | Pending |
-| SETUP-03 | Phase ? | Pending |
-| SETUP-04 | Phase ? | Pending |
-| INGEST-01 | Phase ? | Pending |
-| INGEST-02 | Phase ? | Pending |
-| INGEST-03 | Phase ? | Pending |
-| COST-01 | Phase ? | Pending |
-| COST-02 | Phase ? | Pending |
-| COST-03 | Phase ? | Pending |
-| COST-04 | Phase ? | Pending |
-| AGENT-01 | Phase ? | Pending |
-| AGENT-02 | Phase ? | Pending |
-| AGENT-03 | Phase ? | Pending |
-| HIST-01 | Phase ? | Pending |
-| HIST-02 | Phase ? | Pending |
-| HIST-03 | Phase ? | Pending |
-| DASH-01 | Phase ? | Pending |
-| DASH-02 | Phase ? | Pending |
-| DASH-03 | Phase ? | Pending |
+| SETUP-01 | Phase 6 | Pending |
+| SETUP-02 | Phase 3 | Pending |
+| SETUP-03 | Phase 6 | Pending |
+| SETUP-04 | Phase 6 | Pending |
+| INGEST-01 | Phase 1 | Pending |
+| INGEST-02 | Phase 2 | Pending |
+| INGEST-03 | Phase 2 | Pending |
+| COST-01 | Phase 3 | Pending |
+| COST-02 | Phase 3 | Pending |
+| COST-03 | Phase 3 | Pending |
+| COST-04 | Phase 3 | Pending |
+| AGENT-01 | Phase 4 | Pending |
+| AGENT-02 | Phase 4 | Pending |
+| AGENT-03 | Phase 4 | Pending |
+| HIST-01 | Phase 5 | Pending |
+| HIST-02 | Phase 5 | Pending |
+| HIST-03 | Phase 5 | Pending |
+| DASH-01 | Phase 2 | Pending |
+| DASH-02 | Phase 2 | Pending |
+| DASH-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 after initial definition*
+*Last updated: 2026-02-26 — traceability filled after roadmap creation*
