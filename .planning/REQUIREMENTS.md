@@ -10,7 +10,7 @@
 ### Setup & Installation
 
 - [ ] **SETUP-01**: User can install ObservAgent hooks with a single command (`npx observagent init`) that automatically configures `~/.claude/settings.json`
-- [ ] **SETUP-02**: ObservAgent auto-detects session files in `~/.claude/projects/` without manual path configuration
+- [x] **SETUP-02**: ObservAgent auto-detects session files in `~/.claude/projects/` without manual path configuration
 - [ ] **SETUP-03**: User can run `observagent doctor` to diagnose installation issues (is server running? are hooks installed? are JSONL files found?)
 - [ ] **SETUP-04**: User can start the server and open the dashboard with a single command (`observagent start`)
 
@@ -22,9 +22,9 @@
 
 ### Cost & Token Tracking
 
-- [ ] **COST-01**: User can see token usage (input, output, cache read, cache write) per agent and per session
-- [ ] **COST-02**: User can see context window fill percentage per agent with a visual warning at 80%+
-- [ ] **COST-03**: User can see a live running dollar cost total updating in real-time as agents work
+- [x] **COST-01**: User can see token usage (input, output, cache read, cache write) per agent and per session
+- [x] **COST-02**: User can see context window fill percentage per agent with a visual warning at 80%+
+- [x] **COST-03**: User can see a live running dollar cost total updating in real-time as agents work
 - [ ] **COST-04**: User can set a session cost budget threshold and receive an in-dashboard alert when exceeded
 
 ### Multi-Agent Observability
@@ -84,15 +84,15 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SETUP-01 | Phase 6 | Pending |
-| SETUP-02 | Phase 3 | Pending |
+| SETUP-02 | Phase 3 | Complete |
 | SETUP-03 | Phase 6 | Pending |
 | SETUP-04 | Phase 6 | Pending |
 | INGEST-01 | Phase 1 | Complete |
 | INGEST-02 | Phase 2 | Complete |
 | INGEST-03 | Phase 2 | Complete |
-| COST-01 | Phase 3 | Pending |
-| COST-02 | Phase 3 | Pending |
-| COST-03 | Phase 3 | Pending |
+| COST-01 | Phase 3 | Complete |
+| COST-02 | Phase 3 | Complete |
+| COST-03 | Phase 3 | Complete |
 | COST-04 | Phase 3 | Pending |
 | AGENT-01 | Phase 4 | Pending |
 | AGENT-02 | Phase 4 | Pending |

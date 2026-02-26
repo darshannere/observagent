@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: full-observability-stack
-status: active
-last_updated: "2026-02-26"
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-26T17:57:33.034Z"
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 12
+  completed_plans: 9
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 2 complete — Phase 3 (Usage/Cost Tracking) is next
+**Current focus:** Phase 3 in progress — Plan 01 complete, Plans 02-04 remaining
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Milestone v1.1 started — requirements phase
-Last activity: 2026-02-26 — Milestone v1.1 started (phases 3–7)
+Phase: 03-cost-and-token-tracking
+Plan: 01 of 4 complete
+Status: Active — JSONL ingestion backbone complete
+Last activity: 2026-02-26 — Completed 03-01 (schema + costEngine + jsonlWatcher)
 
 Progress: [████████░░] 50%
 
@@ -48,6 +48,7 @@ Progress: [████████░░] 50%
 - Trend: stable, fast
 
 *Updated after each plan completion*
+| Phase 03-cost-and-token-tracking P01 | 134 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ Recent decisions affecting current work:
 - [02-02]: 60s orphan timer protection on client — matches server-side 5-min TTL; prevents permanent stuck in-progress rows
 - [Phase 02-live-event-dashboard]: Claude Code 2.1.59 PostToolUse payload has no exit_status field; Bash stderr used as error proxy (non-empty = 1, empty = 0); non-Bash tools return None
 - [Phase 02-live-event-dashboard]: Nullish coalescing (raw.exit_status ?? null) required in ingest.js to preserve exit_status=0 as valid success value; || null would coerce 0 to null, breaking isError check
+- [Phase 03-cost-and-token-tracking]: stop_reason null dedup rule: skip assistant records where stop_reason is null/undefined to prevent double-counting streaming-start duplicates
+- [Phase 03-cost-and-token-tracking]: Lazy prepared statement in jsonlWatcher: upsertStmt created on first processFile call since db is only available after startJsonlWatcher(db) is called
+- [Phase 03-cost-and-token-tracking]: 300ms debounce per JSONL file prevents CPU thrash during active Claude Code sessions writing JSONL rapidly
 
 ### Pending Todos
 
@@ -91,12 +95,11 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 3]: Exact JSONL usage field schema not confirmed — inspect ~/.claude/projects/ on a real session before writing the parser
 - [Phase 4]: SubagentStop payload unknown — does it include child session_id? Inspect real hook payload before coding hierarchy correlation. This is the highest-impact unknown in the project.
 - [Phase 6]: ~/.claude/settings.json hook configuration schema must be verified before writing auto-install code — read existing config and merge, never overwrite
 
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 02-04-PLAN.md — exit_status forwarding gap closure complete, INGEST-03 human-verified. Phase 2 fully done. Next: Phase 3 (Usage/Cost Tracking).
+Stopped at: Completed 03-01-PLAN.md — JSONL ingestion backbone complete (schema extension, costEngine, jsonlWatcher). Next: Phase 3 Plan 02.
 Resume file: None
