@@ -76,6 +76,16 @@ def main():
             "exit_status":  _derive_exit_status(payload),
         }
 
+        # Extract additional fields for SubagentStart/SubagentStop
+        hook_event = payload.get("hook_event_name", "")
+        if hook_event == "SubagentStart":
+            event["agent_id"]   = payload.get("agent_id", "")
+            event["agent_type"] = payload.get("agent_type", "")
+        elif hook_event == "SubagentStop":
+            event["agent_id"]              = payload.get("agent_id", "")
+            event["agent_type"]            = payload.get("agent_type", "")
+            event["agent_transcript_path"] = payload.get("agent_transcript_path", "")
+
         body = json.dumps(event).encode("utf-8")
         req = urllib.request.Request(
             INGEST_URL,

@@ -37,9 +37,21 @@ export function initDb(path = './observagent.db') {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS agent_nodes (
+      agent_id          TEXT PRIMARY KEY,
+      parent_session_id TEXT NOT NULL,
+      agent_type        TEXT NOT NULL DEFAULT '',
+      state             TEXT NOT NULL DEFAULT 'active',
+      spawned_at        INTEGER NOT NULL,
+      last_activity_ts  INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_nodes_parent
+      ON agent_nodes(parent_session_id);
   `);
 
   console.log('[db] initialized — WAL mode active');
   console.log('[db] session_cost and observagent_config tables ready');
+  console.log('[db] agent_nodes table ready');
   return db;
 }
