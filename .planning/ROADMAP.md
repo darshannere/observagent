@@ -67,7 +67,13 @@ Plans:
   3. User can see a running dollar cost total that updates in real-time as agents make API calls, using model-specific pricing rates
   4. User can set a cost budget threshold and see a visible in-dashboard alert when the session cost exceeds that threshold
   5. ObservAgent automatically discovers JSONL session files in ~/.claude/projects/ with no manual path configuration required
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — SQLite schema extension (session_cost + observagent_config tables) + costEngine.js (pricing, cost formula, dedup rule) + jsonlWatcher.js (auto-discovery, file watching, SSE broadcast)
+- [ ] 03-02-PLAN.md — API routes (/api/cost, /api/config GET+POST) + server.js wiring (startJsonlWatcher on startup)
+- [ ] 03-03-PLAN.md — Frontend cost panel: CSS + HTML structure + JS (hydration, SSE live updates, threshold inputs, alert banner)
+- [ ] 03-04-PLAN.md — Human verification: visual confirmation of cost panel, context fill bar, budget alert, threshold persistence
 
 ### Phase 4: Multi-Agent Observability
 **Goal**: Developers running multi-agent workflows can see the full agent hierarchy, know which agent is costing the most, and be alerted when an agent appears stuck
@@ -118,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-02-26 |
 | 2. Live Event Dashboard | 4/4 | Complete   | 2026-02-26 |
-| 3. Cost and Token Tracking | 0/TBD | Not started | - |
+| 3. Cost and Token Tracking | 0/4 | Planned | - |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |
 | 5. Session History and Discovery | 0/TBD | Not started | - |
 | 6. CLI and Zero-Config Setup | 0/TBD | Not started | - |
