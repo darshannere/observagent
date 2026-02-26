@@ -1,0 +1,7 @@
+node_modules/
+observagent.db
+observagent.db-shm
+observagent.db-wal
+*.db
+*.db-shm
+*.db-wal
