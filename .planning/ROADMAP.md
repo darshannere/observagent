@@ -38,7 +38,7 @@ Plans:
 - [x] 01-01-PLAN.md — Node.js scaffold + SQLite schema (WAL mode) + write queue + SSE client registry
 - [x] 01-02-PLAN.md — Hook relay script (relay.py): fire-and-forget, silent fail, 500ms timeout
 - [x] 01-03-PLAN.md — Fastify server + /ingest route (202-before-write) + /events SSE route + E2E verification
-- [ ] 01-04-PLAN.md — Gap closure: register relay.py in ~/.claude/settings.json (PreToolUse + PostToolUse)
+- [x] 01-04-PLAN.md — Gap closure: register relay.py in ~/.claude/settings.json (PreToolUse + PostToolUse)
 
 ### Phase 2: Live Event Dashboard
 **Goal**: Developers can watch their Claude Code session live — every tool call logged in order, failures highlighted, and per-call latency visible on a single screen
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete | 2026-02-26 |
+| 1. Foundation | 4/4 | Complete | 2026-02-26 |
 | 2. Live Event Dashboard | 0/TBD | Not started | - |
 | 3. Cost and Token Tracking | 0/TBD | Not started | - |
 | 4. Multi-Agent Observability | 0/TBD | Not started | - |

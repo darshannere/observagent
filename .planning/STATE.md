@@ -9,28 +9,28 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation) — gap closure in progress
-Plan: 04 (gap closure) — Task 1 complete, paused at Task 2 checkpoint (human-verify)
-Status: Awaiting human verification that relay.py hooks produce DB rows in observagent.db
-Last activity: 2026-02-26 — Plan 01-04 Task 1 complete; relay.py registered in ~/.claude/settings.json PreToolUse + PostToolUse; paused at human-verify checkpoint
+Phase: 1 of 7 (Foundation) — COMPLETE
+Plan: 04 (gap closure) — COMPLETE (all tasks verified)
+Status: Phase 1 done. Ready for Phase 2 (Dashboard UI).
+Last activity: 2026-02-26 — Plan 01-04 fully complete; human verification confirmed DB rows from real tool calls; INGEST-01 satisfied
 
-Progress: [███░░░░░░░] 15%
+Progress: [████░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: ~3 min/plan
-- Total execution time: ~9 min
+- Total execution time: ~12 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3 | ~9 min | ~3 min |
+| 01-foundation | 4 | ~12 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min)
+- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min), 01-04 (3min)
 - Trend: stable, fast
 
 *Updated after each plan completion*
@@ -75,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 01-04-PLAN.md Task 1 done (relay.py registered in settings.json), paused at Task 2 human-verify checkpoint. Resume after confirming DB rows appear from real tool calls.
+Stopped at: 01-04-PLAN.md fully complete — both tasks done, human verification approved (DB jumped 14->65 events, PreToolUse+PostToolUse firing, INGEST-01 satisfied). Phase 1 complete. Ready for Phase 2.
 Resume file: None

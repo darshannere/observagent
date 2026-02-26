@@ -52,7 +52,7 @@ completed: 2026-02-26
 - **Duration:** ~3 min
 - **Started:** 2026-02-26T07:22:31Z
 - **Completed:** 2026-02-26T07:25:00Z
-- **Tasks:** 1 of 2 complete (Task 2 is human-verify checkpoint — awaiting manual verification)
+- **Tasks:** 2 of 2 complete (Task 1 auto + Task 2 human-verify checkpoint — approved)
 - **Files modified:** 1 (~/.claude/settings.json)
 
 ## Accomplishments
@@ -60,12 +60,15 @@ completed: 2026-02-26
 - Appended relay.py as a second matcher object to PostToolUse array (gsd-context-monitor.js preserved unchanged)
 - Automated verification script confirms: 1 PreToolUse matcher, 2 PostToolUse matchers, SessionStart intact
 - Full pipeline is wired: Claude Code tool call -> relay.py -> POST /ingest -> SQLite write -> SSE broadcast
+- Human verification confirmed: DB jumped from 14 to 65 events after settings.json update; both PreToolUse and PostToolUse events firing in live session (378af7a9-691); Bash and Task tool calls both captured; hooks fire dynamically without requiring a new session
+- All 4 must-have truths satisfied: INGEST-01 fully complete
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Register relay.py in ~/.claude/settings.json for PreToolUse and PostToolUse** - (chore) — see commit below
+1. **Task 1: Register relay.py in ~/.claude/settings.json for PreToolUse and PostToolUse** - `2b8c203` (chore)
+2. **Task 2: Human verify real tool call triggers relay.py and produces DB row** - checkpoint approved (verification-only, no code changes)
 
 **Plan metadata:** (docs: complete plan) — see final commit
 
@@ -87,31 +90,14 @@ None.
 
 ## User Setup Required
 
-**Task 2 (human-verify checkpoint) requires manual verification:**
-
-1. Ensure the observagent server is running on port 4999:
-   ```bash
-   curl -s http://localhost:4999/ingest -X POST -H "Content-Type: application/json" \
-     -d '{"test":"ping"}' -o /dev/null -w "%{http_code}"
-   ```
-   Expected: 202
-
-2. Note current row count:
-   ```bash
-   cd /Users/darshannere/claude/observagent && node -e "const db=require('better-sqlite3')('./observagent.db'); console.log(db.prepare('SELECT COUNT(*) as n FROM events').get().n)"
-   ```
-
-3. Run any Claude Code tool call in a new session (the hooks activate in the NEXT session after settings.json is updated)
-
-4. Check row count increased by 2 (one PreToolUse, one PostToolUse):
-   ```bash
-   cd /Users/darshannere/claude/observagent && node -e "const db=require('better-sqlite3')('./observagent.db'); console.log(db.prepare('SELECT * FROM events ORDER BY id DESC LIMIT 4').all())"
-   ```
+None - no external service configuration required. All verification completed.
 
 ## Next Phase Readiness
-- Hook registration complete — INGEST-01 configuration side fully done
-- Human verification (Task 2 checkpoint) needed to confirm end-to-end integration in a live session
-- Once verified, Phase 1 gap closure is complete and Phase 2 (Dashboard UI) can begin
+- Phase 1 Foundation fully complete — all 4 plans (01-01 through 01-04) executed and verified
+- INGEST-01 fully satisfied: Claude Code tool events captured automatically in real-time via PreToolUse and PostToolUse hooks
+- Server running on port 4999 with SQLite persistence and SSE broadcast ready
+- Live event stream at http://localhost:4999/events now populated by real Claude Code tool calls
+- Phase 2 (Dashboard UI) can begin immediately — live data flowing, no blockers
 
 ---
 *Phase: 01-foundation*
