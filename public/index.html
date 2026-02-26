@@ -1,1 +1,418 @@
-<!DOCTYPE html><html><body><p>Dashboard loading...</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ObservAgent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 1px;
+      height: 100vh;
+      background: var(--border);
+    }
+
+    .panel {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .log-row {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 2px 4px;
+      display: flex;
+      gap: 8px;
+      border-radius: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      border-left: 3px solid transparent;
+    }
+
+    .log-row.error {
+      background: rgba(248, 81, 73, 0.12);
+      border-left-color: var(--red);
+    }
+
+    .log-row.in-progress {
+      opacity: 0.8;
+    }
+
+    .tool-name {
+      color: var(--text);
+      min-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ts {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .duration {
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .duration.green {
+      color: var(--green);
+    }
+
+    .duration.yellow {
+      color: var(--yellow);
+    }
+
+    .duration.red {
+      color: var(--red);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .in-progress .duration {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .agent-section {
+      margin-bottom: 8px;
+    }
+
+    .agent-section summary {
+      cursor: pointer;
+      padding: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      user-select: none;
+      list-style: none;
+      font-family: var(--mono);
+    }
+
+    .agent-section summary::before {
+      content: '\25B6 ';
+      font-size: 9px;
+    }
+
+    details[open] > summary::before {
+      content: '\25BC ';
+    }
+
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      gap: 6px;
+      height: 100%;
+    }
+
+    .placeholder .phase-label {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="panel" id="panel-log">
+      <div class="panel-header">Tool Call Log</div>
+      <div class="panel-body" id="tool-log"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Agent Tree</div>
+      <div class="panel-body">
+        <div class="placeholder">
+          <span>Agent Tree</span>
+          <span class="phase-label">Available in Phase 4</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Cost Meters</div>
+      <div class="panel-body">
+        <div class="placeholder">
+          <span>Cost &amp; Token Tracking</span>
+          <span class="phase-label">Available in Phase 3</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Health</div>
+      <div class="panel-body">
+        <div class="placeholder">
+          <span>Health Indicators</span>
+          <span class="phase-label">Available in Phase 4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    const agentSections = new Map();   // session_id -> container element (div inside details)
+    const inProgressTimers = new Map(); // tool_call_id -> { intervalId, killTimer, row, durEl }
+
+    // --- Helpers ---
+    function formatTs(tsMs) {
+      return new Date(tsMs).toLocaleTimeString('en-US', { hour12: false });
+    }
+
+    function formatDuration(ms) {
+      if (ms === null || ms === undefined) return '\u2014';
+      return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    function latencyClass(ms) {
+      if (ms === null || ms === undefined) return '';
+      if (ms < 500) return 'green';
+      if (ms <= 2000) return 'yellow';
+      return 'red';
+    }
+
+    // --- Auto-scroll ---
+    const logContainer = document.getElementById('tool-log');
+    let userScrolledUp = false;
+    logContainer.addEventListener('scroll', () => {
+      const atBottom = logContainer.scrollHeight - logContainer.scrollTop <= logContainer.clientHeight + 60;
+      userScrolledUp = !atBottom;
+    });
+
+    function scrollToBottom() {
+      if (!userScrolledUp) {
+        requestAnimationFrame(() => { logContainer.scrollTop = logContainer.scrollHeight; });
+      }
+    }
+
+    // --- Agent sections ---
+    function getAgentSection(sessionId) {
+      if (agentSections.has(sessionId)) return agentSections.get(sessionId);
+
+      const details = document.createElement('details');
+      details.open = true;
+      details.className = 'agent-section';
+      details.dataset.sessionId = sessionId;
+
+      const summary = document.createElement('summary');
+      summary.textContent = `Agent ${sessionId.slice(0, 8)}`;
+
+      const container = document.createElement('div');
+      details.appendChild(summary);
+      details.appendChild(container);
+      logContainer.appendChild(details);
+      agentSections.set(sessionId, container);
+      scrollToBottom();
+      return container;
+    }
+
+    // --- Row creation ---
+    function createRow(event) {
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      if (event.hook_type === 'PreToolUse') row.classList.add('in-progress');
+
+      const toolEl = document.createElement('span');
+      toolEl.className = 'tool-name';
+      // Error rows: show "toolname — error" if exit_status is non-null non-zero
+      const isError = event.exit_status !== null && event.exit_status !== undefined && event.exit_status !== 0;
+      toolEl.textContent = isError ? `${event.tool_name} \u2014 error` : event.tool_name;
+      if (isError) row.classList.add('error');
+
+      const tsEl = document.createElement('span');
+      tsEl.className = 'ts';
+      tsEl.textContent = formatTs(event.timestamp);
+
+      const durEl = document.createElement('span');
+      durEl.className = `duration ${latencyClass(event.duration_ms)}`;
+      durEl.textContent = event.duration_ms !== null ? formatDuration(event.duration_ms) : '\u2026';
+
+      row.appendChild(toolEl);
+      row.appendChild(tsEl);
+      row.appendChild(durEl);
+      return { row, durEl };
+    }
+
+    // --- Live event rendering ---
+    function appendRow(event) {
+      if (event.hook_type === 'PreToolUse') {
+        const { row, durEl } = createRow(event);
+        if (event.tool_call_id) {
+          const startMs = event.timestamp;
+          const intervalId = setInterval(() => {
+            const elapsed = Date.now() - startMs;
+            durEl.textContent = formatDuration(elapsed) + '\u2026';
+            durEl.className = 'duration'; // no color while in progress
+          }, 100);
+          // Cleanup orphaned timers after 60s (stuck tool protection)
+          const killTimer = setTimeout(() => {
+            if (inProgressTimers.has(event.tool_call_id)) {
+              clearInterval(intervalId);
+              inProgressTimers.delete(event.tool_call_id);
+              durEl.textContent = '60s+ (stuck)';
+              durEl.className = 'duration red';
+              row.classList.remove('in-progress');
+            }
+          }, 60_000);
+          inProgressTimers.set(event.tool_call_id, { intervalId, killTimer, row, durEl });
+        }
+        getAgentSection(event.session_id).appendChild(row);
+        scrollToBottom();
+
+      } else if (event.hook_type === 'PostToolUse') {
+        if (event.tool_call_id && inProgressTimers.has(event.tool_call_id)) {
+          // Update existing in-progress row in-place
+          const pending = inProgressTimers.get(event.tool_call_id);
+          clearInterval(pending.intervalId);
+          clearTimeout(pending.killTimer);
+          inProgressTimers.delete(event.tool_call_id);
+
+          pending.durEl.textContent = formatDuration(event.duration_ms);
+          pending.durEl.className = `duration ${latencyClass(event.duration_ms)}`;
+          pending.row.classList.remove('in-progress');
+
+          const isError = event.exit_status !== null && event.exit_status !== undefined && event.exit_status !== 0;
+          if (isError) {
+            pending.row.classList.add('error');
+            pending.row.querySelector('.tool-name').textContent = `${event.tool_name} \u2014 error`;
+            showToast(`${event.tool_name} failed`);
+          }
+        } else {
+          // No matching PreToolUse row (pre-existing event or server restart) — render standalone
+          const { row } = createRow(event);
+          getAgentSection(event.session_id).appendChild(row);
+          scrollToBottom();
+        }
+      }
+    }
+
+    // --- Historical hydration (no timers — duration already known) ---
+    function renderHistoricalRow(event) {
+      // For history, skip standalone PreToolUse rows that have a matching PostToolUse
+      // Simple approach: render all rows as final (no timers)
+      const { row } = createRow(event);
+      getAgentSection(event.session_id).appendChild(row);
+    }
+
+    async function hydrate() {
+      try {
+        const res = await fetch('/api/events');
+        if (!res.ok) return;
+        const events = await res.json();
+        // stmtAll returns DESC; reverse to chronological for display
+        const ordered = events.slice().reverse();
+        for (const e of ordered) {
+          renderHistoricalRow(e);
+        }
+        scrollToBottom();
+      } catch (e) {
+        console.warn('[hydrate] failed:', e.message);
+      }
+    }
+
+    // --- SSE subscription ---
+    function subscribeSSE() {
+      const es = new EventSource('/events');
+      es.onmessage = (e) => {
+        const event = JSON.parse(e.data);
+        if (event.type === 'connected') return; // skip initial handshake
+        appendRow(event);
+      };
+      es.onerror = () => {
+        console.warn('[sse] connection lost \u2014 browser will auto-reconnect');
+      };
+    }
+
+    // --- Toast notifications ---
+    let toastContainer = null;
+    function ensureToastContainer() {
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.style.cssText = 'position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:9999;';
+        document.body.appendChild(toastContainer);
+      }
+      return toastContainer;
+    }
+
+    function showToast(message) {
+      const container = ensureToastContainer();
+      const toast = document.createElement('div');
+      toast.style.cssText = [
+        'background:#1f1f1f',
+        'border:1px solid var(--red)',
+        'color:var(--text)',
+        'padding:10px 14px',
+        'border-radius:6px',
+        'font-size:12px',
+        'font-family:var(--mono)',
+        'opacity:0',
+        'transition:opacity 0.2s',
+        'max-width:280px',
+        'word-break:break-word'
+      ].join(';');
+      toast.textContent = message;
+      container.appendChild(toast);
+      requestAnimationFrame(() => { toast.style.opacity = '1'; });
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 200);
+      }, 5000);
+    }
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      await hydrate();
+      subscribeSSE();
+    });
+  </script>
+</body>
+</html>
