@@ -55,7 +55,7 @@ completed: 2026-02-26
 - **Duration:** ~15 min
 - **Started:** 2026-02-26T08:43:00Z
 - **Completed:** 2026-02-26T09:00:00Z
-- **Tasks:** 2 auto-completed, 1 checkpoint (human-verify)
+- **Tasks:** 3 (2 auto, 1 human-verify — all complete)
 - **Files modified:** 2
 
 ## Accomplishments
@@ -70,9 +70,9 @@ Each task was committed atomically:
 
 1. **Task 1: Confirm exit_status field name and fix relay.py** - `0faf77e` (feat)
 2. **Task 2: Fix ingest.js to read exit_status from request body** - `e63d291` (feat)
-3. **Task 3: Human verification** - pending checkpoint
+3. **Task 3: Human verification — error highlighting works in live session** - human-approved (no code changes; checkpoint passed)
 
-**Plan metadata:** pending final commit
+**Plan metadata:** (final commit — this SUMMARY.md update)
 
 ## Files Created/Modified
 
@@ -123,9 +123,11 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- hooks/relay.py: confirmed exists and contains _derive_exit_status() and exit_status in event dict
-- routes/ingest.js: confirmed contains raw.exit_status ?? null (no hardcoded null)
+- `hooks/relay.py`: confirmed exists and contains _derive_exit_status() and exit_status in event dict
+- `routes/ingest.js`: confirmed contains raw.exit_status ?? null (no hardcoded null)
+- `02-04-SUMMARY.md`: confirmed exists at .planning/phases/02-live-event-dashboard/
 - Commits 0faf77e (relay.py) and e63d291 (ingest.js) confirmed in git log
+- Task 3 human-verify: approved by user (error highlighting confirmed working in live session)
 
 ---
 *Phase: 02-live-event-dashboard*

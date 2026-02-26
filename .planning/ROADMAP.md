@@ -49,12 +49,13 @@ Plans:
   2. User can see failed tool calls visually distinguished (highlighted/colored) in the live log immediately when they occur
   3. User can see the latency (elapsed time) for each tool call displayed next to the call in the log
   4. Agent tree, cost meters, and health indicator areas are present on the screen (may show empty/placeholder state until later phases populate them)
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [x] 02-01-PLAN.md — Backend: pendingCalls pairing Map in ingest.js + dashboard route (GET /) + hydration API (GET /api/events)
 - [x] 02-02-PLAN.md — Frontend: complete public/index.html dashboard (4-panel dark layout, SSE log, timers, toasts, hydration)
 - [x] 02-03-PLAN.md — Human verification: end-to-end visual confirmation of Phase 2 dashboard
+- [x] 02-04-PLAN.md — Gap closure: exit_status forwarding pipeline (relay.py stderr derivation + ingest.js nullish coalescing)
 
 ### Phase 3: Cost and Token Tracking
 **Goal**: Developers can see exactly what a session costs in dollars and tokens, with real-time updates and a warning before they burn through their budget

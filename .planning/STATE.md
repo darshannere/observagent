@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T08:44:39.944Z"
+last_updated: "2026-02-26T08:50:48.837Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 2 — Dashboard UI (gap closure plan 04)
+**Current focus:** Phase 2 complete — Phase 3 (Usage/Cost Tracking) is next
 
 ## Current Position
 
-Phase: 2 of 7 (Live Event Dashboard) — gap closure in progress
-Plan: 04 (exit_status forwarding gap closure) — Tasks 1-2 complete; awaiting human verification (Task 3 checkpoint)
-Status: Tasks 1 and 2 committed. relay.py derives exit_status from Bash stderr; ingest.js reads raw.exit_status ?? null. Server running at http://localhost:4999.
-Last activity: 2026-02-26 — Plan 02-04 Tasks 1-2 complete; checkpoint:human-verify pending for INGEST-03 visual confirmation
+Phase: 2 of 7 (Live Event Dashboard) — COMPLETE (all 4 plans done, including gap closure)
+Plan: 04 (exit_status forwarding gap closure) — COMPLETE (human-verified 2026-02-26)
+Status: All Phase 2 plans complete. relay.py derives exit_status from Bash stderr; ingest.js reads raw.exit_status ?? null; INGEST-03 human-verified. Server running at http://localhost:4999.
+Last activity: 2026-02-26 — Plan 02-04 complete; INGEST-03 human-verified; Phase 2 fully done
 
-Progress: [████████░░] 40%
+Progress: [████████░░] 50%
 
 ## Performance Metrics
 
@@ -41,10 +41,10 @@ Progress: [████████░░] 40%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | ~12 min | ~3 min |
-| 02-live-event-dashboard | 3 | ~10 min | ~3.3 min |
+| 02-live-event-dashboard | 4 | ~25 min | ~6 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (5min), 01-04 (3min), 02-01 (5min), 02-02 (2min), 02-03 (3min)
+- Last 5 plans: 01-04 (3min), 02-01 (5min), 02-02 (2min), 02-03 (3min), 02-04 (15min)
 - Trend: stable, fast
 
 *Updated after each plan completion*
@@ -83,6 +83,7 @@ Recent decisions affecting current work:
 - [02-02]: hydrate() before subscribeSSE() — prevents duplicate events from race between history fetch and SSE stream
 - [02-02]: 60s orphan timer protection on client — matches server-side 5-min TTL; prevents permanent stuck in-progress rows
 - [Phase 02-live-event-dashboard]: Claude Code 2.1.59 PostToolUse payload has no exit_status field; Bash stderr used as error proxy (non-empty = 1, empty = 0); non-Bash tools return None
+- [Phase 02-live-event-dashboard]: Nullish coalescing (raw.exit_status ?? null) required in ingest.js to preserve exit_status=0 as valid success value; || null would coerce 0 to null, breaking isError check
 
 ### Pending Todos
 
@@ -97,5 +98,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 02-04-PLAN.md Tasks 1-2 complete (commits 0faf77e, e63d291) — relay.py exit_status derivation from Bash stderr, ingest.js raw.exit_status ?? null. Checkpoint:human-verify for Task 3. Human should open http://localhost:4999, trigger a Bash command that fails, and confirm red row styling and toast appear.
+Stopped at: Completed 02-04-PLAN.md — exit_status forwarding gap closure complete, INGEST-03 human-verified. Phase 2 fully done. Next: Phase 3 (Usage/Cost Tracking).
 Resume file: None
