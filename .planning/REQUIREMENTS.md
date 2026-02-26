@@ -29,9 +29,9 @@
 
 ### Multi-Agent Observability
 
-- [ ] **AGENT-01**: User can see the agent tree showing parent → child relationships created by Task tool spawns
-- [ ] **AGENT-02**: User can see cost (tokens + dollars) broken down per individual agent in a multi-agent run
-- [ ] **AGENT-03**: User can see a stuck-agent warning when an agent has had no tool activity for 60+ seconds
+- [x] **AGENT-01**: User can see the agent tree showing parent → child relationships created by Task tool spawns
+- [x] **AGENT-02**: User can see cost (tokens + dollars) broken down per individual agent in a multi-agent run
+- [x] **AGENT-03**: User can see a stuck-agent warning when an agent has had no tool activity for 60+ seconds
 
 ### Session History
 
@@ -94,9 +94,9 @@
 | COST-02 | Phase 3 | Complete |
 | COST-03 | Phase 3 | Complete |
 | COST-04 | Phase 3 | Complete |
-| AGENT-01 | Phase 4 | Pending |
-| AGENT-02 | Phase 4 | Pending |
-| AGENT-03 | Phase 4 | Pending |
+| AGENT-01 | Phase 4 | Complete |
+| AGENT-02 | Phase 4 | Complete |
+| AGENT-03 | Phase 4 | Complete |
 | HIST-01 | Phase 5 | Pending |
 | HIST-02 | Phase 5 | Pending |
 | HIST-03 | Phase 5 | Pending |

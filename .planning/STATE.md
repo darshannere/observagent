@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-26T18:21:11.066Z"
+status: in_progress
+last_updated: "2026-02-26T18:59:36Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 13
+  completed_plans: 13
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 3 complete — all 4 plans done and human-verified
+**Current focus:** Phase 4 in progress — 04-01 complete (agent_nodes backend), remaining plans: agent tree UI, per-agent cost, stuck detection
 
 ## Current Position
 
-Phase: 03-cost-and-token-tracking
-Plan: 04 of 4 complete
-Status: Phase 3 Complete — human-verified cost panel, all COST-01 through COST-04 requirements met
-Last activity: 2026-02-26 — Completed 03-04 (human verification of cost panel — all six checks passed)
+Phase: 04-multi-agent-observability
+Plan: 01 of N complete
+Status: Phase 4 In Progress — 04-01 complete (agent_nodes backend, relay extension, /api/agents endpoint)
+Last activity: 2026-02-26 — Completed 04-01 (agent_nodes schema, SubagentStart/SubagentStop handlers, /api/agents hydration endpoint)
 
 Progress: [██████████] 100%
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 | Phase 03-cost-and-token-tracking P01 | 134 | 3 tasks | 3 files |
 | Phase 03-cost-and-token-tracking P02 | ~4min | 2 tasks | 2 files |
 | Phase 03-cost-and-token-tracking P03 | 2min | 2 tasks | 1 files |
+| Phase 04-multi-agent-observability P01 | ~8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,10 @@ Recent decisions affecting current work:
 - [03-02]: Inline db.prepare().run() for DELETE threshold — one-off on rare user-clear action; module-level prepared statement unnecessary
 - [Phase 03-03]: Adapted --fg/--muted to --text/--text-muted to match existing CSS variables in index.html
 - [Phase 03-03]: Second DOMContentLoaded listener added for cost panel init — additive approach preserves Phase 2 init block
+- [04-01]: agent_nodes is separate from events table — SubagentStart/SubagentStop are lifecycle events, not tool calls; mixing them would pollute event stream and break existing queries
+- [04-01]: Early return after SubagentStart/SubagentStop handlers in setImmediate — explicit guard ensures agent events never reach writeQueue.enqueue()
+- [04-01]: upsertAgentNode uses ON CONFLICT DO UPDATE — handles re-spawn of same agent_id gracefully without crashing (idempotent)
+- [04-01]: relay.py extracts agent_transcript_path for SubagentStop — stored for future per-agent cost correlation in Phase 4.3
 
 ### Pending Todos
 
@@ -102,11 +107,10 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 4]: SubagentStop payload unknown — does it include child session_id? Inspect real hook payload before coding hierarchy correlation. This is the highest-impact unknown in the project.
 - [Phase 6]: ~/.claude/settings.json hook configuration schema must be verified before writing auto-install code — read existing config and merge, never overwrite
 
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 03-04-PLAN.md — Human verification of Phase 3 cost panel. All six acceptance checks passed. Phase 3 complete. Ready to begin Phase 4 (multi-agent observability).
+Stopped at: Completed 04-01-PLAN.md — agent_nodes backend, relay.py SubagentStart/SubagentStop, /api/agents endpoint. All integration tests pass. Ready for 04-02 (agent tree rendering).
 Resume file: None
