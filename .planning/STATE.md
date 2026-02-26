@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T08:11:37Z"
+last_updated: "2026-02-26T08:16:41Z"
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 2 of 7 (Live Event Dashboard) — IN PROGRESS
-Plan: 01 (ingest pairing + routes) — COMPLETE (all tasks verified)
-Status: Phase 2 started. Plan 02-01 complete. Ready for Plan 02-02 (dashboard HTML/JS).
-Last activity: 2026-02-26 — Plan 02-01 complete; pendingCalls pairing verified, GET / and GET /api/events working
+Plan: 02 (complete dashboard HTML/JS) — COMPLETE (all tasks verified)
+Status: Phase 2 in progress. Plans 02-01 and 02-02 complete. Ready for Plan 02-03.
+Last activity: 2026-02-26 — Plan 02-02 complete; full dashboard UI built and verified at http://localhost:4999
 
-Progress: [█████░░░░░] 25%
+Progress: [██████░░░░] 30%
 
 ## Performance Metrics
 
@@ -41,10 +41,10 @@ Progress: [█████░░░░░] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | ~12 min | ~3 min |
-| 02-live-event-dashboard | 1 | ~5 min | ~5 min |
+| 02-live-event-dashboard | 2 | ~7 min | ~3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (2min), 01-03 (5min), 01-04 (3min), 02-01 (5min)
+- Last 5 plans: 01-02 (2min), 01-03 (5min), 01-04 (3min), 02-01 (5min), 02-02 (2min)
 - Trend: stable, fast
 
 *Updated after each plan completion*
@@ -79,6 +79,9 @@ Recent decisions affecting current work:
 - [02-01]: 5-minute TTL with 60-second scan — balances memory safety vs scan overhead for orphaned tool calls
 - [02-01]: Prepared statements at registration time in api.js — consistent with WriteQueue pattern from Phase 1
 - [02-01]: dashboard.js reads index.html once at startup (readFileSync) — zero per-request I/O for static asset
+- [02-02]: inProgressTimers Map keyed by tool_call_id — enables O(1) in-place row updates on PostToolUse, no duplicate rows
+- [02-02]: hydrate() before subscribeSSE() — prevents duplicate events from race between history fetch and SSE stream
+- [02-02]: 60s orphan timer protection on client — matches server-side 5-min TTL; prevents permanent stuck in-progress rows
 
 ### Pending Todos
 
@@ -93,5 +96,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 02-01-PLAN.md fully complete — both tasks done, verified: GET / returns 200, GET /api/events returns JSON, PostToolUse duration_ms non-null in SQLite. INGEST-02 and DASH-02 satisfied.
+Stopped at: 02-02-PLAN.md fully complete — Task 1 done; all 15 automated verification checks pass; 4-panel dark dashboard live at http://localhost:4999; INGEST-02, INGEST-03, DASH-01, DASH-02 satisfied.
 Resume file: None

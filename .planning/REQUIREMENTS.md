@@ -18,7 +18,7 @@
 
 - [x] **INGEST-01**: System captures Claude Code tool call events in real-time via PreToolUse/PostToolUse hooks
 - [x] **INGEST-02**: User can see a live tool call log per agent showing what tools ran and in what order
-- [ ] **INGEST-03**: User can see when an agent errors or a tool call fails, highlighted in the dashboard
+- [x] **INGEST-03**: User can see when an agent errors or a tool call fails, highlighted in the dashboard
 
 ### Cost & Token Tracking
 
@@ -41,7 +41,7 @@
 
 ### Dashboard
 
-- [ ] **DASH-01**: Dashboard shows agent tree, cost meters, and health indicators on a single unified screen
+- [x] **DASH-01**: Dashboard shows agent tree, cost meters, and health indicators on a single unified screen
 - [x] **DASH-02**: Dashboard shows latency per tool call (time between PreToolUse and PostToolUse)
 - [ ] **DASH-03**: Dashboard shows an agent timeline view (Gantt-style swimlanes) of tool calls across agents
 
@@ -89,7 +89,7 @@
 | SETUP-04 | Phase 6 | Pending |
 | INGEST-01 | Phase 1 | Complete |
 | INGEST-02 | Phase 2 | Complete |
-| INGEST-03 | Phase 2 | Pending |
+| INGEST-03 | Phase 2 | Complete |
 | COST-01 | Phase 3 | Pending |
 | COST-02 | Phase 3 | Pending |
 | COST-03 | Phase 3 | Pending |
@@ -100,7 +100,7 @@
 | HIST-01 | Phase 5 | Pending |
 | HIST-02 | Phase 5 | Pending |
 | HIST-03 | Phase 5 | Pending |
-| DASH-01 | Phase 2 | Pending |
+| DASH-01 | Phase 2 | Complete |
 | DASH-02 | Phase 2 | Complete |
 | DASH-03 | Phase 7 | Pending |
 
