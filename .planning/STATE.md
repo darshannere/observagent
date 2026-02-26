@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T08:22:26Z"
+last_updated: "2026-02-26T08:44:39.944Z"
 progress:
-  total_phases: 7
+  total_phases: 2
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 2 — Dashboard UI
+**Current focus:** Phase 2 — Dashboard UI (gap closure plan 04)
 
 ## Current Position
 
-Phase: 2 of 7 (Live Event Dashboard) — COMPLETE
-Plan: 03 (human visual verification) — COMPLETE (all 4 ROADMAP criteria confirmed by human)
-Status: Phase 2 complete. All 3 plans done. Ready for Phase 3 (Cost and Token Tracking).
-Last activity: 2026-02-26 — Plan 02-03 complete; human verified all 4 Phase 2 success criteria at http://localhost:4999
+Phase: 2 of 7 (Live Event Dashboard) — gap closure in progress
+Plan: 04 (exit_status forwarding gap closure) — Tasks 1-2 complete; awaiting human verification (Task 3 checkpoint)
+Status: Tasks 1 and 2 committed. relay.py derives exit_status from Bash stderr; ingest.js reads raw.exit_status ?? null. Server running at http://localhost:4999.
+Last activity: 2026-02-26 — Plan 02-04 Tasks 1-2 complete; checkpoint:human-verify pending for INGEST-03 visual confirmation
 
 Progress: [████████░░] 40%
 
@@ -82,6 +82,7 @@ Recent decisions affecting current work:
 - [02-02]: inProgressTimers Map keyed by tool_call_id — enables O(1) in-place row updates on PostToolUse, no duplicate rows
 - [02-02]: hydrate() before subscribeSSE() — prevents duplicate events from race between history fetch and SSE stream
 - [02-02]: 60s orphan timer protection on client — matches server-side 5-min TTL; prevents permanent stuck in-progress rows
+- [Phase 02-live-event-dashboard]: Claude Code 2.1.59 PostToolUse payload has no exit_status field; Bash stderr used as error proxy (non-empty = 1, empty = 0); non-Bash tools return None
 
 ### Pending Todos
 
@@ -96,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 02-03-PLAN.md fully complete — Phase 2 done; all 4 ROADMAP success criteria human-verified at http://localhost:4999; INGEST-02, INGEST-03, DASH-01, DASH-02 satisfied. Ready for Phase 3 (Cost and Token Tracking).
+Stopped at: 02-04-PLAN.md Tasks 1-2 complete (commits 0faf77e, e63d291) — relay.py exit_status derivation from Bash stderr, ingest.js raw.exit_status ?? null. Checkpoint:human-verify for Task 3. Human should open http://localhost:4999, trigger a Bash command that fails, and confirm red row styling and toast appear.
 Resume file: None
