@@ -6,6 +6,7 @@ import { ingestRoutes } from './routes/ingest.js';
 import { sseRoutes } from './routes/sse.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { apiRoutes } from './routes/api.js';
+import { startJsonlWatcher } from './lib/jsonlWatcher.js';
 
 const fastify = Fastify({ logger: false }); // manual stdout logging; Fastify's built-in logger is disabled
 
@@ -32,4 +33,6 @@ fastify.listen({ port: 4999, host: '127.0.0.1' }, (err) => {
     process.exit(1);
   }
   console.log('[server] ObservAgent listening on port 4999');
+  // Start JSONL cost watcher — discovers ~/.claude/projects/ automatically
+  startJsonlWatcher(db).catch(e => console.error('[cost] watcher startup error:', e.message));
 });
