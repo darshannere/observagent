@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: unknown
-last_updated: "2026-02-26T09:23:35.178Z"
+milestone: v1.1
+milestone_name: full-observability-stack
+status: active
+last_updated: "2026-02-26"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 
 ## Current Position
 
-Phase: 2 of 7 (Live Event Dashboard) — COMPLETE (all 4 plans done, including gap closure)
-Plan: 04 (exit_status forwarding gap closure) — COMPLETE (human-verified 2026-02-26)
-Status: All Phase 2 plans complete. relay.py derives exit_status from Bash stderr; ingest.js reads raw.exit_status ?? null; INGEST-03 human-verified. Server running at http://localhost:4999.
-Last activity: 2026-02-26 — Plan 02-04 complete; INGEST-03 human-verified; Phase 2 fully done
+Phase: Not started (defining requirements)
+Plan: —
+Status: Milestone v1.1 started — requirements phase
+Last activity: 2026-02-26 — Milestone v1.1 started (phases 3–7)
 
 Progress: [████████░░] 50%
 

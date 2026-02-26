@@ -10,9 +10,23 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 
 ## Requirements
 
+## Current Milestone: v1.1 — Full Observability Stack
+
+**Goal:** Complete the full observability feature set — cost tracking, multi-agent tree, session history, CLI setup, and timeline view.
+
+**Target features:**
+- JSONL-based cost and token tracking with live cost meter and budget alerts
+- Multi-agent tree visualization with per-agent cost breakdown and stuck-agent detection
+- Session history and discovery with filter, search, and export
+- Zero-config CLI setup (npx observagent init/start/doctor)
+- Gantt-style agent timeline view
+
+---
+
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Hook relay pipeline (PreToolUse/PostToolUse → relay.py → /ingest → SQLite → SSE) — Phase 1
+- ✓ Live event dashboard with latency, duration, error highlighting — Phase 2
 
 ### Active
 
@@ -55,4 +69,4 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 | Local-first v1 | Ship fast, validate core value before multi-user complexity | — Pending |
 
 ---
-*Last updated: 2026-02-26 after initialization*
+*Last updated: 2026-02-26 after milestone v1.1 start*
