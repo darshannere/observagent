@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ObservAgent — Session History</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-amber: #d29922;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+    }
+
+    /* ── Nav bar ─────────────────────────────────────────────────── */
+    #nav {
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    #nav-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    #nav-live-link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    #nav-live-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ── Filter bar ──────────────────────────────────────────────── */
+    #filter-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    #filter-primary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #filter-secondary {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    #filter-bar input[type="date"],
+    #filter-bar input[type="text"],
+    #filter-bar input[type="number"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    #filter-bar input[type="date"]:focus,
+    #filter-bar input[type="text"]:focus,
+    #filter-bar input[type="number"]:focus {
+      border-color: var(--accent-blue);
+    }
+
+    #filter-bar input[type="date"] {
+      width: 150px;
+    }
+
+    #filter-project,
+    #filter-model {
+      width: 220px;
+    }
+
+    #filter-cost-min,
+    #filter-cost-max {
+      width: 130px;
+    }
+
+    #filter-bar label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #filter-bar label input[type="checkbox"] {
+      accent-color: var(--accent-blue);
+      width: 14px;
+      height: 14px;
+    }
+
+    #btn-more-filters {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #btn-more-filters:hover {
+      border-color: var(--accent-blue);
+      color: var(--text);
+    }
+
+    /* ── Session list ────────────────────────────────────────────── */
+    #session-list {
+      padding: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Project group (details) ─────────────────────────────────── */
+    details.project-group {
+      margin-bottom: 12px;
+    }
+
+    details.project-group > summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    details.project-group > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.project-group > summary::before {
+      content: '▶';
+      font-size: 10px;
+      color: var(--text-muted);
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    details.project-group[open] > summary::before {
+      transform: rotate(90deg);
+    }
+
+    details.project-group > summary:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .group-name {
+      flex: 1;
+    }
+
+    .group-meta {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    /* ── Session card ────────────────────────────────────────────── */
+    .session-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 8px 0 0 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.1s;
+    }
+
+    .session-card:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .session-card-info {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: center;
+    }
+
+    .session-date {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .session-model {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: ui-monospace, monospace;
+    }
+
+    .session-cost {
+      font-size: 12px;
+      color: var(--accent-amber);
+      font-family: ui-monospace, monospace;
+    }
+
+    .session-error-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(248, 81, 73, 0.15);
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+    }
+
+    /* LIVE badge */
+    .live-badge {
+      background: var(--accent-green);
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .live-badge:hover {
+      opacity: 0.85;
+    }
+
+    /* ── Export buttons ──────────────────────────────────────────── */
+    .session-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-export {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .btn-export:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    /* ── Empty / error state ─────────────────────────────────────── */
+    #empty-state {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav bar -->
+  <nav id="nav">
+    <span id="nav-title">ObservAgent — Session History</span>
+    <a id="nav-live-link" href="/">Live Dashboard</a>
+  </nav>
+
+  <!-- Filter bar -->
+  <div id="filter-bar">
+    <div id="filter-primary">
+      <input type="date" id="filter-date-from" title="From date">
+      <input type="date" id="filter-date-to" title="To date">
+      <input type="text" id="filter-project" placeholder="Project name...">
+      <button id="btn-more-filters">More Filters</button>
+    </div>
+    <div id="filter-secondary">
+      <input type="number" id="filter-cost-min" placeholder="Min cost ($)" step="0.001" min="0">
+      <input type="number" id="filter-cost-max" placeholder="Max cost ($)" step="0.001" min="0">
+      <input type="text" id="filter-model" placeholder="Model (e.g. claude-sonnet-4-5)">
+      <label><input type="checkbox" id="filter-has-errors"> Has Errors</label>
+    </div>
+  </div>
+
+  <!-- Session list -->
+  <div id="session-list"></div>
+
+  <script>
+    // ── Debounced filter ────────────────────────────────────────────
+    let filterTimer;
+    function scheduleFilter() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(applyFilters, 300);
+    }
+
+    // ── applyFilters ────────────────────────────────────────────────
+    async function applyFilters() {
+      const params = new URLSearchParams();
+      const project  = document.getElementById('filter-project').value.trim();
+      const dateFrom = document.getElementById('filter-date-from').value;
+      const dateTo   = document.getElementById('filter-date-to').value;
+      const model    = document.getElementById('filter-model').value.trim();
+      const costMin  = document.getElementById('filter-cost-min').value;
+      const costMax  = document.getElementById('filter-cost-max').value;
+      const hasErrors = document.getElementById('filter-has-errors').checked ? '1' : '0';
+
+      if (project)  params.set('project', project);
+      if (dateFrom) params.set('date_from', dateFrom + 'T00:00:00.000Z');
+      if (dateTo)   params.set('date_to',   dateTo   + 'T23:59:59.999Z');
+      if (model)    params.set('model', model);
+      if (costMin)  params.set('cost_min', costMin);
+      if (costMax)  params.set('cost_max', costMax);
+      params.set('has_errors', hasErrors);
+
+      try {
+        const sessions = await fetch('/api/sessions?' + params.toString()).then(r => r.json());
+        renderSessionList(sessions);
+      } catch (err) {
+        document.getElementById('session-list').innerHTML =
+          '<p style="color:var(--accent-red);padding:24px">Failed to load sessions</p>';
+      }
+    }
+
+    // ── Date formatting helper ──────────────────────────────────────
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+    }
+
+    // ── renderSessionList ───────────────────────────────────────────
+    function renderSessionList(sessions) {
+      const container = document.getElementById('session-list');
+
+      if (!sessions || sessions.length === 0) {
+        container.innerHTML =
+          '<div id="empty-state">No sessions found. Run a Claude Code session to see it here.</div>';
+        return;
+      }
+
+      // Sort: is_live first within each group, then by last_event_ts desc
+      sessions.sort((a, b) => {
+        if (a.is_live !== b.is_live) return b.is_live - a.is_live;
+        return (b.last_event_ts || '').localeCompare(a.last_event_ts || '');
+      });
+
+      // Group by project_name
+      const groups = new Map();
+      for (const s of sessions) {
+        const key = s.project_name || 'unknown';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(s);
+      }
+
+      // Sort groups: groups with live sessions first, then alphabetically
+      const sortedGroups = [...groups.entries()].sort(([nameA, sessA], [nameB, sessB]) => {
+        const liveA = sessA.some(s => s.is_live) ? 1 : 0;
+        const liveB = sessB.some(s => s.is_live) ? 1 : 0;
+        if (liveA !== liveB) return liveB - liveA;
+        return nameA.localeCompare(nameB);
+      });
+
+      const html = sortedGroups.map(([projectName, groupSessions]) => {
+        const totalCost = groupSessions.reduce((sum, s) => sum + (s.total_cost_usd || 0), 0);
+        const costStr = '$' + totalCost.toFixed(4);
+        const hasLive = groupSessions.some(s => s.is_live);
+
+        const summaryText = projectName +
+          ' (' + groupSessions.length + ' session' + (groupSessions.length !== 1 ? 's' : '') +
+          ' · ' + costStr + ' total)';
+
+        const cardHtml = groupSessions.map(s => {
+          const dateStr = formatDate(s.last_event_ts);
+          const costDisp = '$' + Number(s.total_cost_usd || 0).toFixed(6);
+          const modelDisp = s.model || '—';
+
+          const liveBadge = s.is_live
+            ? '<a class="live-badge" href="/" title="Go to live dashboard">LIVE</a>'
+            : '';
+
+          const errorBadge = s.has_errors
+            ? '<span class="session-error-badge">ERRORS</span>'
+            : '';
+
+          return (
+            '<div class="session-card" data-session-id="' + escHtml(s.session_id) + '">' +
+              liveBadge +
+              '<div class="session-card-info">' +
+                '<span class="session-date">' + escHtml(dateStr) + '</span>' +
+                '<span class="session-model">' + escHtml(modelDisp) + '</span>' +
+                '<span class="session-cost">' + escHtml(costDisp) + '</span>' +
+                errorBadge +
+              '</div>' +
+              '<div class="session-actions">' +
+                '<button class="btn-export" data-session-id="' + escHtml(s.session_id) + '" data-format="jsonl">JSONL</button>' +
+                '<button class="btn-export" data-session-id="' + escHtml(s.session_id) + '" data-format="csv">CSV</button>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+
+        // details element — no 'open' attribute (collapsed by default)
+        return (
+          '<details class="project-group">' +
+            '<summary>' +
+              '<span class="group-name">' + escHtml(projectName) + '</span>' +
+              (hasLive ? '<span class="live-badge" style="pointer-events:none">LIVE</span>' : '') +
+              '<span class="group-meta">' + escHtml(groupSessions.length + ' session' + (groupSessions.length !== 1 ? 's' : '') + ' · ' + costStr) + '</span>' +
+            '</summary>' +
+            cardHtml +
+          '</details>'
+        );
+      }).join('');
+
+      container.innerHTML = html;
+
+      // Wire card click -> replay navigation
+      container.querySelectorAll('.session-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+          // Don't navigate if user clicked a button or link inside card
+          if (e.target.closest('.btn-export') || e.target.closest('.live-badge')) return;
+          const sid = this.dataset.sessionId;
+          if (sid) window.location.href = '/?session_id=' + encodeURIComponent(sid);
+        });
+      });
+
+      // Wire export buttons
+      container.querySelectorAll('.btn-export').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          exportSession(this.dataset.sessionId, this.dataset.format);
+        });
+      });
+    }
+
+    // ── HTML escape helper ──────────────────────────────────────────
+    function escHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Export helpers ──────────────────────────────────────────────
+    function toCsvRow(values) {
+      return values.map(v => {
+        const s = (v === null || v === undefined) ? '' : String(v);
+        return (s.includes(',') || s.includes('"') || s.includes('\n'))
+          ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }
+
+    function triggerDownload(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportSession(sessionId, format) {
+      try {
+        const data = await fetch('/api/sessions/' + sessionId + '/export').then(r => r.json());
+        const { session, events } = data;
+        const project = (session && session.project_name) || 'unknown';
+        const date = ((session && session.last_event_ts) || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+        const safeName = project.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = 'observagent_' + safeName + '_' + date + '.' + format;
+
+        if (format === 'jsonl') {
+          const content = events.map(e => JSON.stringify(Object.assign({ session_id: sessionId, project_name: project }, e))).join('\n');
+          triggerDownload(content, filename, 'application/jsonl');
+        } else {
+          const headers = ['session_id', 'project_name', 'tool_name', 'timestamp', 'duration_ms', 'exit_status'];
+          const rows = events.map(e => [sessionId, project, e.tool_name, e.timestamp, e.duration_ms, e.exit_status]);
+          const content = [headers, ...rows].map(toCsvRow).join('\n');
+          triggerDownload(content, filename, 'text/csv');
+        }
+      } catch (err) {
+        alert('Export failed: ' + err.message);
+      }
+    }
+
+    // ── More Filters toggle ─────────────────────────────────────────
+    document.getElementById('btn-more-filters').addEventListener('click', () => {
+      const sec = document.getElementById('filter-secondary');
+      const visible = sec.style.display !== 'none';
+      sec.style.display = visible ? 'none' : 'flex';
+      document.getElementById('btn-more-filters').textContent = visible ? 'More Filters' : 'Fewer Filters';
+    });
+
+    // ── Wire all filter inputs ──────────────────────────────────────
+    ['filter-date-from', 'filter-date-to', 'filter-project',
+     'filter-cost-min', 'filter-cost-max', 'filter-model'].forEach(id => {
+      document.getElementById(id).addEventListener('input', scheduleFilter);
+      document.getElementById(id).addEventListener('change', scheduleFilter);
+    });
+    document.getElementById('filter-has-errors').addEventListener('change', scheduleFilter);
+
+    // ── Init ────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      applyFilters();
+    });
+  </script>
+</body>
+</html>
