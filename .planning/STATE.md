@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T22:31:51.929Z"
+last_updated: "2026-02-27T00:00:00Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 17
+  completed_plans: 17
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 4 in progress — 04-01 and 04-02 complete, remaining plans: agent tree UI (04-03), stuck detection (04-04)
+**Current focus:** Phase 5 in progress — 05-01 and 05-02 complete, remaining plans: export endpoint (05-03)
 
 ## Current Position
 
-Phase: 04-multi-agent-observability
-Plan: 03 of N complete
-Status: Phase 4 In Progress — 04-03 complete (agent tree UI with 3-column layout, stuck detection, log filter)
-Last activity: 2026-02-26 — Completed 04-03 (3-column dashboard, live agent tree panel, per-agent cost display, stuck detection, cross-panel log filter)
+Phase: 05-session-history-and-discovery
+Plan: 02 of N complete
+Status: Phase 5 In Progress — 05-02 complete (replay mode: IS_REPLAY detection, amber banner, SSE suppression, export helpers)
+Last activity: 2026-02-27 — Completed 05-02 (replay mode detection, sticky amber replay banner with export buttons and back-to-history link, hydrate() session_id branch, SSE suppression for both EventSources, toCsvRow/triggerDownload/exportSession helpers)
 
 Progress: [██████████] 100%
 
@@ -54,6 +54,8 @@ Progress: [██████████] 100%
 | Phase 04-multi-agent-observability P01 | ~8min | 2 tasks | 5 files |
 | Phase 04-multi-agent-observability P02 | ~2min | 2 tasks | 2 files |
 | Phase 04-multi-agent-observability P03 | 3 | 2 tasks | 1 files |
+| Phase 05-session-history-and-discovery P01 | ~10min | 2 tasks | 2 files |
+| Phase 05-session-history-and-discovery P02 | ~5min | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -109,6 +111,12 @@ Recent decisions affecting current work:
 - [Phase 04-03]: Second EventSource for agent events — connects to same /events SSE endpoint without modifying existing subscribeSSE(), clean separation
 - [Phase 04-03]: appendRow patch wraps original function to inject lastActivityTs tracking for stuck-agent detection auto-clear
 - [Phase 04-03]: grid-row: 1 / -1 on both #panel-agents and #panel-log — agent tree and tool log span full viewport height; cost+health stack in column 3
+- [05-01]: PRAGMA table_info() check pattern for idempotent column addition — ALTER TABLE ... ADD COLUMN IF NOT EXISTS does not exist in SQLite
+- [05-01]: extractProjectName uses basename(cwd) — cwd is the authoritative human-readable project name in JSONL records
+- [05-01]: Backfill uses 'unknown' sentinel for sessions whose JSONL file cannot be located — never leaves project_name empty
+- [05-02]: Use var(--accent-amber,#d29922) with fallback — CSS variable not defined in Phase-4 CSS; fallback matches --yellow ensuring correct amber color
+- [05-02]: Both SSE connections (subscribeSSE and agentEs) individually wrapped in !IS_REPLAY — suppressing only one would leave the other alive consuming server resources
+- [05-02]: Export buttons call /api/sessions/:id/export (Plan 03 endpoint) — will 404 until Plan 03 ships; acceptable per plan spec
 
 ### Pending Todos
 
@@ -120,6 +128,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-26
-Stopped at: Completed 04-03-PLAN.md — agent tree UI with 3-column layout, live indented agent tree panel, per-agent inline cost, stuck-agent detection (60s threshold), cross-panel log filter. Ready for 04-04 if planned.
+Last session: 2026-02-28
+Stopped at: Completed 05-01-PLAN.md (continuation after rate-limit interrupt) — project_name column migration in db/schema.js, extractProjectName + upsertStmt update + startup backfill in lib/jsonlWatcher.js. 05-01 and 05-02 both complete. Ready for 05-03 (export endpoint).
 Resume file: None
