@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 5 in progress — 05-01 and 05-02 complete, remaining plans: export endpoint (05-03)
+**Current focus:** Phase 5 complete — all 3 plans shipped (schema migration, replay UI, export API)
 
 ## Current Position
 
 Phase: 05-session-history-and-discovery
-Plan: 02 of N complete
-Status: Phase 5 In Progress — 05-02 complete (replay mode: IS_REPLAY detection, amber banner, SSE suppression, export helpers)
-Last activity: 2026-02-27 — Completed 05-02 (replay mode detection, sticky amber replay banner with export buttons and back-to-history link, hydrate() session_id branch, SSE suppression for both EventSources, toCsvRow/triggerDownload/exportSession helpers)
+Plan: 03 of 03 complete
+Status: Phase 5 Complete — 05-03 complete (GET /api/sessions filtered list, GET /api/sessions/:id/export PostToolUse events)
+Last activity: 2026-02-27 — Completed 05-03 (stmtSessions with is_live+has_errors+7 filter params, stmtSessionById, stmtExportEvents, two new Fastify route handlers)
 
 Progress: [██████████] 100%
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 04-multi-agent-observability P03 | 3 | 2 tasks | 1 files |
 | Phase 05-session-history-and-discovery P01 | ~10min | 2 tasks | 2 files |
 | Phase 05-session-history-and-discovery P02 | ~5min | 1 task | 1 file |
+| Phase 05-session-history-and-discovery P03 | ~5min | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -117,6 +118,10 @@ Recent decisions affecting current work:
 - [05-02]: Use var(--accent-amber,#d29922) with fallback — CSS variable not defined in Phase-4 CSS; fallback matches --yellow ensuring correct amber color
 - [05-02]: Both SSE connections (subscribeSSE and agentEs) individually wrapped in !IS_REPLAY — suppressing only one would leave the other alive consuming server resources
 - [05-02]: Export buttons call /api/sessions/:id/export (Plan 03 endpoint) — will 404 until Plan 03 ships; acceptable per plan spec
+- [05-03]: WHERE sc.agent_id = '' filters parent sessions only — subagents excluded from history list, consistent with 04-02 composite PK design
+- [05-03]: is_live threshold computed at request time (Date.now() - 600000) not at statement prepare time — ensures freshness per request
+- [05-03]: Numeric 0 as no-filter sentinel for cost_min/cost_max — numeric comparisons require numeric sentinel; text params use empty string
+- [05-03]: stmtExportEvents returns PostToolUse only — these are complete tool call records with duration_ms and exit_status; PreToolUse records are incomplete
 
 ### Pending Todos
 
@@ -128,6 +133,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 05-01-PLAN.md (continuation after rate-limit interrupt) — project_name column migration in db/schema.js, extractProjectName + upsertStmt update + startup backfill in lib/jsonlWatcher.js. 05-01 and 05-02 both complete. Ready for 05-03 (export endpoint).
+Last session: 2026-02-27
+Stopped at: Completed 05-03-PLAN.md — GET /api/sessions + GET /api/sessions/:id/export endpoints added to routes/api.js. Phase 5 fully complete.
 Resume file: None

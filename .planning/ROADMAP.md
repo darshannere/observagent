@@ -104,7 +104,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — Schema migration (project_name column + index) + jsonlWatcher project_name extraction + startup backfill
 - [x] 05-02-PLAN.md — Replay mode in index.html (?session_id= param, amber banner, export buttons, SSE suppression)
-- [ ] 05-03-PLAN.md — Backend API: /api/sessions (filtered list with is_live + has_errors) + /api/sessions/:id/export
+- [x] 05-03-PLAN.md — Backend API: /api/sessions (filtered list with is_live + has_errors) + /api/sessions/:id/export
 - [ ] 05-04-PLAN.md — History page: public/history.html (filter bar, collapsible project groups, session cards, export) + /history route
 - [ ] 05-05-PLAN.md — Human verification: HIST-01, HIST-02, HIST-03 confirmed end-to-end
 
@@ -139,6 +139,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Live Event Dashboard | 4/4 | Complete   | 2026-02-26 |
 | 3. Cost and Token Tracking | 4/4 | Complete | 2026-02-26 |
 | 4. Multi-Agent Observability | 3/4 | In Progress|  |
-| 5. Session History and Discovery | 2/5 | In Progress|  |
+| 5. Session History and Discovery | 3/5 | In Progress|  |
 | 6. CLI and Zero-Config Setup | 0/TBD | Not started | - |
 | 7. Agent Timeline View | 0/TBD | Not started | - |
