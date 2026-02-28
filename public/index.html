@@ -355,6 +355,26 @@
   </style>
 </head>
 <body>
+  <div id="replay-banner" style="display:none; position:sticky; top:0; z-index:100;
+    background:var(--accent-amber,#d29922); color:#000; padding:10px 16px;
+    align-items:center; gap:12px; font-size:13px; font-weight:500;">
+    <span id="replay-label">Viewing session</span>
+    <div style="margin-left:auto; display:flex; gap:8px;">
+      <button id="btn-export-jsonl" style="padding:4px 10px; border-radius:4px;
+        background:#000; color:#fff; border:none; cursor:pointer; font-size:12px;">
+        Export JSONL
+      </button>
+      <button id="btn-export-csv" style="padding:4px 10px; border-radius:4px;
+        background:#000; color:#fff; border:none; cursor:pointer; font-size:12px;">
+        Export CSV
+      </button>
+      <a href="/history" style="padding:4px 10px; border-radius:4px;
+        background:rgba(0,0,0,0.15); color:#000; text-decoration:none; font-size:12px;
+        display:inline-flex; align-items:center;">
+        Back to History
+      </a>
+    </div>
+  </div>
   <div class="dashboard">
     <!-- Column 1, rows 1+2: Agent Tree (spans full height) -->
     <div class="panel" id="panel-agents">
@@ -434,6 +454,11 @@
   </div>
 
   <script>
+    // --- Replay mode detection ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const REPLAY_SESSION_ID = urlParams.get('session_id');
+    const IS_REPLAY = !!REPLAY_SESSION_ID;
+
     // --- State ---
     const agentSections = new Map();   // session_id -> container element (div inside details)
     const inProgressTimers = new Map(); // tool_call_id -> { intervalId, killTimer, row, durEl }
@@ -580,7 +605,8 @@
 
     async function hydrate() {
       try {
-        const res = await fetch('/api/events');
+        const eventsUrl = IS_REPLAY ? '/api/events?session_id=' + REPLAY_SESSION_ID : '/api/events';
+        const res = await fetch(eventsUrl);
         if (!res.ok) return;
         const events = await res.json();
         // stmtAll returns DESC; reverse to chronological for display
@@ -644,10 +670,64 @@
       }, 5000);
     }
 
+    // --- Export helpers ---
+    function toCsvRow(values) {
+      return values.map(v => {
+        const s = (v === null || v === undefined) ? '' : String(v);
+        return (s.includes(',') || s.includes('"') || s.includes('\n'))
+          ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }
+
+    function triggerDownload(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportSession(sessionId, format) {
+      const data = await fetch('/api/sessions/' + sessionId + '/export').then(r => r.json());
+      const { session, events } = data;
+      const project = (session && session.project_name) || 'unknown';
+      const date = ((session && session.last_event_ts) || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+      const safeName = project.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = 'observagent_' + safeName + '_' + date + '.' + format;
+
+      if (format === 'jsonl') {
+        const content = events.map(e => JSON.stringify(Object.assign({ session_id: sessionId, project_name: project }, e))).join('\n');
+        triggerDownload(content, filename, 'application/jsonl');
+      } else {
+        const headers = ['session_id', 'project_name', 'tool_name', 'timestamp', 'duration_ms', 'exit_status'];
+        const rows = events.map(e => [sessionId, project, e.tool_name, e.timestamp, e.duration_ms, e.exit_status]);
+        const content = [headers, ...rows].map(toCsvRow).join('\n');
+        triggerDownload(content, filename, 'text/csv');
+      }
+    }
+
     // --- Init ---
     document.addEventListener('DOMContentLoaded', async () => {
       await hydrate();
-      subscribeSSE();
+      if (!IS_REPLAY) {
+        subscribeSSE();
+      }
+
+      if (IS_REPLAY) {
+        // Show replay banner
+        const banner = document.getElementById('replay-banner');
+        if (banner) banner.style.display = 'flex';
+        const label = document.getElementById('replay-label');
+        if (label) label.textContent = 'Viewing session: ' + REPLAY_SESSION_ID;
+
+        // Wire export buttons
+        const btnJsonl = document.getElementById('btn-export-jsonl');
+        const btnCsv = document.getElementById('btn-export-csv');
+        if (btnJsonl) btnJsonl.addEventListener('click', () => exportSession(REPLAY_SESSION_ID, 'jsonl'));
+        if (btnCsv) btnCsv.addEventListener('click', () => exportSession(REPLAY_SESSION_ID, 'csv'));
+      }
     });
 
     // ── Cost Panel ──────────────────────────────────────────────────
@@ -1130,21 +1210,23 @@
     document.addEventListener('DOMContentLoaded', async () => {
       await hydrateAgentTree();
 
-      const agentEs = new EventSource('/events');
-      agentEs.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'agent_spawn')  { handleAgentSpawn(msg);  return; }
-        if (msg.type === 'agent_update') { handleAgentUpdate(msg); return; }
-        if (msg.type === 'cost_update' && msg.agentId) {
-          // Per-agent cost update — attribute to individual agent
-          const totalTokens = (msg.tokens.input || 0) + (msg.tokens.output || 0) +
-                              (msg.tokens.cacheRead || 0) + (msg.tokens.cacheWrite || 0);
-          updateAgentCost(msg.agentId, msg.cost, totalTokens);
-          renderAgentTree();
-        }
-        // All other event types handled by existing EventSource — no double-rendering
-      };
-      agentEs.onerror = () => console.warn('[agents-sse] reconnecting...');
+      if (!IS_REPLAY) {
+        const agentEs = new EventSource('/events');
+        agentEs.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'agent_spawn')  { handleAgentSpawn(msg);  return; }
+          if (msg.type === 'agent_update') { handleAgentUpdate(msg); return; }
+          if (msg.type === 'cost_update' && msg.agentId) {
+            // Per-agent cost update — attribute to individual agent
+            const totalTokens = (msg.tokens.input || 0) + (msg.tokens.output || 0) +
+                                (msg.tokens.cacheRead || 0) + (msg.tokens.cacheWrite || 0);
+            updateAgentCost(msg.agentId, msg.cost, totalTokens);
+            renderAgentTree();
+          }
+          // All other event types handled by existing EventSource — no double-rendering
+        };
+        agentEs.onerror = () => console.warn('[agents-sse] reconnecting...');
+      }
     });
   </script>
 </body>
