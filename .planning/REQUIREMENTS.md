@@ -35,8 +35,8 @@
 
 ### Session History
 
-- [ ] **HIST-01**: User can browse a list of past and active sessions organized by project
-- [ ] **HIST-02**: User can filter sessions by date, cost range, project, model, and error presence
+- [x] **HIST-01**: User can browse a list of past and active sessions organized by project
+- [x] **HIST-02**: User can filter sessions by date, cost range, project, model, and error presence
 - [ ] **HIST-03**: User can export session data as JSONL or CSV for offline analysis
 
 ### Dashboard
@@ -97,8 +97,8 @@
 | AGENT-01 | Phase 4 | Complete |
 | AGENT-02 | Phase 4 | Complete |
 | AGENT-03 | Phase 4 | Complete |
-| HIST-01 | Phase 5 | Pending |
-| HIST-02 | Phase 5 | Pending |
+| HIST-01 | Phase 5 | Complete |
+| HIST-02 | Phase 5 | Complete |
 | HIST-03 | Phase 5 | Pending |
 | DASH-01 | Phase 2 | Complete |
 | DASH-02 | Phase 2 | Complete |
