@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 5 complete — all 3 plans shipped (schema migration, replay UI, export API)
+**Current focus:** Phase 5 fully complete — all 5 plans shipped and human-verified (schema migration, replay UI, export API, history page, verification)
 
 ## Current Position
 
 Phase: 05-session-history-and-discovery
-Plan: 03 of 03 complete
-Status: Phase 5 Complete — 05-03 complete (GET /api/sessions filtered list, GET /api/sessions/:id/export PostToolUse events)
-Last activity: 2026-02-27 — Completed 05-03 (stmtSessions with is_live+has_errors+7 filter params, stmtSessionById, stmtExportEvents, two new Fastify route handlers)
+Plan: 05 of 05 complete
+Status: Phase 5 Complete — 05-05 human verification passed (all 17 items confirmed: /history, collapsible groups, filters, replay mode, JSONL/CSV export)
+Last activity: 2026-02-27 — Completed 05-05 (human verified HIST-01, HIST-02, HIST-03 end-to-end; Phase 5 fully signed off)
 
 Progress: [██████████] 100%
 
@@ -57,6 +57,8 @@ Progress: [██████████] 100%
 | Phase 05-session-history-and-discovery P01 | ~10min | 2 tasks | 2 files |
 | Phase 05-session-history-and-discovery P02 | ~5min | 1 task | 1 file |
 | Phase 05-session-history-and-discovery P03 | ~5min | 1 task | 1 file |
+| Phase 05-session-history-and-discovery P04 | ~10min | 2 tasks | 2 files |
+| Phase 05-session-history-and-discovery P05 | ~5min | 1 task (verify) | 0 files |
 
 ## Accumulated Context
 
@@ -122,6 +124,7 @@ Recent decisions affecting current work:
 - [05-03]: is_live threshold computed at request time (Date.now() - 600000) not at statement prepare time — ensures freshness per request
 - [05-03]: Numeric 0 as no-filter sentinel for cost_min/cost_max — numeric comparisons require numeric sentinel; text params use empty string
 - [05-03]: stmtExportEvents returns PostToolUse only — these are complete tool call records with duration_ms and exit_status; PreToolUse records are incomplete
+- [05-05]: Phase 5 accepted as complete — all 17 human verification items passed: /history loads, project groups collapsible, filters within 300ms, replay amber banner, JSONL and CSV export working from both history page and replay banner
 
 ### Pending Todos
 
@@ -134,5 +137,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 05-03-PLAN.md — GET /api/sessions + GET /api/sessions/:id/export endpoints added to routes/api.js. Phase 5 fully complete.
+Stopped at: Completed 05-05-PLAN.md — Human verification of Phase 5 complete. HIST-01, HIST-02, HIST-03 all verified. Ready for Phase 6.
 Resume file: None
