@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 
 ## Current Position
 
-Phase: 06-cli-and-zero-config-setup
-Plan: 04 of 04 complete
-Status: Phase 6 COMPLETE — all four plans shipped and human-verified (CLI package setup, init hook installer, start + doctor commands, end-to-end human verification)
-Last activity: 2026-03-01 — Completed 06-04 (human-verified all three CLI commands end-to-end; SETUP-01, SETUP-03, SETUP-04 all signed off)
+Phase: 07-agent-timeline-view-and-health-panel
+Plan: 01 of N complete
+Status: Phase 7 IN PROGRESS — Plan 01 shipped (GET /api/health backend endpoint)
+Last activity: 2026-03-01 — Completed 07-01 (GET /api/health returning lastEventTs, errorRate, serverUptimeS; DASH-04 complete)
 
-Progress: [██████████] 100%
+Progress: [██████████] Phase 6: 100% complete; Phase 7: in progress
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 06-cli-and-zero-config-setup P02 | ~3min | 2 tasks | 2 files |
 | Phase 06-cli-and-zero-config-setup P03 | ~1min | 2 tasks | 2 files |
 | Phase 06-cli-and-zero-config-setup P04 | ~5min | 2 tasks | 0 files |
+| Phase 07-agent-timeline-view-and-health-panel P01 | ~5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,9 @@ Recent decisions affecting current work:
 - [06-03]: foreground server not auto-startable from doctor --fix — doctor cannot safely detach a foreground server; user must run 'observagent start' separately
 - [06-03]: checkHooksInstalled scans all four Claude Code events — relay.py in any one event is sufficient proof of install
 - [06-03]: checkJsonlFiles uses one-level readdir — ~/.claude/projects/ is flat project-directory structure per Claude Code convention
+- [07-01]: SERVER_START_MS = Date.now() placed immediately before fastify.listen() — captures moment server is about to listen, not module load time
+- [07-01]: process.uptime() used for serverUptimeS instead of (Date.now() - serverStartMs) — monotonic, immune to system clock changes
+- [07-01]: stmtCurrentSessionErrors uses subquery ORDER BY timestamp DESC LIMIT 1 — always targets most recently active session, avoids cross-session error rate pollution
 
 ### Pending Todos
 
@@ -154,5 +158,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 06-04-PLAN.md — human-verified all three CLI commands end-to-end. Phase 6 fully complete. Ready for Phase 7.
+Stopped at: Completed 07-01-PLAN.md — GET /api/health backend endpoint shipped and tested. DASH-04 complete. Ready for Plan 02 (health panel frontend).
 Resume file: None
