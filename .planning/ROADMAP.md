@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Multi-Agent Observability** - Agent tree visualization, per-agent cost breakdown, stuck-agent detection
 - [x] **Phase 5: Session History and Discovery** - Session list, filter by date/cost/model/error, JSONL/CSV export (completed 2026-02-28)
 - [x] **Phase 6: CLI and Zero-Config Setup** - npx observagent init, observagent start, observagent doctor (completed 2026-03-01)
-- [ ] **Phase 7: Agent Timeline View** - Gantt-style swimlane view of tool calls across agents
+- [x] **Phase 7: Agent Timeline View** - Gantt-style swimlane view of tool calls across agents (completed 2026-03-01)
 
 ## Phase Details
 
@@ -153,4 +153,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Multi-Agent Observability | 3/4 | In Progress|  |
 | 5. Session History and Discovery | 5/5 | Complete   | 2026-02-27 |
 | 6. CLI and Zero-Config Setup | 4/4 | Complete    | 2026-03-01 |
-| 7. Agent Timeline View | 0/3 | Not started | - |
+| 7. Agent Timeline View | 3/3 | Complete   | 2026-03-01 |
