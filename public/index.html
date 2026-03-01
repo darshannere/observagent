@@ -352,6 +352,80 @@
     .agent-row.just-spawned {
       animation: agentSpawn 1.2s ease-out forwards;
     }
+
+    /* ── Health Panel Cards ───────────────────────────────────── */
+    .health-cards {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      height: 100%;
+      align-items: flex-start;
+    }
+    .health-card {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 8px 8px;
+      text-align: center;
+      min-width: 0;
+    }
+    .health-card.status-green  { border-top-color: var(--green); }
+    .health-card.status-yellow { border-top-color: var(--yellow); }
+    .health-card.status-red    { border-top-color: var(--red); }
+    .hcard-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .hcard-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+
+    /* ── Timeline Tab Buttons and Tooltip ────────────────────── */
+    .tab-btn {
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      flex-shrink: 0;
+      font-family: sans-serif;
+    }
+    .tab-btn.active {
+      border-bottom-color: var(--green);
+      color: var(--text);
+    }
+    #timeline-tooltip {
+      position: fixed;
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-family: var(--mono);
+      pointer-events: none;
+      z-index: 200;
+      max-width: 240px;
+    }
+    .tip-tool     { color: var(--text); font-weight: 500; margin-bottom: 2px; }
+    .tip-target   { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tip-dur      { color: var(--text-muted); margin-top: 2px; }
+    .tip-success  { color: var(--green); }
+    .tip-error    { color: var(--red); }
+    .tip-in-progress { color: var(--yellow); }
   </style>
 </head>
 <body>
@@ -382,10 +456,17 @@
       <div class="panel-body" id="agent-tree-body"></div>
     </div>
 
-    <!-- Column 2, rows 1+2: Tool Call Log (spans full height) -->
+    <!-- Column 2, rows 1+2: Tool Log / Timeline (tabbed, spans full height) -->
     <div class="panel" id="panel-log">
-      <div class="panel-header">Tool Call Log <span id="log-filter-badge" style="display:none;font-size:10px;color:var(--green);margin-left:6px;"></span></div>
+      <div class="panel-header" style="display:flex; align-items:center; gap:0; padding:0; overflow:hidden; flex-shrink:0;">
+        <button class="tab-btn active" id="tab-log">Tool Log</button>
+        <button class="tab-btn" id="tab-timeline">Timeline</button>
+        <span id="log-filter-badge" style="display:none;font-size:10px;color:var(--green);margin-left:8px;"></span>
+      </div>
       <div class="panel-body" id="tool-log"></div>
+      <div id="tab-body-timeline" style="display:none; flex:1; overflow:hidden; position:relative; min-height:0;">
+        <canvas id="timeline-canvas" style="display:block;"></canvas>
+      </div>
     </div>
 
     <!-- Column 3, row 1: Cost & Tokens Panel -->
@@ -441,16 +522,33 @@
 
       </div>
     </div>
-    <!-- Column 3, row 2: Health -->
-    <div class="panel">
+    <!-- Column 3, row 2: Health Panel (live) -->
+    <div class="panel" id="health-panel">
       <div class="panel-header">Health</div>
-      <div class="panel-body">
-        <div class="placeholder">
-          <span>Health Indicators</span>
-          <span class="phase-label">Available in Phase 5</span>
+      <div class="panel-body" id="health-panel-body" style="padding:0;">
+        <div class="health-cards">
+          <div class="health-card" id="hcard-hook">
+            <div class="hcard-value" id="hcard-hook-value">--</div>
+            <div class="hcard-label">Hooks</div>
+          </div>
+          <div class="health-card" id="hcard-error">
+            <div class="hcard-value" id="hcard-error-value">--%</div>
+            <div class="hcard-label">Error Rate</div>
+          </div>
+          <div class="health-card" id="hcard-uptime">
+            <div class="hcard-value" id="hcard-uptime-value">--</div>
+            <div class="hcard-label">Uptime</div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="timeline-tooltip">
+    <div class="tip-tool" id="tip-tool"></div>
+    <div class="tip-target" id="tip-target"></div>
+    <div class="tip-dur" id="tip-dur"></div>
+    <div class="tip-status" id="tip-status"></div>
   </div>
 
   <script>
