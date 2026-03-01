@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 5 fully complete — all 5 plans shipped and human-verified (schema migration, replay UI, export API, history page, verification)
+**Current focus:** Phase 6 fully complete — all 4 plans shipped and human-verified (CLI package setup, init hook installer, start + doctor commands, end-to-end human verification)
 
 ## Current Position
 
 Phase: 06-cli-and-zero-config-setup
-Plan: 03 of 04 complete
-Status: Phase 6 In Progress — 06-03 complete (lib/cmd-start.js foreground server spawner + lib/cmd-doctor.js three-check health reporter)
-Last activity: 2026-03-01 — Completed 06-03 (start command: TCP poll + browser open; doctor command: server/hooks/jsonl checks with --fix auto-repair)
+Plan: 04 of 04 complete
+Status: Phase 6 COMPLETE — all four plans shipped and human-verified (CLI package setup, init hook installer, start + doctor commands, end-to-end human verification)
+Last activity: 2026-03-01 — Completed 06-04 (human-verified all three CLI commands end-to-end; SETUP-01, SETUP-03, SETUP-04 all signed off)
 
 Progress: [██████████] 100%
 
@@ -62,6 +62,7 @@ Progress: [██████████] 100%
 | Phase 06-cli-and-zero-config-setup P01 | ~5min | 2 tasks | 2 files |
 | Phase 06-cli-and-zero-config-setup P02 | ~3min | 2 tasks | 2 files |
 | Phase 06-cli-and-zero-config-setup P03 | ~1min | 2 tasks | 2 files |
+| Phase 06-cli-and-zero-config-setup P04 | ~5min | 2 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -153,5 +154,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 06-03-PLAN.md — lib/cmd-start.js foreground server spawner and lib/cmd-doctor.js health reporter. Ready for 06-04.
+Stopped at: Completed 06-04-PLAN.md — human-verified all three CLI commands end-to-end. Phase 6 fully complete. Ready for Phase 7.
 Resume file: None
