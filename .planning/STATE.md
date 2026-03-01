@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 06-cli-and-zero-config-setup
-Plan: 01 of 04 complete
-Status: Phase 6 In Progress — 06-01 complete (package.json + server.js prepared for CLI layer)
-Last activity: 2026-03-01 — Completed 06-01 (bin field, files array, chalk/commander/open added; server.js env-driven PORT and DB path)
+Plan: 02 of 04 complete
+Status: Phase 6 In Progress — 06-02 complete (bin/cli.js Commander entry point + lib/cmd-init.js hook installer)
+Last activity: 2026-03-01 — Completed 06-02 (CLI entry point with dynamic imports; init command installs relay.py hooks to all 4 Claude Code events idempotently)
 
 Progress: [██████████] 100%
 
@@ -60,6 +60,7 @@ Progress: [██████████] 100%
 | Phase 05-session-history-and-discovery P04 | ~10min | 2 tasks | 2 files |
 | Phase 05-session-history-and-discovery P05 | ~5min | 1 task (verify) | 0 files |
 | Phase 06-cli-and-zero-config-setup P01 | ~5min | 2 tasks | 2 files |
+| Phase 06-cli-and-zero-config-setup P02 | ~3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,10 @@ Recent decisions affecting current work:
 - [06-01]: open ^10.1.0 per plan spec — tested stable version; v11 not validated
 - [06-01]: Nullish coalescing (??) not || for PORT and OBSERVAGENT_DB_PATH — preserves PORT=0 as valid test value and empty string as intentional override
 - [06-01]: parseInt(process.env.PORT ?? '4999', 10) with explicit radix 10 — prevents octal parsing edge cases
+- [06-02]: Dynamic imports inside action() handlers not top-level — ESM resolves static imports at load time; dynamic imports deferred to invocation so --help works before cmd-start.js/cmd-doctor.js exist
+- [06-02]: Idempotency checks command string for 'relay.py' substring — catches both ~/.claude/observagent/relay.py and legacy project-path hooks
+- [06-02]: relay.py always overwritten on init — handles version upgrades without manual user steps
+- [06-02]: RELAY_DEST uses os.homedir() absolute path — never project node_modules path which breaks on npx or global install
 
 ### Pending Todos
 
@@ -137,10 +142,10 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 6]: ~/.claude/settings.json hook configuration schema must be verified before writing auto-install code — read existing config and merge, never overwrite
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 06-01-PLAN.md — package.json and server.js prepared for CLI layer. Ready for 06-02 (CLI start command).
+Stopped at: Completed 06-02-PLAN.md — bin/cli.js Commander entry point and lib/cmd-init.js hook installer. Ready for 06-03 (CLI start command).
 Resume file: None
