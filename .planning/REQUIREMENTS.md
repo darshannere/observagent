@@ -44,6 +44,7 @@
 - [x] **DASH-01**: Dashboard shows agent tree, cost meters, and health indicators on a single unified screen
 - [x] **DASH-02**: Dashboard shows latency per tool call (time between PreToolUse and PostToolUse)
 - [ ] **DASH-03**: Dashboard shows an agent timeline view (Gantt-style swimlanes) of tool calls across agents
+- [ ] **DASH-04**: Health panel shows hook connection status, session error rate, and server uptime — replacing the placeholder added in Phase 2
 
 ---
 
@@ -103,10 +104,11 @@
 | DASH-01 | Phase 2 | Complete |
 | DASH-02 | Phase 2 | Complete |
 | DASH-03 | Phase 7 | Pending |
+| DASH-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
+- v1 requirements: 21 total
+- Mapped to phases: 21
 - Unmapped: 0 ✓
 
 ---

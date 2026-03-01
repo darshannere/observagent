@@ -124,14 +124,15 @@ Plans:
 - [ ] 06-03-PLAN.md — lib/cmd-start.js (foreground server + browser open) + lib/cmd-doctor.js (three-check health report + --fix)
 - [ ] 06-04-PLAN.md — Smoke tests (npm link + CLI validation) + human verification of all three commands end-to-end
 
-### Phase 7: Agent Timeline View
-**Goal**: Developers can see a Gantt-style swimlane view of all tool calls across all agents, making it easy to spot parallelism, bottlenecks, and idle gaps in a multi-agent run
+### Phase 7: Agent Timeline View and Health Panel
+**Goal**: Developers can see a Gantt-style swimlane view of all tool calls across all agents, and the Health panel shows live hook status, session error rate, and server uptime — completing the dashboard's original four-panel design
 **Depends on**: Phase 6
-**Requirements**: DASH-03
+**Requirements**: DASH-03, DASH-04
 **Success Criteria** (what must be TRUE):
   1. User can see a timeline view with one horizontal swimlane per agent, where each tool call appears as a bar spanning its start-to-end time
   2. Tool calls from parallel agents are visually overlapping on the timeline, making concurrency patterns immediately visible
   3. The timeline updates live during an active session as new tool calls complete
+  4. The Health panel shows hook connection status (active/inactive), session error rate (errors/total calls), and server uptime — no longer a placeholder
 **Plans**: TBD
 
 ## Progress
