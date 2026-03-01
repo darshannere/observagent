@@ -146,5 +146,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Cost and Token Tracking | 4/4 | Complete | 2026-02-26 |
 | 4. Multi-Agent Observability | 3/4 | In Progress|  |
 | 5. Session History and Discovery | 5/5 | Complete   | 2026-02-27 |
-| 6. CLI and Zero-Config Setup | 2/4 | In Progress|  |
+| 6. CLI and Zero-Config Setup | 3/4 | In Progress|  |
 | 7. Agent Timeline View | 0/TBD | Not started | - |

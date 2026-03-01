@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 06-cli-and-zero-config-setup
-Plan: 02 of 04 complete
-Status: Phase 6 In Progress — 06-02 complete (bin/cli.js Commander entry point + lib/cmd-init.js hook installer)
-Last activity: 2026-03-01 — Completed 06-02 (CLI entry point with dynamic imports; init command installs relay.py hooks to all 4 Claude Code events idempotently)
+Plan: 03 of 04 complete
+Status: Phase 6 In Progress — 06-03 complete (lib/cmd-start.js foreground server spawner + lib/cmd-doctor.js three-check health reporter)
+Last activity: 2026-03-01 — Completed 06-03 (start command: TCP poll + browser open; doctor command: server/hooks/jsonl checks with --fix auto-repair)
 
 Progress: [██████████] 100%
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 05-session-history-and-discovery P05 | ~5min | 1 task (verify) | 0 files |
 | Phase 06-cli-and-zero-config-setup P01 | ~5min | 2 tasks | 2 files |
 | Phase 06-cli-and-zero-config-setup P02 | ~3min | 2 tasks | 2 files |
+| Phase 06-cli-and-zero-config-setup P03 | ~1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,11 @@ Recent decisions affecting current work:
 - [06-02]: Idempotency checks command string for 'relay.py' substring — catches both ~/.claude/observagent/relay.py and legacy project-path hooks
 - [06-02]: relay.py always overwritten on init — handles version upgrades without manual user steps
 - [06-02]: RELAY_DEST uses os.homedir() absolute path — never project node_modules path which breaks on npx or global install
+- [06-03]: stdio: 'inherit' for server spawn — server logs stream to user terminal; no pipe buffering or output loss
+- [06-03]: waitForPort polls before open() — prevents browser from hitting a server that hasn't finished initializing routes/DB
+- [06-03]: foreground server not auto-startable from doctor --fix — doctor cannot safely detach a foreground server; user must run 'observagent start' separately
+- [06-03]: checkHooksInstalled scans all four Claude Code events — relay.py in any one event is sufficient proof of install
+- [06-03]: checkJsonlFiles uses one-level readdir — ~/.claude/projects/ is flat project-directory structure per Claude Code convention
 
 ### Pending Todos
 
@@ -147,5 +153,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 06-02-PLAN.md — bin/cli.js Commander entry point and lib/cmd-init.js hook installer. Ready for 06-03 (CLI start command).
+Stopped at: Completed 06-03-PLAN.md — lib/cmd-start.js foreground server spawner and lib/cmd-doctor.js health reporter. Ready for 06-04.
 Resume file: None
