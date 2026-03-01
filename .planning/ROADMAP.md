@@ -116,7 +116,13 @@ Plans:
   1. User can run `npx observagent init` on a clean machine and have Claude Code hooks automatically configured in ~/.claude/settings.json — no manual file editing required
   2. User can run `observagent start` and have the server start and the dashboard open in their default browser with a single command
   3. User can run `observagent doctor` and receive a clear status report for each of: server running, hooks installed, JSONL files found — with actionable fix guidance for any failing check
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — package.json (bin field + files array + chalk/commander/open deps) + server.js (PORT + OBSERVAGENT_DB_PATH env vars)
+- [ ] 06-02-PLAN.md — bin/cli.js (Commander dispatch) + lib/cmd-init.js (settings.json merge + relay.py copy)
+- [ ] 06-03-PLAN.md — lib/cmd-start.js (foreground server + browser open) + lib/cmd-doctor.js (three-check health report + --fix)
+- [ ] 06-04-PLAN.md — Smoke tests (npm link + CLI validation) + human verification of all three commands end-to-end
 
 ### Phase 7: Agent Timeline View
 **Goal**: Developers can see a Gantt-style swimlane view of all tool calls across all agents, making it easy to spot parallelism, bottlenecks, and idle gaps in a multi-agent run
@@ -140,5 +146,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Cost and Token Tracking | 4/4 | Complete | 2026-02-26 |
 | 4. Multi-Agent Observability | 3/4 | In Progress|  |
 | 5. Session History and Discovery | 5/5 | Complete   | 2026-02-27 |
-| 6. CLI and Zero-Config Setup | 0/TBD | Not started | - |
+| 6. CLI and Zero-Config Setup | 0/4 | Not started | - |
 | 7. Agent Timeline View | 0/TBD | Not started | - |
