@@ -25,7 +25,8 @@ fastify.register(FastifySSEPlugin);
 fastify.register(ingestRoutes, { writeQueue, db });
 fastify.register(sseRoutes);
 fastify.register(dashboardRoutes);
-fastify.register(apiRoutes, { db });
+const SERVER_START_MS = Date.now();
+fastify.register(apiRoutes, { db, serverStartMs: SERVER_START_MS });
 
 // Start server
 const PORT = parseInt(process.env.PORT ?? '4999', 10);
