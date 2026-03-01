@@ -709,10 +709,18 @@
         const events = await res.json();
         // stmtAll returns DESC; reverse to chronological for display
         const ordered = events.slice().reverse();
+        // Reset timeline state before populating from history
+        resetTimelineState();
         for (const e of ordered) {
           renderHistoricalRow(e);
+          // Populate timeline state from historical events
+          if (e.hook_type === 'PreToolUse') timelineAddPreToolUse(e);
+          else if (e.hook_type === 'PostToolUse') timelineAddPostToolUse(e);
         }
         scrollToBottom();
+        // Static render after hydration (no animation loop in IS_REPLAY; live mode starts loop if needed)
+        renderTimeline();
+        if (!IS_REPLAY && timelineState.inProgressCount > 0) startTimelineLoop();
       } catch (e) {
         console.warn('[hydrate] failed:', e.message);
       }
@@ -726,6 +734,16 @@
         if (msg.type === 'connected') return; // skip initial handshake
         if (msg.type === 'cost_update') { handleCostUpdate(msg); return; }
         appendRow(msg);
+        // Timeline wiring (additive — does not modify appendRow behavior)
+        if (msg.hook_type === 'PreToolUse') {
+          timelineAddPreToolUse(msg);
+          if (timelineState.inProgressCount > 0 && _tlAnimId === null) startTimelineLoop();
+        } else if (msg.hook_type === 'PostToolUse') {
+          timelineAddPostToolUse(msg);
+          if (timelineState.inProgressCount === 0) {
+            renderTimeline(); // final static render when all calls complete
+          }
+        }
       };
       es.onerror = () => {
         console.warn('[sse] connection lost \u2014 browser will auto-reconnect');
@@ -1326,6 +1344,360 @@
         agentEs.onerror = () => console.warn('[agents-sse] reconnecting...');
       }
     });
+
+    // ── Timeline: Tool color map ───────────────────────────────────
+    const TOOL_COLORS = {
+      Read:       '#388bfd',
+      Write:      '#e3672a',
+      Edit:       '#e3672a',
+      Bash:       '#a371f7',
+      WebFetch:   '#2aa198',
+      WebSearch:  '#2aa198',
+      Task:       '#6e7fd2',
+    };
+    const TOOL_COLOR_DEFAULT = '#484f58';
+
+    function getToolColor(toolName) {
+      for (const [key, color] of Object.entries(TOOL_COLORS)) {
+        if (toolName.toLowerCase().includes(key.toLowerCase())) return color;
+      }
+      return TOOL_COLOR_DEFAULT;
+    }
+
+    function formatRelativeTime(ms) {
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return '+' + s + 's';
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return r > 0 ? '+' + m + 'm ' + r + 's' : '+' + m + 'm';
+    }
+
+    function formatUptime(sec) {
+      const s = Math.floor(sec);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+      return m + 'm ' + String(r).padStart(2, '0') + 's';
+    }
+
+    // ── Timeline: State ───────────────────────────────────────────
+    const timelineState = {
+      agentRows:       new Map(), // session_id -> { label, bars: [], toolCount }
+      // bars: [{ toolName, toolCallId, startMs, endMs, isInProgress, isError, target }]
+      sessionStart:    null,
+      latestTs:        0,
+      inProgressCount: 0,
+      hitBoxes:        [], // populated during render: [{ x0, y0, x1, y1, bar }]
+    };
+
+    function resetTimelineState() {
+      timelineState.agentRows.clear();
+      timelineState.sessionStart    = null;
+      timelineState.latestTs        = 0;
+      timelineState.inProgressCount = 0;
+      timelineState.hitBoxes        = [];
+    }
+
+    function timelineAddPreToolUse(ev) {
+      // ev: { tool_name, session_id, tool_call_id, timestamp, tool_input }
+      if (!timelineState.agentRows.has(ev.session_id)) {
+        // label: last 8 chars of session_id or 'parent'
+        const label = ev.session_id ? ev.session_id.slice(-8) : 'parent';
+        timelineState.agentRows.set(ev.session_id, { label, bars: [], toolCount: 0 });
+      }
+      const row = timelineState.agentRows.get(ev.session_id);
+      const startMs = Number(ev.timestamp);
+      if (timelineState.sessionStart === null || startMs < timelineState.sessionStart) {
+        timelineState.sessionStart = startMs;
+      }
+      row.bars.push({
+        toolName:     ev.tool_name,
+        toolCallId:   ev.tool_call_id,
+        startMs,
+        endMs:        null, // filled on PostToolUse
+        isInProgress: true,
+        isError:      false,
+        target:       ev.tool_input ? String(ev.tool_input).slice(0, 120) : '',
+      });
+      row.toolCount++;
+      timelineState.inProgressCount++;
+    }
+
+    function timelineAddPostToolUse(ev) {
+      // ev: { tool_name, session_id, tool_call_id, timestamp, duration_ms, exit_status }
+      if (!timelineState.agentRows.has(ev.session_id)) return;
+      const row = timelineState.agentRows.get(ev.session_id);
+      const bar = row.bars.find(b => b.toolCallId === ev.tool_call_id && b.isInProgress);
+      if (bar) {
+        bar.endMs        = Number(ev.timestamp);
+        bar.isInProgress = false;
+        bar.isError      = ev.exit_status !== null && ev.exit_status !== undefined && ev.exit_status !== 0;
+        if (timelineState.inProgressCount > 0) timelineState.inProgressCount--;
+        timelineState.latestTs = Math.max(timelineState.latestTs, bar.endMs);
+      }
+    }
+
+    // ── Timeline: Render ──────────────────────────────────────────
+    const timelineCanvas  = document.getElementById('timeline-canvas');
+    const timelineCtx     = timelineCanvas.getContext('2d');
+
+    function resizeCanvas() {
+      const container = document.getElementById('tab-body-timeline');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      timelineCanvas.width  = w * dpr;
+      timelineCanvas.height = h * dpr;
+      timelineCanvas.style.width  = w + 'px';
+      timelineCanvas.style.height = h + 'px';
+      timelineCtx.scale(dpr, dpr);
+    }
+
+    function renderTimeline() {
+      const dpr = window.devicePixelRatio || 1;
+      const W   = timelineCanvas.width  / dpr;
+      const H   = timelineCanvas.height / dpr;
+
+      timelineCtx.clearRect(0, 0, W, H);
+      timelineState.hitBoxes = [];
+
+      if (timelineState.agentRows.size === 0 || timelineState.sessionStart === null) {
+        timelineCtx.fillStyle = '#8b949e';
+        timelineCtx.font = '13px sans-serif';
+        timelineCtx.textAlign = 'center';
+        timelineCtx.fillText('No active session. Start using Claude Code to see activity.', W / 2, H / 2);
+        return;
+      }
+
+      const now          = Date.now();
+      const sessionStart = timelineState.sessionStart;
+      const sessionEnd   = Math.max(now, timelineState.latestTs, sessionStart + 1000);
+      const totalMs      = sessionEnd - sessionStart;
+
+      const HEADER_H  = 24;
+      const ROW_H     = 28;
+      const BAR_H     = 18;
+      const BAR_MARGIN= (ROW_H - BAR_H) / 2;
+      const LABEL_W   = 80;
+
+      // Sort rows by toolCount descending
+      const rowOrder = [...timelineState.agentRows.entries()]
+        .sort((a, b) => b[1].toolCount - a[1].toolCount)
+        .map(([sessionId]) => sessionId);
+
+      // Time axis
+      const tickCount = 5;
+      timelineCtx.fillStyle = '#8b949e';
+      timelineCtx.font = '10px monospace';
+      timelineCtx.textAlign = 'left';
+      for (let i = 0; i <= tickCount; i++) {
+        const frac  = i / tickCount;
+        const xPx   = LABEL_W + frac * (W - LABEL_W);
+        const label = formatRelativeTime(frac * totalMs);
+        // Align last tick label so it doesn't overflow
+        if (i === tickCount) timelineCtx.textAlign = 'right';
+        timelineCtx.fillText(label, xPx, HEADER_H - 6);
+        timelineCtx.textAlign = 'left';
+        // Tick mark
+        timelineCtx.fillStyle = '#30363d';
+        timelineCtx.fillRect(xPx, HEADER_H - 4, 1, H - HEADER_H);
+        timelineCtx.fillStyle = '#8b949e';
+      }
+
+      // Swimlane rows
+      rowOrder.forEach((sessionId, rowIdx) => {
+        const y       = HEADER_H + rowIdx * ROW_H;
+        const rowData = timelineState.agentRows.get(sessionId);
+
+        // Row background
+        timelineCtx.fillStyle = rowIdx % 2 === 0 ? '#161b22' : '#0d1117';
+        timelineCtx.fillRect(0, y, W, ROW_H);
+
+        // Agent label (truncated)
+        timelineCtx.fillStyle = '#8b949e';
+        timelineCtx.font = '10px monospace';
+        timelineCtx.textAlign = 'left';
+        timelineCtx.save();
+        timelineCtx.beginPath();
+        timelineCtx.rect(2, y, LABEL_W - 4, ROW_H);
+        timelineCtx.clip();
+        timelineCtx.fillText(rowData.label, 2, y + ROW_H / 2 + 4);
+        timelineCtx.restore();
+
+        // Bars
+        for (const bar of rowData.bars) {
+          const endMs = bar.isInProgress ? now : bar.endMs;
+          const x0 = LABEL_W + ((bar.startMs - sessionStart) / totalMs) * (W - LABEL_W);
+          const x1 = LABEL_W + ((endMs      - sessionStart) / totalMs) * (W - LABEL_W);
+          const barW = Math.max(x1 - x0, 2);
+
+          // Color
+          if (bar.isError) {
+            timelineCtx.fillStyle = '#f85149';
+            timelineCtx.globalAlpha = 1.0;
+          } else if (bar.isInProgress) {
+            const phase = (Date.now() % 1200) / 1200;
+            const alpha = 0.55 + 0.45 * Math.abs(Math.sin(phase * Math.PI));
+            timelineCtx.globalAlpha = alpha;
+            timelineCtx.fillStyle = getToolColor(bar.toolName);
+          } else {
+            timelineCtx.fillStyle = getToolColor(bar.toolName);
+            timelineCtx.globalAlpha = 1.0;
+          }
+          timelineCtx.fillRect(x0, y + BAR_MARGIN, barW, BAR_H);
+          timelineCtx.globalAlpha = 1.0;
+
+          // Bar label (only if wide enough)
+          if (barW > 30) {
+            timelineCtx.fillStyle = '#fff';
+            timelineCtx.font = '10px monospace';
+            timelineCtx.textAlign = 'left';
+            timelineCtx.save();
+            timelineCtx.beginPath();
+            timelineCtx.rect(x0 + 2, y + BAR_MARGIN, barW - 4, BAR_H);
+            timelineCtx.clip();
+            timelineCtx.fillText(bar.toolName, x0 + 4, y + BAR_MARGIN + BAR_H - 5);
+            timelineCtx.restore();
+          }
+
+          // Store hit box for tooltip
+          timelineState.hitBoxes.push({ x0, y0: y + BAR_MARGIN, x1: x0 + barW, y1: y + BAR_MARGIN + BAR_H, bar });
+        }
+      });
+    }
+
+    // ── Timeline: Animation loop ──────────────────────────────────
+    let _tlAnimId = null;
+
+    function startTimelineLoop() {
+      if (_tlAnimId !== null) return;
+      function loop() {
+        renderTimeline();
+        if (timelineState.inProgressCount > 0) {
+          _tlAnimId = requestAnimationFrame(loop);
+        } else {
+          _tlAnimId = null;
+        }
+      }
+      _tlAnimId = requestAnimationFrame(loop);
+    }
+
+    function stopTimelineLoop() {
+      if (_tlAnimId !== null) { cancelAnimationFrame(_tlAnimId); _tlAnimId = null; }
+    }
+
+    // ResizeObserver for responsive canvas
+    const _tlRO = new ResizeObserver(entries => {
+      for (const e of entries) {
+        if (e.contentRect.width === 0 || e.contentRect.height === 0) continue;
+        resizeCanvas();
+        renderTimeline();
+      }
+    });
+    _tlRO.observe(document.getElementById('tab-body-timeline'));
+
+    // ── Timeline: Tab switching ───────────────────────────────────
+    function switchTab(which) {
+      const toolLog = document.getElementById('tool-log');
+      const tlBody  = document.getElementById('tab-body-timeline');
+      const btnLog  = document.getElementById('tab-log');
+      const btnTL   = document.getElementById('tab-timeline');
+
+      if (which === 'log') {
+        toolLog.style.display  = '';
+        tlBody.style.display   = 'none';
+        btnLog.classList.add('active');
+        btnTL.classList.remove('active');
+        stopTimelineLoop();
+      } else {
+        toolLog.style.display  = 'none';
+        tlBody.style.display   = 'flex';  // flex so the div fills panel-log
+        btnLog.classList.remove('active');
+        btnTL.classList.add('active');
+        // Canvas needs dimensions after becoming visible
+        setTimeout(() => {
+          resizeCanvas();
+          renderTimeline();
+          if (timelineState.inProgressCount > 0) startTimelineLoop();
+        }, 0);
+      }
+    }
+
+    document.getElementById('tab-log').addEventListener('click', () => switchTab('log'));
+    document.getElementById('tab-timeline').addEventListener('click', () => switchTab('timeline'));
+
+    // ── Timeline: Tooltip ─────────────────────────────────────────
+    const _tlTip = document.getElementById('timeline-tooltip');
+
+    function showTimelineTip(clientX, clientY, bar) {
+      _tlTip.style.display = 'block';
+      _tlTip.style.left    = (clientX + 12) + 'px';
+      _tlTip.style.top     = (clientY + 8)  + 'px';
+      const status = bar.isError ? 'error' : bar.isInProgress ? 'in-progress' : 'success';
+      const dur = bar.endMs ? formatDuration(bar.endMs - bar.startMs) : '...';
+      document.getElementById('tip-tool').textContent   = bar.toolName;
+      document.getElementById('tip-target').textContent = (bar.target || '').slice(0, 60) || '\u2014';
+      document.getElementById('tip-dur').textContent    = dur;
+      const tipStatus = document.getElementById('tip-status');
+      tipStatus.textContent  = status;
+      tipStatus.className    = 'tip-' + status;
+    }
+
+    function hideTimelineTip() {
+      _tlTip.style.display = 'none';
+    }
+
+    timelineCanvas.addEventListener('mousemove', (e) => {
+      const rect = timelineCanvas.getBoundingClientRect();
+      const mx   = e.clientX - rect.left;
+      const my   = e.clientY - rect.top;
+      const hit  = timelineState.hitBoxes.find(h => mx >= h.x0 && mx <= h.x1 && my >= h.y0 && my <= h.y1);
+      if (hit) {
+        showTimelineTip(e.clientX, e.clientY, hit.bar);
+        timelineCanvas.style.cursor = 'crosshair';
+      } else {
+        hideTimelineTip();
+        timelineCanvas.style.cursor = 'default';
+      }
+    });
+    timelineCanvas.addEventListener('mouseleave', hideTimelineTip);
+
+    // ── Health Panel ──────────────────────────────────────────────
+    function updateHealthPanel(h) {
+      // Hook status
+      const hookCard  = document.getElementById('hcard-hook');
+      const hookVal   = document.getElementById('hcard-hook-value');
+      const ACTIVE_THRESH_MS = 60 * 1000;
+      const isActive  = h.lastEventTs && (Date.now() - h.lastEventTs) < ACTIVE_THRESH_MS;
+      hookVal.textContent = isActive ? 'Active' : 'Inactive';
+      hookCard.className  = 'health-card ' + (isActive ? 'status-green' : 'status-red');
+
+      // Error rate
+      const errCard   = document.getElementById('hcard-error');
+      const errVal    = document.getElementById('hcard-error-value');
+      const rate      = h.errorRate || 0;
+      errVal.textContent  = rate.toFixed(1) + '%';
+      const errClass  = rate >= 20 ? 'status-red' : rate >= 5 ? 'status-yellow' : 'status-green';
+      errCard.className   = 'health-card ' + errClass;
+
+      // Uptime
+      const uptCard   = document.getElementById('hcard-uptime');
+      const uptVal    = document.getElementById('hcard-uptime-value');
+      uptVal.textContent  = formatUptime(h.serverUptimeS || 0);
+      uptCard.className   = 'health-card status-green';
+    }
+
+    // Initial fetch + 5s polling
+    async function pollHealth() {
+      try {
+        const h = await fetch('/api/health').then(r => r.json());
+        updateHealthPanel(h);
+      } catch (e) { /* silent — server may be restarting */ }
+    }
+    pollHealth();
+    setInterval(pollHealth, 5000);
   </script>
 </body>
 </html>
