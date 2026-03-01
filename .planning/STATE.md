@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 
 ## Current Position
 
-Phase: 05-session-history-and-discovery
-Plan: 05 of 05 complete
-Status: Phase 5 Complete — 05-05 human verification passed (all 17 items confirmed: /history, collapsible groups, filters, replay mode, JSONL/CSV export)
-Last activity: 2026-02-27 — Completed 05-05 (human verified HIST-01, HIST-02, HIST-03 end-to-end; Phase 5 fully signed off)
+Phase: 06-cli-and-zero-config-setup
+Plan: 01 of 04 complete
+Status: Phase 6 In Progress — 06-01 complete (package.json + server.js prepared for CLI layer)
+Last activity: 2026-03-01 — Completed 06-01 (bin field, files array, chalk/commander/open added; server.js env-driven PORT and DB path)
 
 Progress: [██████████] 100%
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 05-session-history-and-discovery P03 | ~5min | 1 task | 1 file |
 | Phase 05-session-history-and-discovery P04 | ~10min | 2 tasks | 2 files |
 | Phase 05-session-history-and-discovery P05 | ~5min | 1 task (verify) | 0 files |
+| Phase 06-cli-and-zero-config-setup P01 | ~5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,10 @@ Recent decisions affecting current work:
 - [05-03]: Numeric 0 as no-filter sentinel for cost_min/cost_max — numeric comparisons require numeric sentinel; text params use empty string
 - [05-03]: stmtExportEvents returns PostToolUse only — these are complete tool call records with duration_ms and exit_status; PreToolUse records are incomplete
 - [05-05]: Phase 5 accepted as complete — all 17 human verification items passed: /history loads, project groups collapsible, filters within 300ms, replay amber banner, JSONL and CSV export working from both history page and replay banner
+- [06-01]: chalk ^5.3.0 chosen over 4.x — ESM project requires ESM-compatible chalk; 4.x is CommonJS-only
+- [06-01]: open ^10.1.0 per plan spec — tested stable version; v11 not validated
+- [06-01]: Nullish coalescing (??) not || for PORT and OBSERVAGENT_DB_PATH — preserves PORT=0 as valid test value and empty string as intentional override
+- [06-01]: parseInt(process.env.PORT ?? '4999', 10) with explicit radix 10 — prevents octal parsing edge cases
 
 ### Pending Todos
 
@@ -136,6 +141,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed 05-05-PLAN.md — Human verification of Phase 5 complete. HIST-01, HIST-02, HIST-03 all verified. Ready for Phase 6.
+Last session: 2026-03-01
+Stopped at: Completed 06-01-PLAN.md — package.json and server.js prepared for CLI layer. Ready for 06-02 (CLI start command).
 Resume file: None

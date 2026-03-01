@@ -9,10 +9,10 @@
 
 ### Setup & Installation
 
-- [ ] **SETUP-01**: User can install ObservAgent hooks with a single command (`npx observagent init`) that automatically configures `~/.claude/settings.json`
+- [x] **SETUP-01**: User can install ObservAgent hooks with a single command (`npx observagent init`) that automatically configures `~/.claude/settings.json`
 - [x] **SETUP-02**: ObservAgent auto-detects session files in `~/.claude/projects/` without manual path configuration
-- [ ] **SETUP-03**: User can run `observagent doctor` to diagnose installation issues (is server running? are hooks installed? are JSONL files found?)
-- [ ] **SETUP-04**: User can start the server and open the dashboard with a single command (`observagent start`)
+- [x] **SETUP-03**: User can run `observagent doctor` to diagnose installation issues (is server running? are hooks installed? are JSONL files found?)
+- [x] **SETUP-04**: User can start the server and open the dashboard with a single command (`observagent start`)
 
 ### Event Ingestion
 
@@ -83,10 +83,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 6 | Pending |
+| SETUP-01 | Phase 6 | Complete |
 | SETUP-02 | Phase 3 | Complete |
-| SETUP-03 | Phase 6 | Pending |
-| SETUP-04 | Phase 6 | Pending |
+| SETUP-03 | Phase 6 | Complete |
+| SETUP-04 | Phase 6 | Complete |
 | INGEST-01 | Phase 1 | Complete |
 | INGEST-02 | Phase 2 | Complete |
 | INGEST-03 | Phase 2 | Complete |
