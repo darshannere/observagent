@@ -133,7 +133,12 @@ Plans:
   2. Tool calls from parallel agents are visually overlapping on the timeline, making concurrency patterns immediately visible
   3. The timeline updates live during an active session as new tool calls complete
   4. The Health panel shows hook connection status (active/inactive), session error rate (errors/total calls), and server uptime — no longer a placeholder
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Backend: GET /api/health endpoint + SERVER_START_MS in server.js
+- [ ] 07-02-PLAN.md — Frontend: tabbed timeline canvas (Tool Log | Timeline) + health panel cards + all JS logic
+- [ ] 07-03-PLAN.md — Human verification: DASH-03 and DASH-04 confirmed end-to-end
 
 ## Progress
 
@@ -148,4 +153,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Multi-Agent Observability | 3/4 | In Progress|  |
 | 5. Session History and Discovery | 5/5 | Complete   | 2026-02-27 |
 | 6. CLI and Zero-Config Setup | 4/4 | Complete    | 2026-03-01 |
-| 7. Agent Timeline View | 0/TBD | Not started | - |
+| 7. Agent Timeline View | 0/3 | Not started | - |
