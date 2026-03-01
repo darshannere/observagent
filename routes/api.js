@@ -45,6 +45,21 @@ export async function apiRoutes(fastify, options) {
     INSERT OR REPLACE INTO observagent_config (key, value) VALUES (?, ?)
   `);
 
+  const stmtLastEventTs = db.prepare(`
+    SELECT MAX(timestamp) AS ts FROM events
+  `);
+
+  const stmtCurrentSessionErrors = db.prepare(`
+    SELECT
+      SUM(CASE WHEN exit_status IS NOT NULL AND exit_status != 0 THEN 1 ELSE 0 END) AS errors,
+      COUNT(*) AS total
+    FROM events
+    WHERE session_id = (
+      SELECT session_id FROM events ORDER BY timestamp DESC LIMIT 1
+    )
+    AND hook_type = 'PostToolUse'
+  `);
+
   // Filtered session list with is_live and has_errors
   const stmtSessions = db.prepare(`
     SELECT
@@ -91,6 +106,18 @@ export async function apiRoutes(fastify, options) {
     WHERE session_id = ? AND hook_type = 'PostToolUse'
     ORDER BY timestamp ASC
   `);
+
+  fastify.get('/api/health', (request, reply) => {
+    const lastTs  = stmtLastEventTs.get()?.ts ?? null;
+    const errRow  = stmtCurrentSessionErrors.get();
+    const errors  = errRow?.errors ?? 0;
+    const total   = errRow?.total  ?? 0;
+    reply.send({
+      lastEventTs:   lastTs,
+      errorRate:     total > 0 ? (errors / total) * 100 : 0,
+      serverUptimeS: process.uptime(),
+    });
+  });
 
   fastify.get('/api/agents', (request, reply) => {
     reply.send(stmtAgents.all());
