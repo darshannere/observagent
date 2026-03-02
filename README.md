@@ -16,7 +16,16 @@
 
 ## Why ObservAgent?
 
-If you're using Claude Code for development, you already know it generates significant costs and leaves traces of your work in transcript files. But understanding _how_ your agents spend tokens, which tools are slowest, or why sessions fail — that's been a black box until now.
+Claude Code sessions get expensive and opaque fast.
+
+• Why did this run cost $3?
+• Which tool is slowing everything down?
+• Why did the agent silently fail?
+
+Claude writes JSONL transcripts — but they’re not usable in real time.
+
+**ObservAgent turns Claude Code into a live, debuggable system.**
+No wrappers. No SDKs. No cloud. Just visibility.
 
 ObservAgent gives you complete visibility into your Claude Code sessions without any code changes:
 
