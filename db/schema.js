@@ -61,6 +61,9 @@ export function initDb(path = './observagent.db') {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_session_cost_project ON session_cost(project_name, last_event_ts DESC)`);
   console.log('[db] project_name column and index ready');
 
+  addColumnIfNotExists(db, 'events', 'tool_summary', 'TEXT');
+  console.log('[db] tool_summary column ready');
+
   console.log('[db] initialized — WAL mode active');
   console.log('[db] session_cost and observagent_config tables ready');
   console.log('[db] agent_nodes table ready');
