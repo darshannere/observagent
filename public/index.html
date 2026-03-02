@@ -234,6 +234,13 @@
     }
     .progress-fill.warning { background: var(--yellow); }
     .progress-fill.danger  { background: var(--red); }
+    .info-icon {
+      cursor: help;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 2px;
+      user-select: none;
+    }
     .model-breakdown {
       font-size: 10px;
       font-family: var(--mono);
@@ -367,19 +374,22 @@
       border: 1px solid var(--border);
       border-top: 3px solid var(--border);
       border-radius: 4px;
-      padding: 10px 8px 8px;
+      padding: 12px 8px 10px;
       text-align: center;
       min-width: 0;
     }
     .health-card.status-green  { border-top-color: var(--green); }
     .health-card.status-yellow { border-top-color: var(--yellow); }
     .health-card.status-red    { border-top-color: var(--red); }
+    .health-card.status-gray   { border-top-color: var(--border); }
     .hcard-value {
       font-family: var(--mono);
-      font-size: 20px;
-      font-weight: 500;
+      font-size: 18px;
+      font-weight: 600;
       color: var(--text);
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .hcard-label {
       font-size: 10px;
@@ -387,6 +397,14 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-top: 4px;
+    }
+    .hcard-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* ── Timeline Tab Buttons and Tooltip ────────────────────── */
@@ -407,25 +425,74 @@
       border-bottom-color: var(--green);
       color: var(--text);
     }
-    #timeline-tooltip {
-      position: fixed;
-      display: none;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 6px 8px;
-      font-size: 11px;
+    /* ── Timeline Waterfall ───────────────────────────────────── */
+    #timeline-waterfall {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg);
       font-family: var(--mono);
-      pointer-events: none;
-      z-index: 200;
-      max-width: 240px;
+      font-size: 11px;
     }
-    .tip-tool     { color: var(--text); font-weight: 500; margin-bottom: 2px; }
-    .tip-target   { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tip-dur      { color: var(--text-muted); margin-top: 2px; }
-    .tip-success  { color: var(--green); }
-    .tip-error    { color: var(--red); }
-    .tip-in-progress { color: var(--yellow); }
+    .tl-empty {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: var(--text-muted); font-size: 13px;
+      text-align: center; padding: 0 20px;
+    }
+    .tl-axis {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; flex-shrink: 0; height: 24px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .tl-axis-spacer { width: 172px; flex-shrink: 0; border-right: 1px solid var(--border); }
+    .tl-axis-track  { flex: 1; position: relative; }
+    .tl-tick {
+      position: absolute; font-size: 10px; color: var(--text-muted);
+      top: 4px; white-space: nowrap;
+    }
+    .tl-row {
+      display: flex; align-items: center; height: 28px;
+      flex-shrink: 0; border-bottom: 1px solid #0d1117;
+    }
+    .tl-row:hover { background: rgba(255,255,255,0.03); }
+    .tl-label {
+      width: 172px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 5px;
+      padding: 0 8px; border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .tl-agent {
+      font-size: 9px; color: var(--text-muted);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tl-tool-chip {
+      font-size: 10px; font-weight: 600;
+      padding: 1px 5px; border-radius: 3px; border: 1px solid;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 1; min-width: 0;
+    }
+    .tl-bar-track  { flex: 1; position: relative; height: 100%; }
+    .tl-bar {
+      position: absolute; top: 6px; height: 16px;
+      border-radius: 3px; min-width: 3px;
+    }
+    .tl-bar-live {
+      position: absolute; top: 6px; height: 16px;
+      border-radius: 3px; min-width: 6px; width: 3%;
+      animation: tl-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes tl-pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+    .tl-meta {
+      width: 68px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 3px; padding-right: 8px;
+    }
+    .tl-status-ok   { color: var(--green); }
+    .tl-status-err  { color: var(--red); }
+    .tl-status-live { color: var(--yellow); }
+    .tl-dur { font-size: 10px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -464,8 +531,8 @@
         <span id="log-filter-badge" style="display:none;font-size:10px;color:var(--green);margin-left:8px;"></span>
       </div>
       <div class="panel-body" id="tool-log"></div>
-      <div id="tab-body-timeline" style="display:none; flex:1; overflow:hidden; position:relative; min-height:0;">
-        <canvas id="timeline-canvas" style="display:block;"></canvas>
+      <div id="tab-body-timeline" style="display:none; flex:1; overflow:hidden; min-height:0;">
+        <div id="timeline-waterfall"></div>
       </div>
     </div>
 
@@ -499,7 +566,7 @@
         <!-- Context window fill progress bar -->
         <div class="ctx-label">
           <span>Context</span>
-          <span id="ctx-pct">0%</span>
+          <span id="ctx-pct">0%</span><span class="info-icon" title="ObservAgent calculates context fill from API token usage. Claude Code may apply internal scaling not exposed via the API.">ⓘ</span>
         </div>
         <div class="progress-track">
           <div id="ctx-bar" class="progress-fill"></div>
@@ -524,32 +591,29 @@
     </div>
     <!-- Column 3, row 2: Health Panel (live) -->
     <div class="panel" id="health-panel">
-      <div class="panel-header">Health</div>
+      <div class="panel-header">Session Health</div>
       <div class="panel-body" id="health-panel-body" style="padding:0;">
         <div class="health-cards">
           <div class="health-card" id="hcard-hook">
             <div class="hcard-value" id="hcard-hook-value">--</div>
-            <div class="hcard-label">Hooks</div>
+            <div class="hcard-label">Hook Signal</div>
+            <div class="hcard-sub" id="hcard-hook-sub">waiting…</div>
+          </div>
+          <div class="health-card" id="hcard-calls">
+            <div class="hcard-value" id="hcard-calls-value">--</div>
+            <div class="hcard-label">Tool Calls</div>
+            <div class="hcard-sub" id="hcard-calls-sub">this session</div>
           </div>
           <div class="health-card" id="hcard-error">
-            <div class="hcard-value" id="hcard-error-value">--%</div>
-            <div class="hcard-label">Error Rate</div>
-          </div>
-          <div class="health-card" id="hcard-uptime">
-            <div class="hcard-value" id="hcard-uptime-value">--</div>
-            <div class="hcard-label">Uptime</div>
+            <div class="hcard-value" id="hcard-error-value">--</div>
+            <div class="hcard-label">Errors</div>
+            <div class="hcard-sub" id="hcard-error-sub">of total calls</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="timeline-tooltip">
-    <div class="tip-tool" id="tip-tool"></div>
-    <div class="tip-target" id="tip-target"></div>
-    <div class="tip-dur" id="tip-dur"></div>
-    <div class="tip-status" id="tip-status"></div>
-  </div>
 
   <script>
     // --- Replay mode detection ---
@@ -720,7 +784,6 @@
         scrollToBottom();
         // Static render after hydration (no animation loop in IS_REPLAY; live mode starts loop if needed)
         renderTimeline();
-        if (!IS_REPLAY && timelineState.inProgressCount > 0) startTimelineLoop();
       } catch (e) {
         console.warn('[hydrate] failed:', e.message);
       }
@@ -737,11 +800,13 @@
         // Timeline wiring (additive — does not modify appendRow behavior)
         if (msg.hook_type === 'PreToolUse') {
           timelineAddPreToolUse(msg);
-          if (timelineState.inProgressCount > 0 && _tlAnimId === null) startTimelineLoop();
         } else if (msg.hook_type === 'PostToolUse') {
           timelineAddPostToolUse(msg);
-          if (timelineState.inProgressCount === 0) {
-            renderTimeline(); // final static render when all calls complete
+        }
+        // Re-render timeline if visible (both Pre and Post)
+        if (msg.hook_type === 'PreToolUse' || msg.hook_type === 'PostToolUse') {
+          if (document.getElementById('tab-body-timeline').style.display !== 'none') {
+            renderTimeline();
           }
         }
       };
@@ -1381,222 +1446,128 @@
       return m + 'm ' + String(r).padStart(2, '0') + 's';
     }
 
-    // ── Timeline: State ───────────────────────────────────────────
+    // ── Timeline: Waterfall State ─────────────────────────────────
     const timelineState = {
-      agentRows:       new Map(), // session_id -> { label, bars: [], toolCount }
-      // bars: [{ toolName, toolCallId, startMs, endMs, isInProgress, isError, target }]
-      sessionStart:    null,
-      latestTs:        0,
-      inProgressCount: 0,
-      hitBoxes:        [], // populated during render: [{ x0, y0, x1, y1, bar }]
+      calls:        [],   // { id, toolName, agentLabel, startMs, endMs, isInProgress, isError }
+      agentRows:    new Map(), // session_id -> { label, toolCount }
+      sessionStart: null,
+      latestTs:     0,
+      agentCounter: 0,
     };
 
     function resetTimelineState() {
+      timelineState.calls        = [];
       timelineState.agentRows.clear();
-      timelineState.sessionStart    = null;
-      timelineState.latestTs        = 0;
-      timelineState.inProgressCount = 0;
-      timelineState.hitBoxes        = [];
+      timelineState.sessionStart = null;
+      timelineState.latestTs     = 0;
+      timelineState.agentCounter = 0;
     }
 
     function timelineAddPreToolUse(ev) {
-      // ev: { tool_name, session_id, tool_call_id, timestamp, tool_input }
       if (!timelineState.agentRows.has(ev.session_id)) {
-        // label: last 8 chars of session_id or 'parent'
-        const label = ev.session_id ? ev.session_id.slice(-8) : 'parent';
-        timelineState.agentRows.set(ev.session_id, { label, bars: [], toolCount: 0 });
+        timelineState.agentCounter++;
+        const n = timelineState.agentCounter;
+        const label = n === 1 ? 'This Agent' : 'Agent ' + n;
+        timelineState.agentRows.set(ev.session_id, { label, toolCount: 0 });
       }
       const row = timelineState.agentRows.get(ev.session_id);
+      row.toolCount++;
       const startMs = Number(ev.timestamp);
       if (timelineState.sessionStart === null || startMs < timelineState.sessionStart) {
         timelineState.sessionStart = startMs;
       }
-      row.bars.push({
+      timelineState.calls.push({
+        id:           ev.tool_call_id || (ev.session_id + ':' + startMs),
         toolName:     ev.tool_name,
-        toolCallId:   ev.tool_call_id,
+        agentLabel:   row.label,
         startMs,
-        endMs:        null, // filled on PostToolUse
+        endMs:        null,
         isInProgress: true,
         isError:      false,
-        target:       ev.tool_input ? String(ev.tool_input).slice(0, 120) : '',
       });
-      row.toolCount++;
-      timelineState.inProgressCount++;
     }
 
     function timelineAddPostToolUse(ev) {
-      // ev: { tool_name, session_id, tool_call_id, timestamp, duration_ms, exit_status }
-      if (!timelineState.agentRows.has(ev.session_id)) return;
-      const row = timelineState.agentRows.get(ev.session_id);
-      const bar = row.bars.find(b => b.toolCallId === ev.tool_call_id && b.isInProgress);
-      if (bar) {
-        bar.endMs        = Number(ev.timestamp);
-        bar.isInProgress = false;
-        bar.isError      = ev.exit_status !== null && ev.exit_status !== undefined && ev.exit_status !== 0;
-        if (timelineState.inProgressCount > 0) timelineState.inProgressCount--;
-        timelineState.latestTs = Math.max(timelineState.latestTs, bar.endMs);
+      const calls = timelineState.calls;
+      for (let i = calls.length - 1; i >= 0; i--) {
+        const c = calls[i];
+        if (c.id === ev.tool_call_id && c.isInProgress) {
+          c.endMs        = Number(ev.timestamp);
+          c.isInProgress = false;
+          c.isError      = ev.exit_status != null && ev.exit_status !== 0;
+          timelineState.latestTs = Math.max(timelineState.latestTs, c.endMs);
+          break;
+        }
       }
     }
 
-    // ── Timeline: Render ──────────────────────────────────────────
-    const timelineCanvas  = document.getElementById('timeline-canvas');
-    const timelineCtx     = timelineCanvas.getContext('2d');
+    // stubs — CSS handles animation, no rAF loop needed
+    function startTimelineLoop() {}
+    function stopTimelineLoop()  {}
 
-    function resizeCanvas() {
-      const container = document.getElementById('tab-body-timeline');
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w === 0 || h === 0) return;
-      const dpr = window.devicePixelRatio || 1;
-      timelineCanvas.width  = w * dpr;
-      timelineCanvas.height = h * dpr;
-      timelineCanvas.style.width  = w + 'px';
-      timelineCanvas.style.height = h + 'px';
-      timelineCtx.scale(dpr, dpr);
+    // ── Timeline: Waterfall Render ────────────────────────────────
+    function _tlSessionBounds() {
+      const now   = Date.now();
+      const start = timelineState.sessionStart || now;
+      const end   = Math.max(now, timelineState.latestTs, start + 1000);
+      return { start, totalMs: end - start };
+    }
+
+    function _tlAxisHtml(start, totalMs) {
+      const TICKS = 5;
+      let ticks = '';
+      for (let i = 0; i <= TICKS; i++) {
+        const pct = (i / TICKS) * 100;
+        const ms  = (pct / 100) * totalMs;
+        const style = i === 0        ? 'left:0'
+                    : i === TICKS    ? 'right:0'
+                    : `left:${pct.toFixed(1)}%;transform:translateX(-50%)`;
+        ticks += `<span class="tl-tick" style="${style}">${formatRelativeTime(ms)}</span>`;
+      }
+      return `<div class="tl-axis"><div class="tl-axis-spacer"></div><div class="tl-axis-track">${ticks}</div></div>`;
+    }
+
+    function _tlRowHtml(call, start, totalMs) {
+      const color  = call.isError ? '#f85149' : getToolColor(call.toolName);
+      const chip   = `<span class="tl-tool-chip" style="background:${color}20;color:${color};border-color:${color}50">${call.toolName}</span>`;
+      const now    = Date.now();
+      const endMs  = call.isInProgress ? now : call.endMs;
+      const durMs  = endMs - call.startMs;
+      const leftPct = Math.max(0, ((call.startMs - start) / totalMs) * 100).toFixed(2);
+      let bar, meta;
+      if (call.isInProgress) {
+        bar  = `<div class="tl-bar-live" style="left:${leftPct}%;background:${color}"></div>`;
+        meta = `<span class="tl-status-live">⟳</span>`;
+      } else {
+        const widPct = Math.max(0.15, (durMs / totalMs) * 100).toFixed(2);
+        bar  = `<div class="tl-bar" style="left:${leftPct}%;width:${widPct}%;background:${color}"></div>`;
+        const statusEl = call.isError
+          ? `<span class="tl-status-err">✗</span>`
+          : `<span class="tl-status-ok">✓</span>`;
+        meta = `${statusEl}<span class="tl-dur">${formatDuration(durMs)}</span>`;
+      }
+      return `<div class="tl-row" data-id="${call.id}">` +
+        `<div class="tl-label"><span class="tl-agent">${call.agentLabel}</span>${chip}</div>` +
+        `<div class="tl-bar-track">${bar}</div>` +
+        `<div class="tl-meta">${meta}</div>` +
+        `</div>`;
     }
 
     function renderTimeline() {
-      const dpr = window.devicePixelRatio || 1;
-      const W   = timelineCanvas.width  / dpr;
-      const H   = timelineCanvas.height / dpr;
-
-      timelineCtx.clearRect(0, 0, W, H);
-      timelineState.hitBoxes = [];
-
-      if (timelineState.agentRows.size === 0 || timelineState.sessionStart === null) {
-        timelineCtx.fillStyle = '#8b949e';
-        timelineCtx.font = '13px sans-serif';
-        timelineCtx.textAlign = 'center';
-        timelineCtx.fillText('No active session. Start using Claude Code to see activity.', W / 2, H / 2);
+      const el = document.getElementById('timeline-waterfall');
+      if (!el) return;
+      if (timelineState.calls.length === 0) {
+        el.innerHTML = '<div class="tl-empty">No session data — start Claude Code to see tool calls here</div>';
         return;
       }
-
-      const now          = Date.now();
-      const sessionStart = timelineState.sessionStart;
-      const sessionEnd   = Math.max(now, timelineState.latestTs, sessionStart + 1000);
-      const totalMs      = sessionEnd - sessionStart;
-
-      const HEADER_H  = 24;
-      const ROW_H     = 28;
-      const BAR_H     = 18;
-      const BAR_MARGIN= (ROW_H - BAR_H) / 2;
-      const LABEL_W   = 80;
-
-      // Sort rows by toolCount descending
-      const rowOrder = [...timelineState.agentRows.entries()]
-        .sort((a, b) => b[1].toolCount - a[1].toolCount)
-        .map(([sessionId]) => sessionId);
-
-      // Time axis
-      const tickCount = 5;
-      timelineCtx.fillStyle = '#8b949e';
-      timelineCtx.font = '10px monospace';
-      timelineCtx.textAlign = 'left';
-      for (let i = 0; i <= tickCount; i++) {
-        const frac  = i / tickCount;
-        const xPx   = LABEL_W + frac * (W - LABEL_W);
-        const label = formatRelativeTime(frac * totalMs);
-        // Align last tick label so it doesn't overflow
-        if (i === tickCount) timelineCtx.textAlign = 'right';
-        timelineCtx.fillText(label, xPx, HEADER_H - 6);
-        timelineCtx.textAlign = 'left';
-        // Tick mark
-        timelineCtx.fillStyle = '#30363d';
-        timelineCtx.fillRect(xPx, HEADER_H - 4, 1, H - HEADER_H);
-        timelineCtx.fillStyle = '#8b949e';
-      }
-
-      // Swimlane rows
-      rowOrder.forEach((sessionId, rowIdx) => {
-        const y       = HEADER_H + rowIdx * ROW_H;
-        const rowData = timelineState.agentRows.get(sessionId);
-
-        // Row background
-        timelineCtx.fillStyle = rowIdx % 2 === 0 ? '#161b22' : '#0d1117';
-        timelineCtx.fillRect(0, y, W, ROW_H);
-
-        // Agent label (truncated)
-        timelineCtx.fillStyle = '#8b949e';
-        timelineCtx.font = '10px monospace';
-        timelineCtx.textAlign = 'left';
-        timelineCtx.save();
-        timelineCtx.beginPath();
-        timelineCtx.rect(2, y, LABEL_W - 4, ROW_H);
-        timelineCtx.clip();
-        timelineCtx.fillText(rowData.label, 2, y + ROW_H / 2 + 4);
-        timelineCtx.restore();
-
-        // Bars
-        for (const bar of rowData.bars) {
-          const endMs = bar.isInProgress ? now : bar.endMs;
-          const x0 = LABEL_W + ((bar.startMs - sessionStart) / totalMs) * (W - LABEL_W);
-          const x1 = LABEL_W + ((endMs      - sessionStart) / totalMs) * (W - LABEL_W);
-          const barW = Math.max(x1 - x0, 2);
-
-          // Color
-          if (bar.isError) {
-            timelineCtx.fillStyle = '#f85149';
-            timelineCtx.globalAlpha = 1.0;
-          } else if (bar.isInProgress) {
-            const phase = (Date.now() % 1200) / 1200;
-            const alpha = 0.55 + 0.45 * Math.abs(Math.sin(phase * Math.PI));
-            timelineCtx.globalAlpha = alpha;
-            timelineCtx.fillStyle = getToolColor(bar.toolName);
-          } else {
-            timelineCtx.fillStyle = getToolColor(bar.toolName);
-            timelineCtx.globalAlpha = 1.0;
-          }
-          timelineCtx.fillRect(x0, y + BAR_MARGIN, barW, BAR_H);
-          timelineCtx.globalAlpha = 1.0;
-
-          // Bar label (only if wide enough)
-          if (barW > 30) {
-            timelineCtx.fillStyle = '#fff';
-            timelineCtx.font = '10px monospace';
-            timelineCtx.textAlign = 'left';
-            timelineCtx.save();
-            timelineCtx.beginPath();
-            timelineCtx.rect(x0 + 2, y + BAR_MARGIN, barW - 4, BAR_H);
-            timelineCtx.clip();
-            timelineCtx.fillText(bar.toolName, x0 + 4, y + BAR_MARGIN + BAR_H - 5);
-            timelineCtx.restore();
-          }
-
-          // Store hit box for tooltip
-          timelineState.hitBoxes.push({ x0, y0: y + BAR_MARGIN, x1: x0 + barW, y1: y + BAR_MARGIN + BAR_H, bar });
-        }
-      });
+      const { start, totalMs } = _tlSessionBounds();
+      let html = _tlAxisHtml(start, totalMs);
+      for (const call of timelineState.calls) html += _tlRowHtml(call, start, totalMs);
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+      const prev = el.scrollTop;
+      el.innerHTML = html;
+      el.scrollTop = atBottom ? el.scrollHeight : prev;
     }
-
-    // ── Timeline: Animation loop ──────────────────────────────────
-    let _tlAnimId = null;
-
-    function startTimelineLoop() {
-      if (_tlAnimId !== null) return;
-      function loop() {
-        renderTimeline();
-        if (timelineState.inProgressCount > 0) {
-          _tlAnimId = requestAnimationFrame(loop);
-        } else {
-          _tlAnimId = null;
-        }
-      }
-      _tlAnimId = requestAnimationFrame(loop);
-    }
-
-    function stopTimelineLoop() {
-      if (_tlAnimId !== null) { cancelAnimationFrame(_tlAnimId); _tlAnimId = null; }
-    }
-
-    // ResizeObserver for responsive canvas
-    const _tlRO = new ResizeObserver(entries => {
-      for (const e of entries) {
-        if (e.contentRect.width === 0 || e.contentRect.height === 0) continue;
-        resizeCanvas();
-        renderTimeline();
-      }
-    });
-    _tlRO.observe(document.getElementById('tab-body-timeline'));
 
     // ── Timeline: Tab switching ───────────────────────────────────
     function switchTab(which) {
@@ -1604,89 +1575,95 @@
       const tlBody  = document.getElementById('tab-body-timeline');
       const btnLog  = document.getElementById('tab-log');
       const btnTL   = document.getElementById('tab-timeline');
-
       if (which === 'log') {
-        toolLog.style.display  = '';
-        tlBody.style.display   = 'none';
+        toolLog.style.display = '';
+        tlBody.style.display  = 'none';
         btnLog.classList.add('active');
         btnTL.classList.remove('active');
-        stopTimelineLoop();
       } else {
-        toolLog.style.display  = 'none';
-        tlBody.style.display   = 'flex';  // flex so the div fills panel-log
+        toolLog.style.display = 'none';
+        tlBody.style.display  = 'flex';
         btnLog.classList.remove('active');
         btnTL.classList.add('active');
-        // Canvas needs dimensions after becoming visible
-        setTimeout(() => {
-          resizeCanvas();
-          renderTimeline();
-          if (timelineState.inProgressCount > 0) startTimelineLoop();
-        }, 0);
+        renderTimeline();
+        // scroll to bottom to show most recent calls
+        const wf = document.getElementById('timeline-waterfall');
+        if (wf) wf.scrollTop = wf.scrollHeight;
       }
     }
 
-    document.getElementById('tab-log').addEventListener('click', () => switchTab('log'));
+    document.getElementById('tab-log').addEventListener('click',      () => switchTab('log'));
     document.getElementById('tab-timeline').addEventListener('click', () => switchTab('timeline'));
 
-    // ── Timeline: Tooltip ─────────────────────────────────────────
-    const _tlTip = document.getElementById('timeline-tooltip');
-
-    function showTimelineTip(clientX, clientY, bar) {
-      _tlTip.style.display = 'block';
-      _tlTip.style.left    = (clientX + 12) + 'px';
-      _tlTip.style.top     = (clientY + 8)  + 'px';
-      const status = bar.isError ? 'error' : bar.isInProgress ? 'in-progress' : 'success';
-      const dur = bar.endMs ? formatDuration(bar.endMs - bar.startMs) : '...';
-      document.getElementById('tip-tool').textContent   = bar.toolName;
-      document.getElementById('tip-target').textContent = (bar.target || '').slice(0, 60) || '\u2014';
-      document.getElementById('tip-dur').textContent    = dur;
-      const tipStatus = document.getElementById('tip-status');
-      tipStatus.textContent  = status;
-      tipStatus.className    = 'tip-' + status;
-    }
-
-    function hideTimelineTip() {
-      _tlTip.style.display = 'none';
-    }
-
-    timelineCanvas.addEventListener('mousemove', (e) => {
-      const rect = timelineCanvas.getBoundingClientRect();
-      const mx   = e.clientX - rect.left;
-      const my   = e.clientY - rect.top;
-      const hit  = timelineState.hitBoxes.find(h => mx >= h.x0 && mx <= h.x1 && my >= h.y0 && my <= h.y1);
-      if (hit) {
-        showTimelineTip(e.clientX, e.clientY, hit.bar);
-        timelineCanvas.style.cursor = 'crosshair';
-      } else {
-        hideTimelineTip();
-        timelineCanvas.style.cursor = 'default';
-      }
-    });
-    timelineCanvas.addEventListener('mouseleave', hideTimelineTip);
-
     // ── Health Panel ──────────────────────────────────────────────
+    function timeAgo(ts) {
+      if (!ts) return null;
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 5)  return 'just now';
+      if (s < 60) return s + 's ago';
+      const m = Math.floor(s / 60);
+      return m + 'm ago';
+    }
+
     function updateHealthPanel(h) {
-      // Hook status
-      const hookCard  = document.getElementById('hcard-hook');
-      const hookVal   = document.getElementById('hcard-hook-value');
       const ACTIVE_THRESH_MS = 60 * 1000;
-      const isActive  = h.lastEventTs && (Date.now() - h.lastEventTs) < ACTIVE_THRESH_MS;
-      hookVal.textContent = isActive ? 'Active' : 'Inactive';
-      hookCard.className  = 'health-card ' + (isActive ? 'status-green' : 'status-red');
+      const now = Date.now();
 
-      // Error rate
-      const errCard   = document.getElementById('hcard-error');
-      const errVal    = document.getElementById('hcard-error-value');
-      const rate      = h.errorRate || 0;
-      errVal.textContent  = rate.toFixed(1) + '%';
-      const errClass  = rate >= 20 ? 'status-red' : rate >= 5 ? 'status-yellow' : 'status-green';
-      errCard.className   = 'health-card ' + errClass;
+      // ── Hook signal card ──────────────────────────────────────
+      const hookCard = document.getElementById('hcard-hook');
+      const hookVal  = document.getElementById('hcard-hook-value');
+      const hookSub  = document.getElementById('hcard-hook-sub');
+      const isActive = h.lastEventTs && (now - h.lastEventTs) < ACTIVE_THRESH_MS;
+      if (!h.lastEventTs) {
+        hookVal.textContent = '○ Waiting';
+        hookSub.textContent = 'no events yet';
+        hookCard.className  = 'health-card status-gray';
+      } else if (isActive) {
+        hookVal.textContent = '● Live';
+        hookSub.textContent = timeAgo(h.lastEventTs);
+        hookCard.className  = 'health-card status-green';
+      } else {
+        hookVal.textContent = '○ Idle';
+        hookSub.textContent = timeAgo(h.lastEventTs);
+        hookCard.className  = 'health-card status-yellow';
+      }
 
-      // Uptime
-      const uptCard   = document.getElementById('hcard-uptime');
-      const uptVal    = document.getElementById('hcard-uptime-value');
-      uptVal.textContent  = formatUptime(h.serverUptimeS || 0);
-      uptCard.className   = 'health-card status-green';
+      // ── Tool calls card ───────────────────────────────────────
+      const callsCard = document.getElementById('hcard-calls');
+      const callsVal  = document.getElementById('hcard-calls-value');
+      const callsSub  = document.getElementById('hcard-calls-sub');
+      const total     = h.totalCalls || 0;
+      // Count from live timeline state as well (includes in-progress)
+      let liveTotal = 0;
+      timelineState.agentRows.forEach(row => { liveTotal += row.toolCount; });
+      const displayTotal = Math.max(total, liveTotal);
+      callsVal.textContent = displayTotal > 0 ? String(displayTotal) : '0';
+      const agentCount = timelineState.agentRows.size;
+      callsSub.textContent = agentCount > 1
+        ? agentCount + ' agents active'
+        : (displayTotal > 0 ? 'this session' : 'start Claude Code');
+      callsCard.className = displayTotal > 0 ? 'health-card status-green' : 'health-card status-gray';
+
+      // ── Errors card ───────────────────────────────────────────
+      const errCard  = document.getElementById('hcard-error');
+      const errVal   = document.getElementById('hcard-error-value');
+      const errSub   = document.getElementById('hcard-error-sub');
+      const errors   = h.errorCount || 0;
+      const rate     = h.errorRate  || 0;
+      if (total === 0) {
+        errVal.textContent = '—';
+        errSub.textContent = 'no calls yet';
+        errCard.className  = 'health-card status-gray';
+      } else if (errors === 0) {
+        errVal.textContent = '0 errors';
+        errSub.textContent = total + ' calls clean';
+        errCard.className  = 'health-card status-green';
+      } else {
+        errVal.textContent = errors + ' / ' + total;
+        errSub.textContent = rate.toFixed(0) + '% error rate';
+        const errClass = rate >= 20 ? 'status-red' : 'status-yellow';
+        errCard.className  = 'health-card ' + errClass;
+      }
     }
 
     // Initial fetch + 5s polling
