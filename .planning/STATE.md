@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: in progress
-last_updated: "2026-03-02T22:40:00.000Z"
+last_updated: "2026-03-02T22:25:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 8 — Tool Log Enrichment + Calc Fix (Plans 01, 04, and 02 complete, Plan 03 next)
+**Current focus:** Phase 8 — Tool Log Enrichment + Calc Fix (ALL PLANS COMPLETE — 01, 04, 02, 03 done)
 
 ## Current Position
 
 Phase: 8 of 10 (Tool Log Enrichment + Calc Fix)
-Plan: 03 (next)
-Status: In progress — 3 of 4 plans complete (01, 04, 02 done)
-Last activity: 2026-03-02 — Phase 8, Plan 02 complete (tool_summary server pipeline + full_tool_input_enabled toggle)
+Plan: 03 (complete — all 4 plans done)
+Status: Complete — 4 of 4 plans complete (01, 04, 02, 03 done)
+Last activity: 2026-03-02 — Phase 8, Plan 03 complete (tool_summary UI rendering in tool log + timeline)
 
-Progress: [███░░░░░░░] 75% (v2.0 milestone, Phase 8)
+Progress: [████░░░░░░] 100% (Phase 8 complete)
 
 ## Performance Metrics
 
@@ -39,6 +39,7 @@ Progress: [███░░░░░░░] 75% (v2.0 milestone, Phase 8)
 - Phase 8, Plan 01: 8 min (2 tasks, 2 files)
 - Phase 8, Plan 04: 8 min (2 tasks, 2 files)
 - Phase 8, Plan 02: 8 min (3 tasks, 5 files)
+- Phase 8, Plan 03: 5 min (1 task, 1 file)
 
 ## Accumulated Context
 
@@ -60,6 +61,9 @@ Recent decisions affecting v2.0 work:
 - [08-02]: Prepare full_tool_input_enabled SELECT inside route handler (not registration time) — acceptable for low-frequency ingest events
 - [08-02]: Raw tool_input NOT stored in events table when toggle is on — only logged to console; keeps events schema clean
 - [08-02]: Use || '' for e.tool_summary in CSV rows — ensures empty string for NULL old rows, never literal 'null' string
+- [08-03]: Moved white-space:nowrap and overflow:hidden from .log-row to .log-row-main to allow two-line column layout
+- [08-03]: Used native title attribute on summaryEl and timeline chip span — consistent with 08-04, no JS tooltip overhead
+- [08-03]: Conditional summaryEl append (only when truthy) prevents empty second line for events without tool_summary
 
 ### Pending Todos
 
@@ -72,5 +76,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 08-02-PLAN.md (tool_summary server pipeline — ingest.js, writeQueue.js, api.js, history.html, db/schema.js)
+Stopped at: Completed 08-03-PLAN.md (tool_summary UI rendering — public/index.html)
 Resume file: None
