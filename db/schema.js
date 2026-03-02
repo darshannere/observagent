@@ -64,6 +64,9 @@ export function initDb(path = './observagent.db') {
   addColumnIfNotExists(db, 'events', 'tool_summary', 'TEXT');
   console.log('[db] tool_summary column ready');
 
+  db.prepare(`INSERT OR IGNORE INTO observagent_config (key, value) VALUES ('full_tool_input_enabled', '0')`).run();
+  console.log('[db] full_tool_input_enabled config seeded (default: off)');
+
   console.log('[db] initialized — WAL mode active');
   console.log('[db] session_cost and observagent_config tables ready');
   console.log('[db] agent_nodes table ready');

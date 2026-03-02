@@ -43,6 +43,13 @@ export async function ingestRoutes(fastify, options) {
       tool_summary: raw.tool_summary || null,
     };
 
+    // full_tool_input_enabled toggle — API-controlled, default off
+    // When enabled, raw tool_input JSON is logged to console for debugging (not stored in events table)
+    const fullInputEnabled = db.prepare(`SELECT value FROM observagent_config WHERE key = 'full_tool_input_enabled'`).get()?.value === '1';
+    if (fullInputEnabled && raw.tool_input) {
+      console.log('[ingest] full_tool_input:', JSON.stringify(raw.tool_input));
+    }
+
     // PreToolUse/PostToolUse pairing — duration_ms computed here, BEFORE broadcast, so SSE clients receive final value
     if (event.hook_type === 'PreToolUse' && event.tool_call_id !== null) {
       // Store start timestamp and session for this in-flight tool call
