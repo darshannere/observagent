@@ -60,6 +60,57 @@ def _derive_exit_status(payload):
     return None
 
 
+def _build_tool_summary(tool_name, tool_input):
+    """
+    Build a safe, pre-formatted summary string for a tool call.
+
+    Only extracts non-sensitive metadata fields (command, file paths, patterns,
+    queries, URLs). Never extracts content, new_str, old_str, or new_content.
+    Returns None for tools with no meaningful summary field, or when tool_input
+    is not a dict.
+    """
+    if not isinstance(tool_input, dict):
+        return None
+    if tool_name == "Bash":
+        cmd = tool_input.get("command", "")
+        if cmd: return "command: " + cmd[:200]
+    elif tool_name in ("Read", "Write", "Edit", "MultiEdit"):
+        path = tool_input.get("file_path", "")
+        if path: return "file_path: " + path
+    elif tool_name in ("Grep", "Glob"):
+        pattern = tool_input.get("pattern", "")
+        if pattern: return "pattern: " + pattern
+    elif tool_name == "Task":
+        desc = tool_input.get("description", "")
+        sub = tool_input.get("subagent_type", "")
+        parts = []
+        if desc: parts.append("description: " + desc[:200])
+        if sub: parts.append("subagent_type: " + sub)
+        return " | ".join(parts) if parts else None
+    elif tool_name == "WebFetch":
+        url = tool_input.get("url", "")
+        if url: return "url: " + url[:200]
+    elif tool_name == "WebSearch":
+        query = tool_input.get("query", "")
+        if query: return "query: " + query[:200]
+    elif tool_name == "TodoWrite":
+        todos = tool_input.get("todos", [])
+        if todos and isinstance(todos, list) and len(todos) > 0 and isinstance(todos[0], dict):
+            subject = todos[0].get("content", todos[0].get("subject", ""))
+            if subject: return "subject: " + subject[:200]
+    elif tool_name in ("NotebookRead", "NotebookEdit"):
+        path = tool_input.get("notebook_path", "")
+        if path: return "notebook_path: " + path
+    elif tool_name == "LS":
+        path = tool_input.get("path", "")
+        if path: return "path: " + path
+    elif tool_name.startswith("mcp__"):
+        for key in ("query", "path", "url", "command", "name", "description"):
+            val = tool_input.get(key, "")
+            if val and isinstance(val, str): return key + ": " + val[:200]
+    return None
+
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -75,6 +126,10 @@ def main():
             "tool_call_id": payload.get("tool_use_id", ""),
             "exit_status":  _derive_exit_status(payload),
         }
+
+        tool_name_val = payload.get("tool_name", "")
+        tool_input_val = payload.get("tool_input", {})
+        event["tool_summary"] = _build_tool_summary(tool_name_val, tool_input_val)
 
         # Extract additional fields for SubagentStart/SubagentStop
         hook_event = payload.get("hook_event_name", "")
