@@ -77,11 +77,28 @@
       font-size: 12px;
       padding: 2px 4px;
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      gap: 2px;
       border-radius: 2px;
-      white-space: nowrap;
       overflow: hidden;
       border-left: 3px solid transparent;
+    }
+
+    .log-row-main {
+      display: flex;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .tool-summary {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-left: 4px;
     }
 
     .log-row.error {
@@ -683,6 +700,10 @@
       row.className = 'log-row';
       if (event.hook_type === 'PreToolUse') row.classList.add('in-progress');
 
+      // Wrap main content in a horizontal flex row
+      const mainLine = document.createElement('div');
+      mainLine.className = 'log-row-main';
+
       const toolEl = document.createElement('span');
       toolEl.className = 'tool-name';
       // Error rows: show "toolname — error" if exit_status is non-null non-zero
@@ -698,9 +719,20 @@
       durEl.className = `duration ${latencyClass(event.duration_ms)}`;
       durEl.textContent = event.duration_ms !== null ? formatDuration(event.duration_ms) : '\u2026';
 
-      row.appendChild(toolEl);
-      row.appendChild(tsEl);
-      row.appendChild(durEl);
+      mainLine.appendChild(toolEl);
+      mainLine.appendChild(tsEl);
+      mainLine.appendChild(durEl);
+      row.appendChild(mainLine);
+
+      // Second line: tool_summary (only if present)
+      if (event.tool_summary) {
+        const summaryEl = document.createElement('div');
+        summaryEl.className = 'tool-summary';
+        summaryEl.textContent = event.tool_summary;
+        summaryEl.title = event.tool_summary;
+        row.appendChild(summaryEl);
+      }
+
       return { row, durEl };
     }
 
@@ -1479,6 +1511,7 @@
       timelineState.calls.push({
         id:           ev.tool_call_id || (ev.session_id + ':' + startMs),
         toolName:     ev.tool_name,
+        toolSummary:  ev.tool_summary || null,
         agentLabel:   row.label,
         startMs,
         endMs:        null,
@@ -1529,7 +1562,8 @@
 
     function _tlRowHtml(call, start, totalMs) {
       const color  = call.isError ? '#f85149' : getToolColor(call.toolName);
-      const chip   = `<span class="tl-tool-chip" style="background:${color}20;color:${color};border-color:${color}50">${call.toolName}</span>`;
+      const chipTitle = call.toolSummary ? ` title="${call.toolSummary.replace(/"/g, '&quot;')}"` : '';
+      const chip   = `<span class="tl-tool-chip"${chipTitle} style="background:${color}20;color:${color};border-color:${color}50">${call.toolName}</span>`;
       const now    = Date.now();
       const endMs  = call.isInProgress ? now : call.endMs;
       const durMs  = endMs - call.startMs;
