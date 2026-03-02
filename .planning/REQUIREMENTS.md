@@ -61,6 +61,13 @@
 - [ ] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
 - [ ] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
 - [ ] **AGNT-09**: Agent detail panel shows input + output token counts per API call for that agent
+- [ ] **AGNT-10**: Agent detail panel shows the agent's full conversation history — the messages it received and sent (context window contents)
+
+The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initial task), **Context** (conversation history), **Calls** (tool call history with timestamps), **Tokens** (input/output/cache breakdown per call).
+
+### Architecture (ARCH)
+
+- [ ] **ARCH-01**: Dashboard migrates from vanilla JS to React (Vite + React) while preserving all existing v1.0 and Phase 8 functionality — feature parity required before new Phase 10 UI is built on top
 
 ### Tool Log Enrichment (TOOL)
 
@@ -152,26 +159,28 @@
 | TOOL-03 | Phase 8 | Pending |
 | TOOL-04 | Phase 8 | Pending |
 | TOOL-05 | Phase 8 | Pending |
-| AGNT-01 | Phase 9 | Pending |
-| AGNT-02 | Phase 9 | Pending |
-| AGNT-03 | Phase 9 | Pending |
-| AGNT-04 | Phase 9 | Pending |
-| AGNT-05 | Phase 9 | Pending |
-| AGNT-06 | Phase 9 | Pending |
-| AGNT-07 | Phase 9 | Pending |
-| AGNT-08 | Phase 9 | Pending |
-| AGNT-09 | Phase 9 | Pending |
-| DASH2-01 | Phase 10 | Pending |
-| DASH2-02 | Phase 10 | Pending |
-| DASH2-03 | Phase 10 | Pending |
-| DASH2-04 | Phase 10 | Pending |
-| FILT-01 | Phase 10 | Pending |
-| FILT-02 | Phase 10 | Pending |
+| ARCH-01 | Phase 9 | Pending |
+| AGNT-01 | Phase 10 | Pending |
+| AGNT-02 | Phase 10 | Pending |
+| AGNT-03 | Phase 10 | Pending |
+| AGNT-04 | Phase 10 | Pending |
+| AGNT-05 | Phase 10 | Pending |
+| AGNT-06 | Phase 10 | Pending |
+| AGNT-07 | Phase 10 | Pending |
+| AGNT-08 | Phase 10 | Pending |
+| AGNT-09 | Phase 10 | Pending |
+| AGNT-10 | Phase 10 | Pending |
+| DASH2-01 | Phase 11 | Pending |
+| DASH2-02 | Phase 11 | Pending |
+| DASH2-03 | Phase 11 | Pending |
+| DASH2-04 | Phase 11 | Pending |
+| FILT-01 | Phase 11 | Pending |
+| FILT-02 | Phase 11 | Pending |
 
 **Coverage:**
 - v1.0 requirements: 21 total — all Complete ✓
-- v2.0 requirements: 21 total
-- v2.0 mapped to phases: 21
+- v2.0 requirements: 23 total
+- v2.0 mapped to phases: 23
 - v2.0 unmapped: 0 ✓
 
 ---
