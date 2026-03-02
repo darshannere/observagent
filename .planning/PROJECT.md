@@ -8,41 +8,46 @@ ObservAgent is a real-time observability platform for Claude Code that surfaces 
 
 See exactly which agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
 
-## Requirements
+---
 
-## Current Milestone: v1.1 — Full Observability Stack
+## v1.0 Shipped ✅
 
-**Goal:** Complete the full observability feature set — cost tracking, multi-agent tree, session history, CLI setup, and timeline view.
+**Shipped:** 2026-03-01
+**Phases:** 7 complete (28 plans)
+**Status:** Production-ready MVP
 
-**Target features:**
-- JSONL-based cost and token tracking with live cost meter and budget alerts
-- Multi-agent tree visualization with per-agent cost breakdown and stuck-agent detection
-- Session history and discovery with filter, search, and export
-- Zero-config CLI setup (npx observagent init/start/doctor)
-- Gantt-style agent timeline view
+### Key Deliverables
+
+- SQLite + SSE event pipeline with Claude Code hooks
+- Live dashboard with error highlighting and latency display
+- JSONL-based cost/token tracking with auto-discovery
+- Multi-agent tree visualization with stuck-agent detection
+- Session history with filtering, replay, and export
+- CLI with `npx observagent init/start/doctor`
+- Gantt timeline view and health panel
+
+### Technical Notes
+
+- Stack: Node.js (Fastify), SQLite (WAL), vanilla JS
+- Auto-discovers JSONL files in `~/.claude/projects/`
+- Subagent tracking via SubagentStart/SubagentStop hooks
+- Real-time via SSE (no polling)
 
 ---
 
-### Validated
+## Current Milestone: v2.0 Agent Intelligence
 
-- ✓ Hook relay pipeline (PreToolUse/PostToolUse → relay.py → /ingest → SQLite → SSE) — Phase 1
-- ✓ Live event dashboard with latency, duration, error highlighting — Phase 2
+**Goal:** Make the agent hierarchy visible, understandable, and actionable — enrich tool logs with real detail, fix context calculation accuracy, and redesign the dashboard so active agents are front and center.
 
-### Active
+**Target features:**
+- Collapsible agent tree with human-readable names, active count badge, real-time current tool
+- Per-agent detail panel: initial prompt, context fill %, tool call history, token counts per call
+- Tool log enrichment: actual command/file/pattern/task description per tool type
+- Dashboard reorganization: agent hierarchy as primary view, time filters, active-first layout
+- Context window calculation accuracy fix (resolve ~10% discrepancy vs Claude Code)
+- Session history date/time range filters
 
-- [ ] Live dashboard shows agent tree (parent → child hierarchy from Task tool spawns)
-- [ ] Real-time token usage per agent and per session
-- [ ] Running cost estimate in dollars per agent/session
-- [ ] Health indicators: failing agents, context-near-limit agents, stuck agents
-- [ ] Zero instrumentation burden: hooks-based setup, no agent code changes required
-- [ ] JSONL session file parsing for token and cost data
-- [ ] Open source, runs locally, easy for others to set up
-
-### Out of Scope
-
-- Multi-user SaaS / cloud hosting — local-first for v1
-- Support for non-Claude-Code AI frameworks — Claude Code specific for v1
-- Mobile dashboard — web only
+---
 
 ## Context
 
@@ -55,18 +60,10 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 
 ## Constraints
 
-- **Stack**: Node.js backend (Express or Fastify) — user preference
-- **Deployment**: Local-first, must work out of the box on macOS/Linux
-- **Integration**: Zero-code setup using Claude Code hooks — no agent modification required
-- **Open source**: Public GitHub repo, clean DX for contributors
-
-## Key Decisions
-
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Node backend over Python | User preference; JS end-to-end consistency | — Pending |
-| Hooks + JSONL as data sources | Only two zero-code instrumentation surfaces Claude Code exposes | — Pending |
-| Local-first v1 | Ship fast, validate core value before multi-user complexity | — Pending |
+- **Stack**: Node.js backend (Fastify) — ✅ complete
+- **Deployment**: Local-first, must work out of the box on macOS/Linux — ✅ complete
+- **Integration**: Zero-code setup using Claude Code hooks — ✅ complete
 
 ---
-*Last updated: 2026-02-26 after milestone v1.1 start*
+
+_Last updated: 2026-03-02 after v2.0 milestone started_

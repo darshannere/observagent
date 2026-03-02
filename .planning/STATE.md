@@ -1,70 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: shipped
-last_updated: "2026-03-01T23:00:00.000Z"
+milestone: v2.0
+milestone_name: Agent Intelligence
+status: defining requirements
+last_updated: "2026-03-02T00:00:00.000Z"
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 28
-  completed_plans: 28
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-26)
+See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 6 fully complete — all 4 plans shipped and human-verified (CLI package setup, init hook installer, start + doctor commands, end-to-end human verification)
+**Current focus:** Defining requirements for v2.0 — Agent Intelligence
 
 ## Current Position
 
-Phase: 07-agent-timeline-view-and-health-panel
-Plan: 03 of 03 complete
-Status: Phase 7 COMPLETE — All 3 plans shipped and human-verified (API health endpoint, canvas timeline + health panel, end-to-end verification)
-Last activity: 2026-03-01 — Completed 07-03 (human verification of DASH-03 timeline and DASH-04 health panel; approved)
-
-Progress: [██████████] Phase 6: 100% complete; Phase 7: 100% complete (3/3 plans)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-02 — Milestone v2.0 started
 
 ## Performance Metrics
 
-**Velocity:**
-- Total plans completed: 4
-- Average duration: ~3 min/plan
-- Total execution time: ~12 min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-foundation | 4 | ~12 min | ~3 min |
-| 02-live-event-dashboard | 4 | ~25 min | ~6 min |
-
-**Recent Trend:**
-- Last 5 plans: 01-04 (3min), 02-01 (5min), 02-02 (2min), 02-03 (3min), 02-04 (15min)
-- Trend: stable, fast
-
-*Updated after each plan completion*
-| Phase 03-cost-and-token-tracking P01 | 134 | 3 tasks | 3 files |
-| Phase 03-cost-and-token-tracking P02 | ~4min | 2 tasks | 2 files |
-| Phase 03-cost-and-token-tracking P03 | 2min | 2 tasks | 1 files |
-| Phase 04-multi-agent-observability P01 | ~8min | 2 tasks | 5 files |
-| Phase 04-multi-agent-observability P02 | ~2min | 2 tasks | 2 files |
-| Phase 04-multi-agent-observability P03 | 3 | 2 tasks | 1 files |
-| Phase 05-session-history-and-discovery P01 | ~10min | 2 tasks | 2 files |
-| Phase 05-session-history-and-discovery P02 | ~5min | 1 task | 1 file |
-| Phase 05-session-history-and-discovery P03 | ~5min | 1 task | 1 file |
-| Phase 05-session-history-and-discovery P04 | ~10min | 2 tasks | 2 files |
-| Phase 05-session-history-and-discovery P05 | ~5min | 1 task (verify) | 0 files |
-| Phase 06-cli-and-zero-config-setup P01 | ~5min | 2 tasks | 2 files |
-| Phase 06-cli-and-zero-config-setup P02 | ~3min | 2 tasks | 2 files |
-| Phase 06-cli-and-zero-config-setup P03 | ~1min | 2 tasks | 2 files |
-| Phase 06-cli-and-zero-config-setup P04 | ~5min | 2 tasks | 0 files |
-| Phase 07-agent-timeline-view-and-health-panel P01 | ~5min | 2 tasks | 2 files |
-| Phase 07-agent-timeline-view-and-health-panel P02 | 8 | 2 tasks | 1 files |
+**v1.0 Velocity:**
+- 7 phases, 28 plans completed
+- Average: ~4 min/plan
 
 ## Accumulated Context
 
@@ -130,7 +97,7 @@ Recent decisions affecting current work:
 - [05-03]: is_live threshold computed at request time (Date.now() - 600000) not at statement prepare time — ensures freshness per request
 - [05-03]: Numeric 0 as no-filter sentinel for cost_min/cost_max — numeric comparisons require numeric sentinel; text params use empty string
 - [05-03]: stmtExportEvents returns PostToolUse only — these are complete tool call records with duration_ms and exit_status; PreToolUse records are incomplete
-- [05-05]: Phase 5 accepted as complete — all 17 human verification items passed: /history loads, project groups collapsible, filters within 300ms, replay amber banner, JSONL and CSV export working from both history page and replay banner
+- [05-05]: Phase 5 accepted as complete — all 17 human verification items passed
 - [06-01]: chalk ^5.3.0 chosen over 4.x — ESM project requires ESM-compatible chalk; 4.x is CommonJS-only
 - [06-01]: open ^10.1.0 per plan spec — tested stable version; v11 not validated
 - [06-01]: Nullish coalescing (??) not || for PORT and OBSERVAGENT_DB_PATH — preserves PORT=0 as valid test value and empty string as intentional override
@@ -151,6 +118,7 @@ Recent decisions affecting current work:
 - [Phase 07-agent-timeline-view-and-health-panel]: rAF loop self-terminates when inProgressCount reaches 0 — restarts automatically on next PreToolUse, no cleanup needed
 - [Phase 07-agent-timeline-view-and-health-panel]: SSE timeline wiring is purely additive after appendRow() — does not modify existing tool log behavior
 - [Phase 07-agent-timeline-view-and-health-panel]: pollHealth() called immediately at script evaluation time — health cards populate as fast as possible without waiting for DOMContentLoaded
+- [v2.0]: relay.py security boundary to be revisited — selective tool_input fields (command, file_path, pattern, subagent_type) needed for tool log enrichment; full tool_input/tool_response still excluded
 
 ### Pending Todos
 
@@ -158,10 +126,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Context window calculation is ~10% below what Claude Code shows — root cause must be identified before building AGNT-07 context fill % feature.
 
 ## Session Continuity
 
-Last session: 2026-03-01
-Stopped at: Completed 07-03-PLAN.md — human verification approved. DASH-03 and DASH-04 confirmed end-to-end. Phase 7 fully complete.
+Last session: 2026-03-02
+Stopped at: Milestone v2.0 requirements defined. Proceeding to roadmap creation.
 Resume file: None
