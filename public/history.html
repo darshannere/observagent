@@ -524,8 +524,8 @@
           const content = events.map(e => JSON.stringify(Object.assign({ session_id: sessionId, project_name: project }, e))).join('\n');
           triggerDownload(content, filename, 'application/jsonl');
         } else {
-          const headers = ['session_id', 'project_name', 'tool_name', 'timestamp', 'duration_ms', 'exit_status'];
-          const rows = events.map(e => [sessionId, project, e.tool_name, e.timestamp, e.duration_ms, e.exit_status]);
+          const headers = ['session_id', 'project_name', 'tool_name', 'timestamp', 'duration_ms', 'exit_status', 'tool_summary'];
+          const rows = events.map(e => [sessionId, project, e.tool_name, e.timestamp, e.duration_ms, e.exit_status, e.tool_summary || '']);
           const content = [headers, ...rows].map(toCsvRow).join('\n');
           triggerDownload(content, filename, 'text/csv');
         }

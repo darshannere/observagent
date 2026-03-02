@@ -3,13 +3,13 @@ export async function apiRoutes(fastify, options) {
 
   // Prepared once at registration time — reused for all requests
   const stmtAll = db.prepare(
-    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status
+    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status, tool_summary
      FROM events
      ORDER BY timestamp DESC
      LIMIT 200`
   );
   const stmtBySession = db.prepare(
-    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status
+    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status, tool_summary
      FROM events
      WHERE session_id = ?
      ORDER BY timestamp ASC
@@ -101,7 +101,7 @@ export async function apiRoutes(fastify, options) {
 
   // PostToolUse-only events for export (complete tool calls with duration + exit_status)
   const stmtExportEvents = db.prepare(`
-    SELECT tool_name, timestamp, duration_ms, exit_status
+    SELECT tool_name, timestamp, duration_ms, exit_status, tool_summary
     FROM events
     WHERE session_id = ? AND hook_type = 'PostToolUse'
     ORDER BY timestamp ASC
@@ -115,6 +115,8 @@ export async function apiRoutes(fastify, options) {
     reply.send({
       lastEventTs:   lastTs,
       errorRate:     total > 0 ? (errors / total) * 100 : 0,
+      errorCount:    errors,
+      totalCalls:    total,
       serverUptimeS: process.uptime(),
     });
   });
