@@ -79,7 +79,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 ### Calculation Accuracy (CALC)
 
-- [ ] **CALC-01**: Context window fill % calculation matches Claude Code's displayed values (fix ~10% discrepancy caused by double-counting cache-write tokens in `getContextFillPercent()`)
+- [x] **CALC-01**: Context window fill % calculation matches Claude Code's displayed values (fix ~10% discrepancy caused by double-counting cache-write tokens in `getContextFillPercent()`)
 
 ### Dashboard & UX (DASH2)
 
@@ -153,7 +153,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | DASH-02 | Phase 2 | Complete |
 | DASH-03 | Phase 7 | Complete |
 | DASH-04 | Phase 7 | Complete |
-| CALC-01 | Phase 8 | Pending |
+| CALC-01 | Phase 8 | Complete |
 | TOOL-01 | Phase 8 | Complete |
 | TOOL-02 | Phase 8 | Complete |
 | TOOL-03 | Phase 8 | Complete |
