@@ -55,6 +55,17 @@ export function initDb(path = './observagent.db') {
     );
     CREATE INDEX IF NOT EXISTS idx_agent_nodes_parent
       ON agent_nodes(parent_session_id);
+
+    CREATE TABLE IF NOT EXISTS api_calls (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id    TEXT    NOT NULL,
+      timestamp_ms  INTEGER NOT NULL,
+      input_tokens  INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      UNIQUE (session_id, timestamp_ms)
+    );
+    CREATE INDEX IF NOT EXISTS idx_api_calls_session_ts
+      ON api_calls(session_id, timestamp_ms);
   `);
 
   addColumnIfNotExists(db, 'session_cost', 'project_name', "TEXT NOT NULL DEFAULT ''");
@@ -70,5 +81,6 @@ export function initDb(path = './observagent.db') {
   console.log('[db] initialized — WAL mode active');
   console.log('[db] session_cost and observagent_config tables ready');
   console.log('[db] agent_nodes table ready');
+  console.log('[db] api_calls table ready');
   return db;
 }
