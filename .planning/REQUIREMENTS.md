@@ -71,10 +71,10 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 ### Tool Log Enrichment (TOOL)
 
-- [ ] **TOOL-01**: Bash tool calls show the actual command string in the log row (truncated at 200 chars)
-- [ ] **TOOL-02**: Read, Write, and Edit tool calls show the file path in the log row
-- [ ] **TOOL-03**: Grep and Glob tool calls show the search pattern in the log row
-- [ ] **TOOL-04**: Task tool calls show the task description and subagent_type in the log row
+- [x] **TOOL-01**: Bash tool calls show the actual command string in the log row (truncated at 200 chars)
+- [x] **TOOL-02**: Read, Write, and Edit tool calls show the file path in the log row
+- [x] **TOOL-03**: Grep and Glob tool calls show the search pattern in the log row
+- [x] **TOOL-04**: Task tool calls show the task description and subagent_type in the log row
 - [ ] **TOOL-05**: Each tool call log row shows input + output token counts from the corresponding API call
 
 ### Calculation Accuracy (CALC)
@@ -154,10 +154,10 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | DASH-03 | Phase 7 | Complete |
 | DASH-04 | Phase 7 | Complete |
 | CALC-01 | Phase 8 | Pending |
-| TOOL-01 | Phase 8 | Pending |
-| TOOL-02 | Phase 8 | Pending |
-| TOOL-03 | Phase 8 | Pending |
-| TOOL-04 | Phase 8 | Pending |
+| TOOL-01 | Phase 8 | Complete |
+| TOOL-02 | Phase 8 | Complete |
+| TOOL-03 | Phase 8 | Complete |
+| TOOL-04 | Phase 8 | Complete |
 | TOOL-05 | Phase 8 | Pending |
 | ARCH-01 | Phase 9 | Pending |
 | AGNT-01 | Phase 10 | Pending |
