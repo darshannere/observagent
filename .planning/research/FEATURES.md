@@ -1,25 +1,34 @@
 # Feature Research
 
-**Domain:** AI agent observability platform — developer tooling, Claude Code-native, local-first
-**Researched:** 2026-02-26
-**Confidence:** MEDIUM — Based on competitor analysis of LangSmith, Helicone, Braintrust, AgentOps, Langfuse, Arize Phoenix, and domain knowledge of developer CLI tooling patterns. Web search unavailable; training knowledge applied with explicit confidence flags.
+**Domain:** AI agent observability UX — v2.0 Agent Intelligence milestone
+**Researched:** 2026-03-02
+**Confidence:** MEDIUM-HIGH — Based on direct codebase inspection of v1.0 (all source files, schema, hook relay), milestone context, and training knowledge of observability UX patterns from Datadog, Grafana, LangSmith, Helicone, W&B Weave (web search and WebFetch unavailable; training knowledge applied with explicit confidence flags per domain).
 
 ---
 
 ## Milestone Scope
 
-This document focuses exclusively on the **five v1.1 features** being added to an existing working system. The existing system already provides:
-- Live tool call log with PreToolUse/PostToolUse pairing and duration
-- SSE real-time streaming dashboard
-- SQLite event storage with TTL cleanup
-- Hook relay pipeline (Claude Code → backend → dashboard)
+This document covers **v2.0 Agent Intelligence** features added to an existing working system. The existing system (v1.0) already provides:
 
-The v1.1 features to evaluate:
-1. Cost and token tracking (JSONL-based)
-2. Multi-agent tree visualization
-3. Session history and discovery
-4. Zero-config CLI setup
-5. Gantt-style agent timeline view
+- Agent tree panel with hierarchical display, inline cost, stuck detection
+- Tool call log panel (session-grouped, live + history, latency, error highlight)
+- Timeline waterfall view (tabbed with tool log — same panel, shared column)
+- Cost panel (session cost, today cost, 4 token types, context fill bar)
+- Health panel (hook signal, tool calls, error rate)
+- Session history page (filter by project/date/cost/model/errors, export)
+
+**Known v1.0 deficiencies the milestone addresses:**
+- Agent panel shows hex IDs (e.g., `abc12345`) instead of human-readable names
+- Agent panel has no active count badge in the panel header
+- Agent panel has no expandable per-agent detail (prompt, context %, token breakdown, call history)
+- Agent panel does not show the current tool an agent is running in real-time
+- Tool log shows only tool name (`Bash`, `Read`) without the actual command, file path, or task description
+- Context fill % bar is broken or showing ~10% discrepancy vs Claude Code's own display
+- Timeline and Tool Log share one column with tab switching — structurally redundant; both are call-oriented views
+- Session history lacks time-range filters (date_from / date_to) on the history page
+
+**Critical architectural constraint discovered in codebase inspection:**
+`hooks/relay.py` intentionally strips `tool_input` and `tool_response` from every event before forwarding (see relay.py line 70-71 comment: "never forward tool_input or tool_response — those may contain sensitive file paths, commands, or file contents"). Tool log enrichment therefore requires **modifying relay.py to selectively forward safe metadata fields** (not raw content) per tool type. This is a v2.0 prerequisite that was not needed in v1.0.
 
 ---
 
@@ -27,125 +36,121 @@ The v1.1 features to evaluate:
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any observability tool. Missing these makes the product feel incomplete or broken.
+Features that any developer-grade observability tool provides for agent hierarchies. Missing these makes the product feel amateur compared to LangSmith, Datadog APM, or W&B Weave.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Token usage display (input/output/cache) | Every LLM observability tool (Helicone, LangSmith, Langfuse) prominently shows token counts. Developers immediately ask "how many tokens did that use?" | MEDIUM | Requires JSONL watcher reading `~/.claude/projects/`. Four token fields: input_tokens, output_tokens, cache_read_tokens, cache_write_tokens. Must deduplicate on re-reads via UNIQUE(session_id, message_id). |
-| Running dollar cost total | Developers think in dollars, not tokens. Any tool that shows tokens but not dollars frustrates users who must convert manually. | LOW | Multiply token counts by per-model rates. Rates must be configurable, not hardcoded — Anthropic changes pricing. Show live-updating counter in dashboard header. |
-| Cost budget alert | "Tell me when I'm spending too much" is an immediate follow-on once cost is visible. Users working with multi-agent runs fear runaway spend. | LOW | Threshold comparison vs running total. In-dashboard toast or badge is sufficient for local tool — no external notification required. |
-| Session list (browse past runs) | A dashboard that only shows the current session provides no learning surface. Users want to compare runs: "how much did Monday's GSD run cost vs today's?" | MEDIUM | List past sessions from SQLite, show project, date, cost, duration. Paginate at 50 per page. Active sessions marked distinctly. |
-| Filter and search sessions | Once there are more than ~10 sessions, unfiltered lists are unusable. Filter by date/project/cost range/model is expected from any history UI. | MEDIUM | SQLite WHERE clauses. No full-text search needed — structured filters only. Date range + cost range + project path substring covers 90% of use. |
-| Export session data | Power users expect to pull raw data for offline analysis, custom scripts, or cost accounting. "I want to see everything ObservAgent captured." | LOW | Serialize `events` + `token_snapshots` for a session to JSONL (natural format, matches input) or CSV. No streaming needed — sessions are bounded in size. |
-| CLI install command | A developer tool that requires manual config file editing loses most potential users before they see any value. `npx [tool] init` is the established pattern for zero-friction setup. | MEDIUM | Must write `~/.claude/settings.json` hooks config automatically. Must handle existing config gracefully (merge, not overwrite). Must validate the write succeeded. |
-| Health-check / doctor command | When something isn't working, users need a single command that diagnoses the issue rather than manual investigation across multiple files and processes. | LOW | Check: is server running? are hooks installed in settings.json? are JSONL files found in ~/.claude/projects/? Print status per check with clear pass/fail output. |
+| Human-readable agent names | LangSmith, Datadog, W&B all show meaningful names in trace trees. "abc12345" tells the user nothing. Users immediately ask "which agent is this?" | LOW | Use `agent_type` from SubagentStart payload (already in `agent_nodes` table). For top-level sessions, derive from project path or session index ("Main Session", "Session 2"). No schema changes needed. |
+| Active agent count badge in panel header | Grafana, Datadog show live count in panel title. "AGENT TREE (3 active)" tells the user state without reading the tree. Standard pattern for monitoring dashboards. | LOW | Count agents where `state='active'` from the in-memory `agentTree.agents` map. Update on every `agent_spawn`, `agent_update`, `renderAgentTree()`. Pure frontend change — no backend needed. |
+| Per-agent detail view (expandable or side panel) | Helicone, LangSmith show per-trace details on click. The current design does click-to-filter-log but shows no details. Users need context fill %, prompt, token breakdown per agent. | MEDIUM | Clicking an agent row opens a detail drawer below it (accordion expand) or replaces the bottom-right panel content. Show: initial prompt (from JSONL `system` or first `user` entry), context %, input/output/cache tokens, last N tool calls. Requires JSONL parsing for prompt; token data already in `session_cost` table. |
+| Real-time current tool indicator per agent | Datadog APM shows the current span per service in the service map. During active runs, "what is this agent doing right now?" is the primary question. | LOW | Use the in-progress tool call state already tracked in `inProgressTimers`. Cross-reference `session_id` to the agent row. Show tool name as a small chip on the agent row that appears/disappears with PreToolUse/PostToolUse. Frontend-only, no backend change. |
+| Correct context window fill % | Context fill is the single most time-sensitive health metric. Wrong values (currently ~10% off) destroy trust. Users rely on this for "should I let this run?" decisions. | MEDIUM | Root cause: `remaining_percentage` from `StatusLine` hook feeds the bar, but the `statusLine` hook fires at different cadence than PostToolUse. Fix: compare raw token sum from `session_cost` against known model context window sizes directly. `session_cost` already has `input_tokens` + `cache_read_tokens` + `cache_write_5m`. Use that sum / model_context_max. Source: `lib/pricingConfig.js` already has model map — add context window sizes there. |
+| Date/time range filters in session history | The history page already has date_from/date_to SQL filters wired in the backend (`/api/sessions` route). The frontend history.html is missing UI for them. Users notice the absent filter immediately when browsing large session lists. | LOW | Add date pickers (HTML `<input type="date">`) to history.html filter bar. The backend `/api/sessions` already accepts `date_from` and `date_to` params. Pure frontend change. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that set ObservAgent apart. These are not universally expected but are highly valued for Claude Code multi-agent use cases.
+Features that set ObservAgent apart from LangSmith/Helicone/Weave for Claude Code multi-agent workflows. These are where v2.0 competes.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Agent tree visualization (parent-child hierarchy) | No competitor visualizes the Task tool spawn tree. GSD users run 3-6 sub-agents simultaneously — they have no way to see which agent is which or how they relate. This is the primary differentiator. | HIGH | Requires parent_session_id linkage from PreToolUse on Task tool events. Render as indented tree or D3-style collapsible tree. Each node shows: agent label, status, cost, last activity. Recursive CTE query from SQLite. |
-| Per-agent cost breakdown | In a multi-agent run, "total cost $2.40" is useless if you can't see that sub-agent 3 spent $1.80. Per-agent attribution enables optimization. | MEDIUM | Sum token_snapshots.cost_usd grouped by session_id. Roll up to parent via tree traversal. Display as cost badge per node in agent tree. |
-| Context window fill percentage | "How close is this agent to hitting its context limit?" — per-agent progress bar from 0% to 100%. Warning at 80%+. This surfaces an impending failure mode before it happens. | MEDIUM | context_tokens_used / context_tokens_max from JSONL usage fields. Must know model context window size (varies by model: Claude 3.5 Sonnet = 200K, etc.). Make limits configurable in case Anthropic changes them. |
-| Stuck agent detection | An agent with no tool activity for 60+ seconds might be stuck waiting, looping, or crashed. No competitor surfaces this for Claude Code. Surface as visual warning badge on the agent node. | MEDIUM | Compare last_event_at to wall clock per session. Run check on an interval (every 10s). Configurable threshold (default 60s). Clear warning when activity resumes. |
-| Gantt-style agent timeline | Horizontal swimlane view of tool calls across agents on a shared time axis. Shows parallelism visually: which agents ran concurrently, where gaps are, where bottlenecks occurred. | HIGH | Map events to horizontal bars (tool_name, start timestamp, duration_ms) per session lane. Requires a charting library or hand-coded SVG/canvas. Chart.js doesn't have Gantt support — use plain SVG rectangles on a calculated time axis. Only meaningful when there are multiple agents; degrade gracefully for single-agent sessions. |
-| `observagent start` (server + browser in one command) | Reduces the "how do I open this?" friction. Standard pattern: `npm start` opens browser, `npm dev` opens browser. Users should not need to copy-paste a localhost URL. | LOW | Node: `open` package or `child_process.exec('open http://localhost:4999')` after server confirms listening. Cross-platform: use `open` on macOS, `xdg-open` on Linux, `start` on Windows (macOS is the primary target). |
-| Cost fill rate indicator (tokens/min or $/min) | "How fast is this agent spending?" — rate-of-spend during an active run helps users decide whether to let it continue. | LOW | Calculate cost delta over the last 60s window from token_snapshots. Display as `$0.03/min` in the session header. Only show during active sessions. |
+| Enriched tool log entries (command/path/task visible) | No competitor shows actual shell command, file path, or task description inline in the log without clicking into a full detail view. "Bash — npm install" is 10x more useful than "Bash". GSD users need to see which file is being read, which command ran, which task was spawned. | HIGH | Requires relay.py modification to extract per-tool metadata from `tool_input` before discarding it. Safe fields per tool type: Bash → `command` (first 120 chars), Read/Write/Edit → `file_path` (filename only, not full path for privacy), Task → `description` (first 80 chars), Glob/Grep → `pattern`. Must add `tool_input_summary` column to `events` table. See dependency note below. |
+| Agent-first dashboard layout (agents prominent, not a narrow sidebar) | Current layout: agent tree is a 240px fixed sidebar. For GSD runs with 4-6 parallel agents, this is the most important panel, not a sidebar. Professional tools (Datadog service map, W&B run comparison) give agent-level views prominence. | MEDIUM | Restructure grid: make agent panel the dominant left region (wider, perhaps 320px or resizable), move cost panel to integrate within agent rows (inline cost already there — extend it), promote timeline to first-class tab. Does not require backend changes; CSS grid + layout refactor only. |
+| Collapsible agent tree with subtree fold | When running 6+ sub-agents, seeing all detail simultaneously is noise. Datadog's service dependency map and LangSmith's trace tree both support collapse/expand. Folding completed agents reduces visual clutter. | MEDIUM | Add `<details>` element per agent group (similar to how tool log already uses `<details>` for session sections). Track collapsed state in JS. Show "N tools" summary when collapsed. Completed agents auto-collapse after a configurable delay. No backend changes. |
+| Per-agent context fill % inline in tree | No competitor shows context window fill at the agent level in the hierarchy tree — only as a session-level bar. For multi-agent GSD runs, knowing that sub-agent 3 is at 87% context while others are at 20% is actionable for intervention. | MEDIUM | Show a mini progress bar or % label per agent row in the tree. Data source: `session_cost` table already has per-agent context data if context tracking is fixed (see table stakes above). Requires correctly attributing context fill per agent_id, not just session_id. |
+| Tool log time filters (show last 5 min / 15 min / all) | LangSmith, Grafana, and Datadog all have time window selectors on their log views. In a long GSD run with hundreds of tool calls, users want "show me what happened in the last 5 minutes" without scrolling. | LOW | Add time filter buttons above the tool log panel. Filter in-memory from the existing `agentSections` Map — no API call needed. Options: last 5m, last 15m, last 1h, all. |
+| Session history with time range picker | The most frequent session filter need — "show me what I ran this morning" or "show me last Tuesday's runs". Backend already supports it; surfacing it makes ObservAgent feel professional. | LOW | HTML date-time range inputs on history.html. Already described in table stakes as a table-stakes gap (classified here as differentiator in the competitive context: no local-first competitor has polished history filtering). |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that appear reasonable but create problems for this product at this stage.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Real-time Gantt updates (live swimlane during session) | Users want to see the timeline growing as the session runs | Continuously re-rendering a time-axis chart with new events causes layout thrash and is visually disorienting. The value of a Gantt view is retrospective pattern recognition, not live watching. | Render Gantt on-demand per session (click to view) or auto-refresh at 5s intervals rather than on every event. |
-| GSD role labeling (researcher/builder/verifier) | Appealing for GSD users; shows semantic role of each agent | Requires parsing agent prompts for GSD-specific patterns. Fragile: GSD prompt format changes break it. Creates a GSD-specific coupling in a general tool. | Label agents by task prompt prefix (first 50 chars) instead — works for all users, not just GSD users. |
-| Slack/webhook alerts for budget threshold | "Notify me externally when cost exceeds $X" | Adds network dependency, secret management (webhook URLs), and operational complexity to a local-first tool. Over-engineering for v1. | In-dashboard toast notification + visual badge. Users are watching the dashboard anyway when running agents. |
-| Session diffing / comparing runs | "Show me what changed between run A and run B" | Requires a diff model, meaningful equality definition, and a complex UI. Low usage frequency vs implementation cost. | Side-by-side session view in history (open two sessions) is sufficient — don't build a dedicated diff mode. |
-| AI-powered anomaly detection | "Flag unusual token usage patterns automatically" | Adds a model dependency (ironic for an observability tool), increases complexity, and 90% of the signal comes from simple thresholds. | Rule-based health checks: stuck agent threshold, context fill %, budget exceeded. Cover 90% of value at 5% of the complexity. |
-| Full JSONL replay (re-run session through LLM) | "Let me replay this session to reproduce an issue" | This is evaluation tooling, not observability. LangSmith and Braintrust own this space. Adds substantial complexity with no unique edge. | Export session data (JSONL/CSV) and let users import into eval tools of their choice. |
-| Custom dashboard layout / widget builder | "I want to rearrange panels" | Grafana-scale scope. Ship an opinionated fixed layout first; validate that users actually use it before building customization. | Fixed layout, well-considered information hierarchy. Users can provide feedback to inform v2 layout decisions. |
+| Full tool_input forwarding in relay.py | "I want to see the complete Bash command / file contents in the log" | relay.py security constraint is load-bearing: forwarding tool_response could include file contents, passwords in environment, LLM outputs. Full forwarding violates the security model established in v1.0. Even safe-looking fields like `file_path` can reveal sensitive project structure. | Forward only pre-specified safe metadata per tool type (command prefix, filename without directory, task description). Never forward tool_response. Document the policy. |
+| D3.js / vis.js agent tree visualization | "Make the tree look like a real graph with curved edges" | Adds a library dependency (D3 = 500KB), requires a build step or CDN, and the indented tree already works well for the linear parent→child relationship ObservAgent tracks (Claude Code tasks are 2-level deep max in practice). | The current indented HTML tree is the right structure. Add expand/collapse and richer row content. A full graph visualization adds complexity for a case (multi-level nested tasks) that doesn't occur in Claude Code. |
+| Moving tool log to a separate page | "The tool log is getting crowded — it should be its own page" | The live tool log is the primary evidence pane. Separating it from the agent tree removes the click-to-filter interaction. LangSmith, Datadog, and W&B all keep trace detail inline or in a side panel, not on a separate page. | Keep log in the main panel. Improve it with time filters, enriched entries, and better session grouping. A separate "full log" page is a v3 consideration if power users request it. |
+| Storing full tool inputs in SQLite | "Store the complete Bash command so I can search it later" | SQL full-text search on shell commands is not the right data model. Storage grows unbounded with large file contents. Raises security surface significantly. | Store a 120-char summary of safe metadata per tool type. Full commands are already in the JSONL conversation transcript if the user wants raw access. ObservAgent's role is operational visibility, not log archival. |
+| Removing the Tool Log / Timeline tab structure | "Just show both all the time" | The 3-column layout is width-constrained. The tool log and timeline share a column by design — they are both temporal call views but serve different purposes. Adding a fourth full-height column would require a wider viewport assumption (breakpoint concerns for common laptop widths). | Rename tabs to be clearer ("Live Log" / "Waterfall") and ensure both are immediately accessible with keyboard shortcut or auto-switch when timeline tab has relevant data. Consider splitting into two columns only if layout is redesigned to be wider overall. |
+| Alerting webhooks (Slack/Discord for stuck agents) | "Notify me on Slack when an agent is stuck for 60s" | Adds external network dependency, secret management (webhook URLs), and v2.0 is still local-first. The user is watching the dashboard during active runs — in-dashboard notification is sufficient. | In-dashboard toast (already works for errors) plus more prominent stuck indicator (yellow pulse on agent row). Webhook support is a v3 feature when multi-user/server deployment is considered. |
+| Agent playback / re-run | "Replay this agent's tool sequence to reproduce a bug" | This is evaluation tooling, not observability. Adding replay requires LLM re-execution, significant state reconstruction, and introduces a fundamentally different product surface. LangSmith and Braintrust own this space. | Session export (already in v1.0) gives the user raw JSONL to import into any eval tool. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[EXISTING] Hook relay pipeline + SQLite events table
-    └──required by──> Token/cost tracking (JSONL data path must be added)
-    └──required by──> Agent tree (session tracking + parent_session_id linkage)
-    └──required by──> Session history (events table must be populated)
-    └──required by──> Gantt timeline (events with timestamps must exist)
+[v1.0 EXISTING] relay.py (strips tool_input)
+    └──blocks──> [Tool log enrichment] (relay.py must be modified first)
+                     └──requires──> [events.tool_input_summary column] (schema change)
+                         └──enables──> [Enriched log entries in dashboard]
+                         └──enables──> [Task description in agent tree node label]
 
-[COST-01] Token usage per session (JSONL watcher)
-    └──required by──> [COST-02] Context window fill percentage
-    └──required by──> [COST-03] Running dollar cost total
-    └──required by──> [COST-04] Cost budget alert
-    └──required by──> [AGENT-02] Per-agent cost breakdown
-    └──required by──> Cost fill rate indicator ($/min)
+[v1.0 EXISTING] agent_nodes table (has agent_type, state)
+    └──already enables──> [Human-readable agent names] (use agent_type field)
+    └──already enables──> [Current tool indicator] (link events to agent_nodes via session_id)
+    └──requires extension──> [Per-agent detail panel] (need to join session_cost + events)
 
-[AGENT-01] Agent tree visualization
-    └──required by──> [AGENT-02] Per-agent cost breakdown (must exist as tree nodes)
-    └──required by──> [AGENT-03] Stuck agent detection (needs per-agent last_event_at)
-    └──required by──> [DASH-03] Gantt timeline (agent lanes must be defined)
+[v1.0 EXISTING] session_cost table (has tokens per session_id+agent_id)
+    └──already enables──> [Per-agent context fill %] (need model context_max added to pricingConfig)
+    └──already enables──> [Per-agent detail token breakdown]
 
-[HIST-01] Session list
-    └──required by──> [HIST-02] Filter and search
-    └──required by──> [HIST-03] Export
+[v1.0 EXISTING] pricingConfig.js (has model rate map)
+    └──requires extension──> [Context fill fix] (add context_window_tokens per model)
 
-[SETUP-01] npx observagent init (CLI, hooks auto-install)
-    └──enhances──> Everything (nothing is discoverable without this)
+[v1.0 EXISTING] /api/sessions backend route (has date_from/date_to params)
+    └──already enables──> [Session history date filters] (pure frontend work in history.html)
 
-[DASH-03] Gantt timeline
-    └──requires──> [AGENT-01] Agent tree (for multi-agent lanes)
-    └──requires──> [COST-01] Token/cost (for cost annotations on timeline)
-    └──standalone for single-agent sessions──> [EXISTING] events table (timestamps + duration_ms)
+[Active count badge]
+    └──requires──> [renderAgentTree() call on agent state change] (already happens)
+    └──no new backend needed
+
+[Collapsible agent tree]
+    └──enhances──> [Per-agent detail panel] (detail is naturally the expanded state)
+    └──no backend dependency
+
+[Dashboard layout reorganization]
+    └──depends on──> [Per-agent detail panel being designed] (layout must accommodate it)
+    └──no backend dependency
+
+[Tool log time filters]
+    └──requires──> [in-memory event timestamping already in timelineState/agentSections]
+    └──no backend dependency
 ```
 
 ### Dependency Notes
 
-- **Cost tracking requires the JSONL watcher:** The existing system captures tool call events via hooks, but token/cost data only lives in `~/.claude/projects/**/*.jsonl` files. The JSONL watcher is a new data path, not a modification to the existing hook pipeline.
-- **Agent tree requires parent_session_id linkage:** The existing `events` table tracks session_id per event but has no parent_session_id concept. The sessions table and parent_session_id column must be added before the tree can be built.
-- **Gantt timeline is the last-mile feature:** It depends on all other data being stable (agent lanes from tree, timestamps from events, duration_ms from hook pairing). Build it last.
-- **CLI setup is orthogonal but accelerates adoption:** `npx observagent init` doesn't depend on any feature being complete, but it should be polished enough to install a working system. Build it after the features it installs are stable.
-- **Session history is a read-only view:** It depends on `events` and `sessions` being populated but adds no new writes. It can be built incrementally — start with a list, add filters, add export.
+- **Tool log enrichment blocks on relay.py changes:** The current relay.py explicitly strips `tool_input`. Adding `tool_input_summary` to the events table is pointless until relay.py forwards the safe metadata fields. These two changes (relay.py + schema) must land in the same plan to avoid a broken intermediate state.
+- **Context fill fix is independent:** The context bar bug is a computation error in the frontend's use of `StatusLine` hook data vs token sum. Fixing it requires adding `context_max` values to `pricingConfig.js` and recomputing the bar from `session_cost` token sums instead of relying on the unreliable `StatusLine` hook cadence.
+- **Per-agent detail panel depends on data that already exists:** `session_cost` has per-agent tokens. `events` has call history by session_id. Initial prompt requires a JSONL read, which is the only new data path. Since `jsonlWatcher.js` already processes JSONL files, extracting the first system/user message is an incremental addition.
+- **Layout reorganization is the last thing to do:** Do not redesign the grid until the content of each panel is finalized. Grid changes that happen before panel content is designed will be redone.
+- **Session history date filters are pure frontend:** `api.js` already accepts `date_from` and `date_to` params in `stmtSessions`. History.html is missing the input elements. No backend work at all.
 
 ---
 
 ## MVP Definition
 
-This is milestone v1.1 — the system already exists. These are prioritized within the milestone, not from scratch.
+This is milestone v2.0 — the system is production-ready. These are prioritized by user-facing impact vs implementation cost within the milestone.
 
-### Launch With (v1.1 core)
+### Launch With (v2.0 core)
 
-- [x] **Token/cost tracking** — Highest user pain point. JSONL watcher + cost computation. Required for all cost-adjacent features.
-- [x] **Agent tree visualization** — The primary differentiator. Requires parent_session_id linkage from Task tool PreToolUse events.
-- [x] **Per-agent cost breakdown** — Builds directly on top of token tracking + agent tree. Low marginal effort, high value.
-- [x] **Context window fill indicator** — Context limit is a real operational concern for long GSD runs. Medium complexity, high user value.
-- [x] **Stuck agent detection** — Simple threshold check. Prevents users from waiting on a dead agent for minutes.
-- [x] **Session history list** — Table stakes for any observability tool. Users need historical browsing from day one.
-- [x] **Session filter and search** — Required to make history usable beyond the first 10 sessions.
-- [x] **Session export (JSONL/CSV)** — Low complexity, high user trust signal. Power users want raw data access.
-- [x] **npx observagent init** — CLI auto-install. Table stakes for adoption. Without it, most users never complete setup.
-- [x] **observagent doctor** — Diagnostic command. Reduces support burden. Low complexity.
-- [x] **observagent start** — Single-command start + browser open. Low complexity. Removes friction.
-- [x] **Cost budget alert** — In-dashboard only. Low complexity, prevents runaway spend.
+- [ ] **Human-readable agent names** — Use `agent_type` from `agent_nodes`. Rename "Agent abc12345" to the `agent_type` value or a numbered fallback ("Task 1", "Task 2"). Highest visibility fix, lowest complexity. Pure frontend.
+- [ ] **Active count badge in panel header** — "AGENTS (3 active)" gives instant session state. One line of JS. Ship with human-readable names in the same plan.
+- [ ] **Current tool indicator on active agent rows** — Show the in-progress tool name as a small chip next to the agent label while `PreToolUse` is pending. Cross-reference existing `inProgressTimers` state to the agent's `session_id`. No new data needed.
+- [ ] **Context fill fix (correct % calculation)** — Add `context_window_tokens` to `pricingConfig.js` model map. Recompute bar from `session_cost` token sum / `context_max` rather than `StatusLine` hook. This is broken in v1.0 and users notice.
+- [ ] **Tool log enrichment (relay.py + schema + display)** — The most impactful UX improvement. Relay.py must selectively forward per-tool safe metadata: Bash→command prefix, Read/Write/Edit→filename, Task→description, Glob/Grep→pattern. Add `tool_input_summary` TEXT column to events table. Display below tool name in log row. HIGH complexity but HIGH user value.
+- [ ] **Session history date/time range filters** — Add `date_from` / `date_to` datetime inputs to history.html filter bar. Backend already supports it. LOW complexity, table-stakes completion.
 
-### Add After Validation (v1.x)
+### Add After Core is Stable (v2.0 stretch)
 
-- [ ] **Gantt timeline view** — High complexity, high value. Defer until agent tree + cost data are proven stable. Ship as a separate "Timeline" tab rather than embedded in the main dashboard.
-- [ ] **Cost fill rate ($/min)** — Low complexity. Add when users explicitly request it or when cost tracking is proven stable.
-- [ ] **GSD agent role labeling** — Prompt prefix display (first 50 chars) can ship earlier; semantic GSD role parsing defers to after v1.1.
+- [ ] **Per-agent detail panel** — Click agent row to expand accordion showing: initial prompt (first 80 chars from JSONL), context fill %, token breakdown (input/output/cache), last 5 tool calls. Requires JSONL first-entry extraction in jsonlWatcher.js. MEDIUM complexity.
+- [ ] **Collapsible agent tree** — Wrap each agent group in `<details>`. Auto-collapse completed agents after 30s. Track state across re-renders (completed agents stay folded). MEDIUM complexity.
+- [ ] **Per-agent context fill % in tree row** — Show mini context bar per agent row. Requires context fix to be working first. LOW complexity once context fix is done.
+- [ ] **Tool log time filters (5m / 15m / 1h / all)** — Segment button bar above tool log. Filter in-memory without API call. LOW complexity.
 
-### Future Consideration (v2+)
+### Future Consideration (v2.1+)
 
-- [ ] **Webhook/Slack cost alerts** — External notification system. Local-first tool's in-dashboard alert is sufficient for v1.
-- [ ] **OpenTelemetry export** — Standard compliance. High value for enterprise users. Out of scope until multi-user is considered.
-- [ ] **Session comparison / diffing** — Useful but low frequency. Defer until history features are validated.
-- [ ] **Custom dashboard layout** — Build opinions first, customize later.
-- [ ] **GSD workflow awareness (full semantic labeling)** — Requires GSD prompt format stability. Ship after GSD v2 is stable.
+- [ ] **Dashboard layout reorganization (agent-first)** — Widen agent panel to dominant position. Restructure grid. Defer until per-agent detail panel is designed — grid must accommodate it. MEDIUM complexity, no backend change.
+- [ ] **GSD agent role labeling** — Parse agent_type for GSD-specific roles (researcher, planner, executor, verifier). LOW complexity once human-readable names are working, but fragile to GSD prompt format changes.
+- [ ] **Webhook alerts for stuck agents** — Slack/Discord integration. Out of scope for local-first v2.0.
+- [ ] **OpenTelemetry export** — Standard compliance. Out of scope until multi-user deployment is considered.
 
 ---
 
@@ -153,197 +158,202 @@ This is milestone v1.1 — the system already exists. These are prioritized with
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Token/cost tracking (JSONL watcher) | HIGH | MEDIUM | P1 |
-| Running dollar cost total | HIGH | LOW | P1 |
-| Agent tree visualization | HIGH | HIGH | P1 |
-| Per-agent cost breakdown | HIGH | MEDIUM | P1 |
-| npx observagent init (CLI) | HIGH | MEDIUM | P1 |
-| Session history list | HIGH | MEDIUM | P1 |
-| Stuck agent detection | MEDIUM | MEDIUM | P1 |
-| Context window fill indicator | MEDIUM | MEDIUM | P1 |
-| Session filter/search | MEDIUM | MEDIUM | P1 |
-| Session export (JSONL/CSV) | MEDIUM | LOW | P2 |
-| Cost budget alert | MEDIUM | LOW | P2 |
-| observagent doctor | MEDIUM | LOW | P2 |
-| observagent start | LOW | LOW | P2 |
-| Gantt timeline view | HIGH | HIGH | P2 |
-| Cost fill rate ($/min) | LOW | LOW | P3 |
-| GSD role labeling (semantic) | LOW | HIGH | P3 |
+| Human-readable agent names | HIGH | LOW | P1 |
+| Active count badge | HIGH | LOW | P1 |
+| Current tool indicator per agent | HIGH | LOW | P1 |
+| Context fill fix | HIGH | MEDIUM | P1 |
+| Tool log enrichment (relay.py + schema + UI) | HIGH | HIGH | P1 |
+| Session history date filters | MEDIUM | LOW | P1 |
+| Per-agent detail panel | HIGH | MEDIUM | P2 |
+| Collapsible agent tree | MEDIUM | MEDIUM | P2 |
+| Per-agent context fill % in tree | MEDIUM | LOW | P2 (after context fix) |
+| Tool log time filters | MEDIUM | LOW | P2 |
+| Dashboard layout reorganization | MEDIUM | MEDIUM | P3 |
+| GSD role labeling | LOW | LOW | P3 |
 
 **Priority key:**
-- P1: Must have for v1.1 launch
-- P2: Should have, add in v1.1 if time allows
-- P3: Defer to v1.2 or v2
-
----
-
-## Feature Deep Dives
-
-### Feature 1: Cost and Token Tracking
-
-**Expected behavior (table stakes):**
-- Show per-session totals: input tokens, output tokens, cache read tokens, cache write tokens
-- Show per-session dollar cost with 2-4 decimal precision (e.g., `$0.0142`)
-- Update the cost display in near-real-time as the agent works (within 1-2s of a JSONL write)
-- Display context window fill as a percentage bar per agent (0–100%, warn at 80%)
-- Alert in-dashboard when session cost exceeds a configurable threshold
-
-**Data source:** `~/.claude/projects/<project-hash>/<session-id>.jsonl` — assistant turn entries contain `message.usage` with token counts and model identifier
-
-**Implementation constraints:**
-- JSONL watcher must tail files by byte offset, not re-read from start — sessions grow to 100s of KB
-- Every `JSON.parse()` must be wrapped in try/catch — Claude Code may write lines mid-flush
-- Token counts must be deduplicated via `UNIQUE(session_id, message_id)` — watcher may see the same line twice on restart
-- Model pricing must not be hardcoded — store as a config file or env var, provide sensible defaults that are easy to update
-- Cache token pricing differs from regular pricing (cache reads are cheaper, cache writes are slightly more expensive) — must handle all four token types separately
-
-**Confidence:** MEDIUM — JSONL schema is assumed from the AgentWatch prior art in the profile; must verify actual field names by inspecting a real `~/.claude/projects/` file before writing the parser.
-
----
-
-### Feature 2: Multi-Agent Tree Visualization
-
-**Expected behavior (differentiator):**
-- Show a visual hierarchy of parent agent → child agents spawned via Task tool
-- Each node shows: session ID (truncated), last tool used, current status (active/idle/stuck/done), token count, dollar cost
-- Clicking a node filters the event log to that agent's events
-- Stuck agents (no event for 60s) show a visual warning on their node
-- Tree updates live as new agents spawn and events arrive
-
-**Implementation constraints:**
-- Parent-child linkage source: `PreToolUse` hook event fires in parent session context when Task tool is called. The parent session_id must be captured at that moment and stored as the parent ID. When a new session_id subsequently appears in JSONL, link it to the pending parent.
-- **Critical unknown:** Whether `SubagentStop` hook payload includes the child session_id — if yes, the linkage is explicit and reliable; if no, inference via cwd + time window is required. This must be verified by triggering a real Task tool spawn and inspecting the hook payload.
-- The existing DB schema does not have a `sessions` table or `parent_session_id` column — both must be added
-- Use a recursive CTE to query the full tree from SQLite: `WITH RECURSIVE tree AS (SELECT ... UNION ALL SELECT ... JOIN ...)`
-- For rendering: an indented HTML list is sufficient for v1. D3 tree layout is a differentiator but adds a library dependency and significant implementation time. Start with indented list, ship D3 tree as a v1.2 enhancement.
-
-**Confidence:** MEDIUM — architecture pattern is clear; the single unknown (SubagentStop payload) is the most consequential open question in the entire v1.1 milestone.
-
----
-
-### Feature 3: Session History and Discovery
-
-**Expected behavior (table stakes):**
-- List all sessions (past and active) sorted by recency, grouped by project path
-- Show per-session: project, date/time, duration, total cost, total tokens, status (active/ended), error count
-- Filter by: date range, project path (substring), cost range (min/max), model, has-errors boolean
-- Search by session ID prefix
-- Export session as JSONL (raw conversation data) or CSV (tabular event summary)
-- Active sessions displayed at top with a live indicator; historical sessions below
-
-**Implementation constraints:**
-- Export format: JSONL should output the raw parsed JSONL lines for the session (this is what the user's tooling already understands); CSV should output one row per event with columns: timestamp, tool_name, hook_type, duration_ms, exit_status, cost_usd
-- Filter logic is pure SQL WHERE clauses — no need for client-side filtering
-- Pagination: 50 sessions per page is sufficient; full-text search is not needed
-- Session end detection: a session is "ended" when a `Stop` or `SubagentStop` hook event is received, or when no events have arrived for 5+ minutes (configurable)
-- The export endpoint must stream the response rather than buffering the full export in memory — sessions could have thousands of events
-
-**Confidence:** HIGH — this is standard CRUD + SQL filtering with straightforward export patterns.
-
----
-
-### Feature 4: Zero-Config CLI Setup
-
-**Expected behavior (table stakes):**
-
-`npx observagent init`:
-- Reads `~/.claude/settings.json` (or creates it if absent)
-- Merges ObservAgent hooks into the existing hooks config — must not overwrite other hooks
-- Writes PreToolUse, PostToolUse, Stop, and SubagentStop hook entries pointing to the relay script
-- Confirms the relay script is in place and executable
-- Prints clear success output: "Hooks installed. Run `observagent start` to begin."
-
-`observagent start`:
-- Starts the Fastify server on port 4999 (or a port from config)
-- Opens the dashboard in the default browser (`open http://localhost:4999` on macOS, `xdg-open` on Linux)
-- Prints the dashboard URL to stdout in case auto-open fails
-
-`observagent doctor`:
-- Checks: is the server reachable at localhost:4999?
-- Checks: are ObservAgent hooks present in `~/.claude/settings.json`?
-- Checks: does the relay script exist and is it executable?
-- Checks: are JSONL session files present in `~/.claude/projects/`?
-- Prints a status line per check: `[PASS]` or `[FAIL]` with a specific diagnosis and fix instruction
-
-**Implementation constraints:**
-- Use `commander` or `yargs` for CLI argument parsing — do not hand-roll argument parsing
-- Must handle `~/.claude/settings.json` not existing (create it), containing other hooks (merge carefully), and having unexpected structure (warn and bail rather than corrupting)
-- The hook entry format in `~/.claude/settings.json` must be verified by reading real Claude Code documentation or inspecting an existing installation — this schema is the most fragile assumption in the CLI feature
-- `npx observagent init` must be idempotent — running it twice must not install duplicate hooks
-- The package `bin` field must be configured in `package.json` for `npx` to work correctly
-- Cross-platform: macOS is the primary target; Linux support is expected; Windows is out of scope for v1
-
-**Confidence:** MEDIUM — the Node CLI packaging pattern is well-understood; the Claude Code `settings.json` hook schema is a key unknown that must be verified before implementation. An incorrect schema would silently install broken hooks.
-
----
-
-### Feature 5: Gantt-Style Agent Timeline View
-
-**Expected behavior (differentiator):**
-- Horizontal swimlane chart with one row per agent (session)
-- Each tool call rendered as a horizontal bar: left edge = start timestamp, width = duration_ms
-- Bars are colored by tool type (e.g., Read = blue, Bash = orange, Write = green, Task = purple)
-- Time axis is relative to session start (T+0s, T+30s, T+1m, etc.) or absolute wall clock — provide toggle
-- Concurrent tool calls across agents show parallelism visually
-- Gaps between bars show idle/thinking time
-- Bars are clickable to show event details (tool name, duration, exit status)
-- For single-agent sessions: still useful — shows sequential tool call pacing
-- For multi-agent sessions: shows inter-agent parallelism and bottlenecks
-
-**Rendering approach:**
-- Chart.js has no Gantt support (confirmed) — use plain SVG with `<rect>` elements on a calculated time axis
-- Calculate: `x = (event.timestamp - sessionStart) / totalDuration * canvasWidth`, `width = event.duration_ms / totalDuration * canvasWidth`
-- Minimum bar width: 4px (so instant calls are still visible)
-- Tooltip on hover: use plain HTML `title` attribute or a custom div overlay
-- Auto-scale time axis to session duration; default to full session view; allow scroll/zoom as v1.2 enhancement
-
-**Why defer from core MVP:**
-- Depends on: agent tree (for per-agent lanes), token/cost data (for annotations), stable event timestamps
-- High implementation effort for the SVG layout and scale calculations
-- The value is retrospective (post-session analysis) while the rest of the dashboard is live — it belongs in a separate "Timeline" tab that loads on demand
-
-**Implementation constraints:**
-- Sessions with very long durations (>1 hour) need sensible time-axis tick spacing
-- Sessions with very short tool calls (<10ms) need minimum bar width enforcement so bars are visible
-- Must gracefully degrade for single-agent sessions (show single swimlane rather than erroring)
-- Must handle missing `duration_ms` for events that have no PostToolUse pair (show as 0-width bar or dotted outline)
-
-**Confidence:** MEDIUM — SVG-based Gantt is a well-understood UI pattern; the implementation complexity is real but not novel.
+- P1: Must have for v2.0 release — fixes known v1.0 deficiencies
+- P2: Should have — meaningful UX improvements, add when P1 is stable
+- P3: Defer to v2.1 or future milestone
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | LangSmith | Helicone | AgentOps | Langfuse | ObservAgent v1.1 |
-|---------|-----------|----------|----------|----------|-----------------|
-| Token usage display | Yes (per-trace) | Yes (prominent) | Yes | Yes (per-trace) | Yes — JSONL-based |
-| Cost in dollars | Yes | Yes (primary feature) | Yes | Yes | Yes — model-rate conversion |
-| Cost budget alert | Yes (project-level) | Yes (rate limit) | No | Yes | Yes — session threshold |
-| Agent hierarchy tree | LangGraph only | No | Partial (agent chain) | No | Yes — Task tool native |
-| Context window fill | No | No | No | No | Yes — unique |
-| Stuck agent detection | No | No | No | No | Yes — unique |
-| Session history/filter | Yes | Yes | Yes | Yes | Yes |
-| Data export | Yes (CSV/JSON) | Yes (CSV) | No | Yes | Yes (JSONL/CSV) |
-| Zero-config install | No (requires wrapper) | No (requires proxy) | No (requires SDK) | No (requires SDK) | Yes — hooks-based moat |
-| CLI setup tool | No | No | No | No | Yes — `npx observagent` |
-| Gantt/timeline view | Partial (trace timeline) | No | No | Partial (trace view) | Yes — swimlane per agent |
-| Works with Claude Code | No | No | No | No | Yes — the moat |
+How professional observability tools handle the specific UX challenges this milestone addresses:
+
+| UX Challenge | LangSmith | Datadog APM | W&B Weave | Grafana | ObservAgent v2.0 |
+|---|---|---|---|---|---|
+| Agent/span naming | Human-readable run names (user-set or auto-generated from function name) | Service name + operation name + span type | Run name + step name from code | Metric/service name | `agent_type` from SubagentStart payload + numbered fallback |
+| Active count indicator | Project-level run count badge | Service health count in service map | Active run count in project header | Panel title with live count | Panel header badge: "AGENTS (N active)" |
+| Current operation per agent | Span status icon + latest span type | Active span visible in service map node | Step in progress shown in run detail | Last metric timestamp | Tool chip on active agent row (in-progress from PreToolUse) |
+| Log enrichment | Full span input/output shown (user opted-in, their data) | Full trace with tags/attributes per span | Full artifact content per step | Metric values + labels | Safe metadata only: command prefix, filename, task description |
+| Log entry actionability | Click span to see full input/output | Click span to see trace waterfall | Click step to see full artifact | Click datapoint for detail | Inline summary (no click needed for 90% of context); click for full |
+| Context fill / resource usage | Token count per run (no % fill) | Memory/CPU % per service | GPU/CPU utilization per run | Gauge panel per metric | Per-agent % fill bar + inline in tree row |
+| Hierarchy expand/collapse | Full trace tree with collapse | Service dependency map (not collapsible) | Nested steps with collapse | Panel collapse | `<details>` expand per agent group |
+| History time filters | Date range + tag filters | Time range in trace list | Date range + project filters | Time range in dashboard | date_from/date_to on history.html (backend already supports) |
+
+**Key insight from competitor analysis:** Professional tools either (a) have full access to span data because the user instrumentated their code (LangSmith, W&B), or (b) show only metadata (Datadog, Grafana). ObservAgent is in category (b) — hook-based, zero instrumentation. The enrichment pattern should match Datadog's: show safe, structured metadata per event type without exposing content. "Bash — npm install —save-dev" follows Datadog's convention of "service — operation — resource".
+
+**What makes a log entry actionable vs noisy:**
+- Actionable: includes what (tool type) + context (safe summary of what it operated on) + outcome (duration + status)
+- Noisy: shows raw full content, duplicates information already visible elsewhere, or requires a click to understand basic context
+- The current v1.0 log is noisy by omission — tool name alone tells the user nothing about what the agent is actually doing
+
+---
+
+## Feature Deep Dives
+
+### Feature 1: Tool Log Enrichment
+
+**The core UX problem:**
+The tool log currently shows: `Bash | 14:23:01 | 1.2s`. The user sees 50 "Bash" entries and has no idea what any of them did. Compare to what the same entry should show: `Bash: npm run build | 14:23:01 | 1.2s` — this is actionable without any additional clicks.
+
+**Per-tool safe metadata fields (relay.py must forward these):**
+
+| Tool | Current | v2.0 Enriched | Safe Field in tool_input |
+|------|---------|----------------|--------------------------|
+| Bash | `Bash` | `Bash: npm run build` | `command` — first 120 chars |
+| Read | `Read` | `Read: schema.js` | `file_path` — basename only (no directory) |
+| Write | `Write` | `Write: schema.js` | `file_path` — basename only |
+| Edit | `Edit` | `Edit: index.html` | `file_path` — basename only |
+| Task | `Task` | `Task: research payment APIs` | `description` — first 80 chars |
+| Glob | `Glob` | `Glob: *.ts` | `pattern` |
+| Grep | `Grep` | `Grep: "TODO"` | `pattern` — first 40 chars |
+| WebFetch | `WebFetch` | `WebFetch: docs.stripe.com` | `url` — hostname only |
+| WebSearch | `WebSearch` | `WebSearch: stripe API docs` | `query` — first 60 chars |
+| mcp__*__ | `mcp__ctx7__query` | `ctx7: query-docs` | Extract meaningful part of compound tool name |
+
+**relay.py change required:**
+Add a `_derive_tool_summary(payload)` function that patterns on `tool_name` and extracts only safe structural fields (not content). For `Bash`, the `command` field may contain environment variables or secrets — truncate to 120 chars and strip anything after a pipe (`|`) or redirect (`>`) as a conservative safety measure. For file operations, extract `os.path.basename(file_path)` only. Never forward tool_response fields.
+
+**Schema change:**
+Add `tool_input_summary TEXT` column to `events` table via `addColumnIfNotExists()`. Store the 120-char formatted summary. Populate in ingest.js from the new relay.py field.
+
+**Display:**
+In the tool log row, show the summary as a muted secondary line below the tool name, or inline after a colon: `Bash: npm run build`. Keep the existing duration/status layout — summary replaces or supplements the tool name column.
+
+**Confidence:** MEDIUM — safe field extraction pattern is well-understood. The truncation/sanitization logic for Bash commands is the only uncertain part (what counts as "safe" in a command string). Conservative approach: first 80 chars of `command`, stop at first `|`, `>`, `&`, or `$`.
+
+---
+
+### Feature 2: Per-Agent Detail Panel
+
+**The core UX problem:**
+Clicking an agent row currently filters the tool log but shows no information about the agent itself. The user cannot see the agent's initial task, how much context it has consumed, or its token breakdown without building mental models from scattered data.
+
+**What to show in the detail panel:**
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| Initial prompt / task description | JSONL first `user` message content (first 200 chars) | Requires JSONL read in jsonlWatcher. Already parsed — extract first user entry during initial JSONL scan. |
+| Context fill % | `session_cost` token sum / model context_max | After context fix is applied |
+| Token breakdown | `session_cost.input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_5m` | Already in DB |
+| Call count | COUNT from `events` WHERE session_id = agent_id | Already in DB |
+| Last 3-5 tool calls | SELECT from `events` WHERE session_id = agent_id ORDER BY timestamp DESC LIMIT 5 | Already in DB |
+| Status | `agent_nodes.state` | Already in DB |
+| Spawned at | `agent_nodes.spawned_at` | Already in DB |
+
+**Implementation:**
+Two options:
+1. **Accordion expand:** Clicking the agent row expands it in-place to show detail content below the agent row, within the same tree panel. Clean for a narrow sidebar.
+2. **Replace Cost panel:** Clicking an agent row replaces the top-right panel (currently Cost & Tokens) with per-agent detail. Click away (or click the session row) to restore the cost panel. This allows more space for detail content.
+
+Recommendation: **accordion expand** because it is simpler, doesn't disrupt the cost panel, and the tree panel is being widened in v2.0 anyway. The detail section can be a 120px block that appears below the agent row on click. Uses the existing `<details>` pattern already in the codebase for agent sections in the log.
+
+**New API endpoint needed:** `GET /api/agents/:id/detail` — returns token data, call history (last 5), and initial_prompt from a new `agent_initial_prompt` column added to `agent_nodes` (populated by jsonlWatcher on first JSONL entry parse).
+
+**Confidence:** MEDIUM — data is available; the integration between JSONL watcher's initial prompt extraction and the API endpoint is new plumbing but follows established patterns.
+
+---
+
+### Feature 3: Context Fill Fix
+
+**The root cause:**
+The `StatusLine` hook in Claude Code fires asynchronously and at a different cadence than tool call hooks. The `remaining_percentage` field it provides can lag behind actual token consumption. Additionally, the current `costState.contextFillPct` is populated from `cost_update` SSE events that include `contextFillPct` — but this value comes from wherever jsonlWatcher.js sourced it, which may not be synchronized with real-time tool call state.
+
+**The fix:**
+1. Add `context_window_max` values to `lib/pricingConfig.js` for all known models:
+   - `claude-sonnet-4-6`: 200,000 tokens
+   - `claude-opus-4-6`: 200,000 tokens
+   - `claude-haiku-*`: 200,000 tokens (all current Claude 3+ models share this)
+   - Default fallback: 200,000
+
+2. In the cost panel rendering (`renderCostPanel()`), compute fill % as:
+   `fill = (input_tokens + cache_read_tokens + cache_write_5m + cache_write_1h) / context_max`
+   This uses the same token data already in the cost panel, computed client-side, with no hook dependency.
+
+3. The `StatusLine`-derived `contextFillPct` can remain as a supplementary signal but should not be the primary source.
+
+**Why this works:** The `session_cost` table accumulates token counts from JSONL entries. These are the actual billed tokens for the session. Summing them and dividing by model context window gives the accurate fill %. This matches what Claude Code's own UI shows because Claude Code's context display is derived from the same cumulative token count.
+
+**Confidence:** HIGH for the fix approach. The 10% discrepancy is almost certainly because `StatusLine` provides a snapshot at a specific moment while token sums are cumulative.
+
+---
+
+### Feature 4: Dashboard Layout Reorganization
+
+**The core problem:**
+The current 3-column layout allocates 240px to the agent tree (most important for multi-agent workflows), then two equal-width columns for the tool log/timeline and cost/health panels. This is a "feature parity" layout — not an opinionated "what does the user actually need?" layout.
+
+**Recommended v2.0 layout:**
+This feature is P3 — defer until per-agent detail panel design is finalized. The layout must accommodate the per-agent detail panel within the agent column. Pre-designing the grid without knowing the content risks a second layout refactor.
+
+**When to implement (v2.1 or end of v2.0 if stretch goals are met):**
+- Widen agent panel to 320px (from 240px)
+- Collapse cost panel metrics into the agent tree row (inline cost is already there; context fill bar can be per-agent)
+- Give the tool log/timeline full vertical height in its column
+- Move health panel metrics into a top bar strip rather than a dedicated bottom-right panel
+
+**Confidence:** MEDIUM for the intent; LOW for specific measurements without live testing on real screen sizes.
+
+---
+
+## Phase Ordering Implications
+
+Based on dependency analysis, the v2.0 features cluster into four natural phases:
+
+**Phase 1: Agent Tree UX (pure frontend, no data changes)**
+- Human-readable names (use existing `agent_type`)
+- Active count badge
+- Current tool indicator
+- Context fill fix (add context_max to pricingConfig, recompute client-side)
+- Collapsible tree (nice-to-have addition)
+All four have zero backend dependencies. Ship together.
+
+**Phase 2: Tool Log Enrichment (relay.py + schema + frontend)**
+- relay.py: add `_derive_tool_summary()` per tool type
+- Schema: `addColumnIfNotExists('events', 'tool_input_summary', 'TEXT')`
+- ingest.js: populate from relay payload
+- Dashboard: display in log rows
+One coordinated change across three files. Cannot be split.
+
+**Phase 3: Per-Agent Detail Panel (new API + JSONL extraction + frontend)**
+- pricingConfig.js: add `context_window_max`
+- schema.js: `agent_initial_prompt` column on agent_nodes
+- jsonlWatcher.js: extract first user message, store in agent_nodes
+- api.js: `GET /api/agents/:id/detail`
+- Dashboard: accordion expand on agent row click
+Depends on Phase 1 (agent tree must be clean before adding detail to it) and Phase 2 (tool call history in detail panel needs enriched entries).
+
+**Phase 4: History & Layout Cleanup**
+- history.html: date/time range filter inputs (backend already supports)
+- Tool log time filters (in-memory, no backend)
+- Dashboard layout reorganization (if time allows)
+Independent of Phases 1-3 except that layout should be last.
 
 ---
 
 ## Sources
 
-- **LangSmith** — trace/span model, cost tracking patterns, session history UX (training knowledge, MEDIUM confidence)
-- **Helicone** — cost-as-primary-feature pattern, budget alerts, dashboard layout (training knowledge, MEDIUM confidence)
-- **AgentOps** — agent-native session tracking, hierarchy concepts (training knowledge, MEDIUM confidence)
-- **Langfuse** — open-source LangSmith alternative, self-host patterns (training knowledge, MEDIUM confidence)
-- **Arize Phoenix** — local-first OSS, OTEL-native patterns (training knowledge, LOW confidence — least familiar)
-- **Claude Code documentation** — hook payload schemas assumed from AgentWatch prior art; must verify against real sessions
-- **ObservAgent PROJECT.md, REQUIREMENTS.md** — authoritative scope boundaries for this milestone
-- **ObservAgent ARCHITECTURE.md** — SQLite schema, component boundaries, data flow paths
-- **ObservAgent source code** — existing events table schema, Fastify server structure, hook relay pattern
+- **Direct codebase inspection (HIGH confidence):** `public/index.html`, `routes/ingest.js`, `routes/api.js`, `db/schema.js`, `lib/pricingConfig.js` (inferred), `hooks/relay.py`, `.planning/v1.0-MILESTONE-AUDIT.md`, `.planning/research/ARCHITECTURE.md`
+- **LangSmith trace UX patterns** (MEDIUM confidence — training knowledge, Claude Code 2.1 era): span tree display, run detail panels, filter patterns
+- **Datadog APM patterns** (MEDIUM confidence — training knowledge): service map naming, active span indicators, log enrichment conventions ("service — operation — resource" pattern)
+- **W&B Weave patterns** (LOW confidence — training knowledge, product was still maturing as of knowledge cutoff): run hierarchy, step detail view
+- **Grafana dashboard conventions** (HIGH confidence — training knowledge, stable patterns): panel title live counts, time range selectors, collapsible panel groups
+- **Helicone UX** (MEDIUM confidence — training knowledge): cost-first layout, per-request metadata display
 
 ---
 
-*Feature research for: ObservAgent v1.1 — Full Observability Stack*
-*Researched: 2026-02-26*
+*Feature research for: ObservAgent v2.0 — Agent Intelligence milestone*
+*Researched: 2026-03-02*
