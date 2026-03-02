@@ -91,6 +91,14 @@
       overflow: hidden;
     }
 
+    .token-counts {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: auto;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     .tool-summary {
       font-family: var(--mono);
       font-size: 10px;
@@ -722,6 +730,16 @@
       mainLine.appendChild(toolEl);
       mainLine.appendChild(tsEl);
       mainLine.appendChild(durEl);
+
+      // Token counts badge: shown for historical rows when api_calls data is present within 30s
+      if (event.nearest_input_tokens != null) {
+        const tokEl = document.createElement('span');
+        tokEl.className = 'token-counts';
+        const fmtK = n => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
+        tokEl.textContent = fmtK(event.nearest_input_tokens) + ' in / ' + fmtK(event.nearest_output_tokens || 0) + ' out';
+        mainLine.appendChild(tokEl);
+      }
+
       row.appendChild(mainLine);
 
       // Second line: tool_summary (only if present)

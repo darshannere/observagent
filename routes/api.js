@@ -3,16 +3,38 @@ export async function apiRoutes(fastify, options) {
 
   // Prepared once at registration time — reused for all requests
   const stmtAll = db.prepare(
-    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status, tool_summary
-     FROM events
-     ORDER BY timestamp DESC
+    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.tool_call_id,
+            e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
+            (SELECT input_tokens FROM api_calls
+               WHERE session_id = e.session_id
+                 AND ABS(timestamp_ms - e.timestamp) < 30000
+               ORDER BY ABS(timestamp_ms - e.timestamp)
+               LIMIT 1) AS nearest_input_tokens,
+            (SELECT output_tokens FROM api_calls
+               WHERE session_id = e.session_id
+                 AND ABS(timestamp_ms - e.timestamp) < 30000
+               ORDER BY ABS(timestamp_ms - e.timestamp)
+               LIMIT 1) AS nearest_output_tokens
+     FROM events e
+     ORDER BY e.timestamp DESC
      LIMIT 200`
   );
   const stmtBySession = db.prepare(
-    `SELECT id, tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status, tool_summary
-     FROM events
-     WHERE session_id = ?
-     ORDER BY timestamp ASC
+    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.tool_call_id,
+            e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
+            (SELECT input_tokens FROM api_calls
+               WHERE session_id = e.session_id
+                 AND ABS(timestamp_ms - e.timestamp) < 30000
+               ORDER BY ABS(timestamp_ms - e.timestamp)
+               LIMIT 1) AS nearest_input_tokens,
+            (SELECT output_tokens FROM api_calls
+               WHERE session_id = e.session_id
+                 AND ABS(timestamp_ms - e.timestamp) < 30000
+               ORDER BY ABS(timestamp_ms - e.timestamp)
+               LIMIT 1) AS nearest_output_tokens
+     FROM events e
+     WHERE e.session_id = ?
+     ORDER BY e.timestamp ASC
      LIMIT 500`
   );
 
