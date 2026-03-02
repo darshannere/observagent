@@ -75,7 +75,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 - [x] **TOOL-02**: Read, Write, and Edit tool calls show the file path in the log row
 - [x] **TOOL-03**: Grep and Glob tool calls show the search pattern in the log row
 - [x] **TOOL-04**: Task tool calls show the task description and subagent_type in the log row
-- [ ] **TOOL-05**: Each tool call log row shows input + output token counts from the corresponding API call
+- [x] **TOOL-05**: Each tool call log row shows input + output token counts from the corresponding API call
 
 ### Calculation Accuracy (CALC)
 
@@ -158,7 +158,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | TOOL-02 | Phase 8 | Complete |
 | TOOL-03 | Phase 8 | Complete |
 | TOOL-04 | Phase 8 | Complete |
-| TOOL-05 | Phase 8 | Pending |
+| TOOL-05 | Phase 8 | Complete |
 | ARCH-01 | Phase 9 | Pending |
 | AGNT-01 | Phase 10 | Pending |
 | AGNT-02 | Phase 10 | Pending |
@@ -185,4 +185,4 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-03-02 after v2.0 milestone definition*
+*Last updated: 2026-03-02 after Phase 8 Plan 05 completion (TOOL-05 marked complete)*

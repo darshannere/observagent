@@ -51,9 +51,9 @@ See `.planning/milestones/v1.0-ROADMAP.md` for complete phase details.
 Plans:
 - [x] 08-01-PLAN.md — relay.py _build_tool_summary() + DB schema column
 - [x] 08-02-PLAN.md — ingest/writeQueue/api wiring + CSV export
-- [ ] 08-03-PLAN.md — frontend tool log second-line + timeline tooltip
+- [x] 08-03-PLAN.md — frontend tool log second-line + timeline tooltip
 - [x] 08-04-PLAN.md — CALC-01 getContextFillPercent() fix + info tooltip
-- [ ] 08-05-PLAN.md — TOOL-05 api_calls table + per-row token counts
+- [x] 08-05-PLAN.md — TOOL-05 api_calls table + per-row token counts
 
 ### Phase 9: React Migration
 **Goal**: Dashboard is rebuilt in React (Vite + React 18) with full feature parity — every v1.0 feature and Phase 8 enrichment works identically; vanilla JS index.html is retired
@@ -102,7 +102,7 @@ Plans:
 | 5. Session History and Export | v1.0 | 5/5 | Complete | 2026-03-01 |
 | 6. CLI and Zero-Config Setup | v1.0 | 4/4 | Complete | 2026-03-01 |
 | 7. Agent Timeline View and Health Panel | v1.0 | 4/4 | Complete | 2026-03-01 |
-| 8. Tool Log Enrichment + Calc Fix | 4/5 | In Progress|  | - |
+| 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | v2.0 | 0/TBD | Not started | - |
 | 10. Agent Panel Redesign | v2.0 | 0/TBD | Not started | - |
 | 11. Dashboard Overhaul + Filters | v2.0 | 0/TBD | Not started | - |
