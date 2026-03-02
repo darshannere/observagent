@@ -5,7 +5,7 @@
 
 ---
 
-## v1 Requirements
+## v1 Requirements (Shipped ✅)
 
 ### Setup & Installation
 
@@ -44,11 +44,51 @@
 - [x] **DASH-01**: Dashboard shows agent tree, cost meters, and health indicators on a single unified screen
 - [x] **DASH-02**: Dashboard shows latency per tool call (time between PreToolUse and PostToolUse)
 - [x] **DASH-03**: Dashboard shows an agent timeline view (Gantt-style swimlanes) of tool calls across agents
-- [x] **DASH-04**: Health panel shows hook connection status, session error rate, and server uptime — replacing the placeholder added in Phase 2
+- [x] **DASH-04**: Health panel shows hook connection status, session error rate, and server uptime
 
 ---
 
-## v2 Requirements
+## v2.0 Requirements — Agent Intelligence
+
+### Agent Panel (AGNT)
+
+- [ ] **AGNT-01**: User can see the agent hierarchy as a collapsible tree (parent session → subagents indented beneath, expandable/collapsible per branch)
+- [ ] **AGNT-02**: User can see a live active agent count badge showing how many agents are currently running (e.g., "3 running")
+- [ ] **AGNT-03**: Each agent row displays a human-readable name in the format `description [short-id]` (e.g., `gsd-executor [a1b2]`) instead of raw hex IDs
+- [ ] **AGNT-04**: Each agent row shows the current tool being executed in real time (live update on every PreToolUse event)
+- [ ] **AGNT-05**: User can click an agent row to open a per-agent detail panel
+- [ ] **AGNT-06**: Agent detail panel shows the initial task description / prompt the agent was given when spawned
+- [ ] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
+- [ ] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
+- [ ] **AGNT-09**: Agent detail panel shows input + output token counts per API call for that agent
+
+### Tool Log Enrichment (TOOL)
+
+- [ ] **TOOL-01**: Bash tool calls show the actual command string in the log row (truncated at 200 chars)
+- [ ] **TOOL-02**: Read, Write, and Edit tool calls show the file path in the log row
+- [ ] **TOOL-03**: Grep and Glob tool calls show the search pattern in the log row
+- [ ] **TOOL-04**: Task tool calls show the task description and subagent_type in the log row
+- [ ] **TOOL-05**: Each tool call log row shows input + output token counts from the corresponding API call
+
+### Calculation Accuracy (CALC)
+
+- [ ] **CALC-01**: Context window fill % calculation matches Claude Code's displayed values (fix ~10% discrepancy caused by double-counting cache-write tokens in `getContextFillPercent()`)
+
+### Dashboard & UX (DASH2)
+
+- [ ] **DASH2-01**: Dashboard reorganizes the agent hierarchy as the primary view — agent tree is the dominant panel with full-height prominence
+- [ ] **DASH2-02**: Active/running agents are visually prominent (full color); idle/completed agents are de-emphasized (muted)
+- [ ] **DASH2-03**: Dashboard has time filter quick-select controls (Last 5min / Last 15min / Last 1hr / All) that filter the tool log and agent view
+- [ ] **DASH2-04**: Context fill % bar in the cost/token panel is fixed and functional (tied to CALC-01 fix)
+
+### Session History Filters (FILT)
+
+- [ ] **FILT-01**: Session history page has a date/time range picker (from → to)
+- [ ] **FILT-02**: Session history page has quick filter buttons: Last 15min / Last 1hr / Last 24hr / All
+
+---
+
+## v3.0 Requirements (Deferred)
 
 ### GSD Workflow Awareness
 - **GSD-01**: Agents are labeled by role (researcher, planner, executor, verifier) based on GSD prompt patterns
@@ -68,15 +108,16 @@
 
 | Feature | Reason |
 |---------|--------|
-| LLM evaluation / grading | Different product category; LangSmith/Braintrust own this |
-| Prompt management / versioning | Out of scope; orthogonal to observability |
-| Multi-user SaaS / auth | Local-first for v1; validate core value first |
-| Support for non-Claude-Code frameworks | Claude Code hooks are the moat; don't dilute focus |
-| Session replay / re-run through LLM | Belongs with eval tools |
-| Custom dashboard / widget builder | Ship opinionated fixed layout first |
-| Alerting integrations (Slack, PagerDuty) | Over-engineering for local dev tool; in-dashboard alerts for v1 |
+| Full tool_input / tool_response capture | Security boundary — would leak file contents, secrets into event stream and DB |
+| LLM evaluation / grading | Different product category |
+| Prompt management / versioning | Orthogonal to observability |
+| Multi-user SaaS / auth | Local-first; validate core value first |
+| Support for non-Claude-Code frameworks | Claude Code hooks are the moat |
+| Custom dashboard / widget builder | Ship opinionated layout first |
+| Alerting integrations (Slack, PagerDuty) | Over-engineering for local dev tool |
 | Mobile dashboard | Web-first only |
-| AI-powered anomaly detection | Adds model dependency; rule-based health checks cover 90% of value |
+| AI-powered anomaly detection | Rule-based health checks cover 90% of value |
+| OpenTelemetry export | Enterprise-scale; out of scope for local tool |
 
 ---
 
@@ -105,12 +146,34 @@
 | DASH-02 | Phase 2 | Complete |
 | DASH-03 | Phase 7 | Complete |
 | DASH-04 | Phase 7 | Complete |
+| CALC-01 | Phase 8 | Pending |
+| TOOL-01 | Phase 8 | Pending |
+| TOOL-02 | Phase 8 | Pending |
+| TOOL-03 | Phase 8 | Pending |
+| TOOL-04 | Phase 8 | Pending |
+| TOOL-05 | Phase 8 | Pending |
+| AGNT-01 | Phase 9 | Pending |
+| AGNT-02 | Phase 9 | Pending |
+| AGNT-03 | Phase 9 | Pending |
+| AGNT-04 | Phase 9 | Pending |
+| AGNT-05 | Phase 9 | Pending |
+| AGNT-06 | Phase 9 | Pending |
+| AGNT-07 | Phase 9 | Pending |
+| AGNT-08 | Phase 9 | Pending |
+| AGNT-09 | Phase 9 | Pending |
+| DASH2-01 | Phase 10 | Pending |
+| DASH2-02 | Phase 10 | Pending |
+| DASH2-03 | Phase 10 | Pending |
+| DASH2-04 | Phase 10 | Pending |
+| FILT-01 | Phase 10 | Pending |
+| FILT-02 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 21
-- Unmapped: 0 ✓
+- v1.0 requirements: 21 total — all Complete ✓
+- v2.0 requirements: 21 total
+- v2.0 mapped to phases: 21
+- v2.0 unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 — traceability filled after roadmap creation*
+*Last updated: 2026-03-02 after v2.0 milestone definition*
