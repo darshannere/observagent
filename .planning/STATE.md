@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-02T22:32:59.929Z"
+last_updated: "2026-03-03T22:42:07.083Z"
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 8
-  total_plans: 33
-  completed_plans: 33
+  total_plans: 38
+  completed_plans: 34
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 8 — Tool Log Enrichment + Calc Fix (ALL PLANS COMPLETE — 01, 04, 02, 03, 05 done)
+**Current focus:** Phase 9 — React Migration (Plan 01 complete — scaffold, dark theme, types, format utils, routing)
 
 ## Current Position
 
-Phase: 8 of 10 (Tool Log Enrichment + Calc Fix)
-Plan: 05 (complete — all 5 plans done)
-Status: Complete — 5 of 5 plans complete (01, 04, 02, 03, 05 done)
-Last activity: 2026-03-02 — Phase 8, Plan 05 complete (api_calls table + token count badges on tool log rows)
+Phase: 9 of 10 (React Migration)
+Plan: 01 (complete — 1 of 5 plans done)
+Status: In Progress — 1 of 5 plans complete
+Last activity: 2026-03-03 — Phase 9, Plan 01 complete (Vite scaffold, dark theme, TypeScript types, format utils, React Router v7 skeleton, SSE header patch)
 
-Progress: [████░░░░░░] 100% (Phase 8 complete)
+Progress: [█████░░░░░] 20% (Phase 9, Plan 1 complete)
 
 ## Performance Metrics
 
@@ -41,6 +41,7 @@ Progress: [████░░░░░░] 100% (Phase 8 complete)
 - Phase 8, Plan 02: 8 min (3 tasks, 5 files)
 - Phase 8, Plan 03: 5 min (1 task, 1 file)
 - Phase 8, Plan 05: 12 min (2 tasks, 4 files)
+- Phase 9, Plan 01: 4 min (2 tasks, 14 files)
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting v2.0 work:
 - [08-05]: UNIQUE (session_id, timestamp_ms) constraint on api_calls enables INSERT OR IGNORE idempotency on re-scan
 - [08-05]: SQLite correlated subqueries used (not LATERAL JOIN — unsupported in SQLite) for 30s proximity token lookup
 - [08-05]: Token badge shown only for historical rows (hydrate path) — live SSE events null; live token display deferred to Phase 10
+- [Phase 09-react-migration]: shadcn init requires path alias in root tsconfig.json — set up before running init
+- [Phase 09-react-migration]: Used oklch color space for CSS variables (shadcn v4 default) — functionally equivalent to hsl, more perceptually uniform
+- [Phase 09-react-migration]: Build outDir ../public/dist keeps Fastify serving unchanged while React SPA lives in frontend/
 
 ### Pending Todos
 
@@ -79,6 +83,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed 08-05-PLAN.md (api_calls table, jsonlWatcher token writes, nearest_input_tokens in api.js, token badge in index.html)
+Last session: 2026-03-03
+Stopped at: Completed 09-01-PLAN.md (Vite React bootstrap, dark theme, format utils, types, React Router v7, SSE header)
 Resume file: None

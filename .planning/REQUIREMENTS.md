@@ -67,7 +67,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 ### Architecture (ARCH)
 
-- [ ] **ARCH-01**: Dashboard migrates from vanilla JS to React (Vite + React) while preserving all existing v1.0 and Phase 8 functionality — feature parity required before new Phase 10 UI is built on top
+- [x] **ARCH-01**: Dashboard migrates from vanilla JS to React (Vite + React) while preserving all existing v1.0 and Phase 8 functionality — feature parity required before new Phase 10 UI is built on top
 
 ### Tool Log Enrichment (TOOL)
 
@@ -159,7 +159,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | TOOL-03 | Phase 8 | Complete |
 | TOOL-04 | Phase 8 | Complete |
 | TOOL-05 | Phase 8 | Complete |
-| ARCH-01 | Phase 9 | Pending |
+| ARCH-01 | Phase 9 | Complete |
 | AGNT-01 | Phase 10 | Pending |
 | AGNT-02 | Phase 10 | Pending |
 | AGNT-03 | Phase 10 | Pending |
