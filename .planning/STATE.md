@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 9 — React Migration (Plan 02 complete — Zustand store, useSSE hook)
+**Current focus:** Phase 9 — React Migration (Plan 03 complete — all Live Dashboard components built)
 
 ## Current Position
 
 Phase: 9 of 10 (React Migration)
-Plan: 02 (complete — 2 of 5 plans done)
-Status: In Progress — 2 of 5 plans complete
-Last activity: 2026-03-03 — Phase 9, Plan 02 complete (Zustand global store with all actions, useSSE hook with full SSE dispatch)
+Plan: 03 (complete — 3 of 5 plans done)
+Status: In Progress — 3 of 5 plans complete
+Last activity: 2026-03-03 — Phase 9, Plan 03 complete (all Live Dashboard components: ToolLog, AgentTree, CostPanel, HealthPanel, TimelineWaterfall, LiveDashboard)
 
-Progress: [██████░░░░] 40% (Phase 9, Plan 2 complete)
+Progress: [███████░░░] 60% (Phase 9, Plan 3 complete)
 
 ## Performance Metrics
 
@@ -77,6 +77,11 @@ Recent decisions affecting v2.0 work:
 - [09-02]: Map immutability — always new Map(existing) before mutation; Zustand reference equality requires new Map instances
 - [09-02]: updateEventDuration guards with duration_ms === null check to avoid double-patching duplicate PostToolUse events
 - [09-02]: SSEMessage interface typed locally in useSSE.ts — avoids polluting shared types with partial server message shapes
+- [09-03]: Auto-scroll 150px threshold in ToolLog prevents fighting user scroll when reading history
+- [09-03]: CostPanel derives active session from activeSessionFilter first, then highest cost — avoids showing wrong session
+- [09-03]: AgentTree uses native HTML details/summary for collapsible groups — no JS overhead, accessible
+- [09-03]: TimelineWaterfall 4px min-width bars ensure sub-millisecond tool calls remain visible
+- [09-03]: HistoryPage stub created in Plan 03 to unblock App.tsx compile — full implementation in Plan 04
 
 ### Pending Todos
 
@@ -89,5 +94,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 09-02-PLAN.md (Zustand store with all state/actions, useSSE hook with full SSE dispatch)
+Stopped at: Completed 09-03-PLAN.md (all Live Dashboard components: ToolLog/TanStack Virtual, AgentTree, CostPanel, HealthPanel, TimelineWaterfall, LiveDashboard page)
 Resume file: None
