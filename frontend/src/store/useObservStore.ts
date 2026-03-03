@@ -36,7 +36,7 @@ interface ObservStore {
   setSseConnected(v: boolean): void
 }
 
-export const useObservStore = create<ObservStore>()((set, get) => ({
+export const useObservStore = create<ObservStore>()((set, _get) => ({
   // Initial state
   agents: new Map(),
   sessions: new Map(),
