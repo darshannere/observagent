@@ -116,8 +116,8 @@ Multiple concurrent Claude Code sessions are tracked independently with session-
 
 ```
 ┌─────────────────┐     HTTP POST      ┌─────────────────┐
-│  Claude Code   │ ──────────────────► │   ObservAgent   │
-│    (hooks)     │    relay.py         │    Server       │
+│  Claude Code    │──────────────────► │   ObservAgent   │
+│    (hooks)      │   relay.py         │    Server       │
 └─────────────────┘                    │                 │
                                        │  ┌───────────┐  │
                                        │  │  SQLite   │  │
