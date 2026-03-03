@@ -65,7 +65,14 @@ Plans:
   3. SSE connection to `/events` is preserved; real-time updates work without polling
   4. No vanilla JS / inline `<script>` code remains in the served HTML
   5. Build step (`npm run build`) completes without errors and produces a production bundle
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Vite project scaffold, Tailwind v4 dark theme, shadcn setup, format utils, TypeScript types, React Router entry point, SSE header patch
+- [ ] 09-02-PLAN.md — Zustand store (full state + actions) and useSSE hook (EventSource lifecycle + all message dispatch)
+- [ ] 09-03-PLAN.md — Live Dashboard components: AgentTree, ToolLog (TanStack Virtual), CostPanel, HealthPanel, TimelineWaterfall, LiveDashboard page
+- [ ] 09-04-PLAN.md — HistoryPage: session list, project grouping, JSONL/CSV export, replay navigation
+- [ ] 09-05-PLAN.md — Fastify cutover: routes/dashboard.js serves public/dist/ SPA with /legacy fallback; human verification
 
 ### Phase 10: Agent Panel Redesign
 **Goal**: Users can navigate the full agent hierarchy, instantly see which agents are active, and drill into any agent via a tabbed detail panel showing Prompt, Context window contents, Calls history, and Token breakdown
@@ -103,6 +110,6 @@ Plans:
 | 6. CLI and Zero-Config Setup | v1.0 | 4/4 | Complete | 2026-03-01 |
 | 7. Agent Timeline View and Health Panel | v1.0 | 4/4 | Complete | 2026-03-01 |
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
-| 9. React Migration | v2.0 | 0/TBD | Not started | - |
+| 9. React Migration | v2.0 | 0/5 | Not started | - |
 | 10. Agent Panel Redesign | v2.0 | 0/TBD | Not started | - |
 | 11. Dashboard Overhaul + Filters | v2.0 | 0/TBD | Not started | - |
