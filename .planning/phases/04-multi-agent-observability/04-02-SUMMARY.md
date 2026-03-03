@@ -111,3 +111,13 @@ None - no external service configuration required.
 ---
 *Phase: 04-multi-agent-observability*
 *Completed: 2026-02-26*
+
+## Self-Check: PASSED
+
+- FOUND: db/schema.js
+- FOUND: lib/jsonlWatcher.js
+- FOUND: 04-02-SUMMARY.md
+- FOUND commit f1fb6be (Task 1: add agent_id composite PK)
+- FOUND commit ea037c9 (Task 2: subagent JSONL discovery)
+- Verification: session_cost composite primary key test PASS
+- Verification: agentId extraction logic test PASS

@@ -1,856 +1,673 @@
 # Architecture Research
 
-**Domain:** Real-time AI agent observability (Claude Code-specific, v1.1 features)
-**Researched:** 2026-02-26
-**Confidence:** HIGH — Based on direct inspection of existing codebase, live JSONL files, and hook payload schemas confirmed by relay.py comments.
+**Domain:** Real-time AI agent observability (Claude Code-specific, v2.0 Agent Intelligence)
+**Researched:** 2026-03-02
+**Confidence:** HIGH — Based on direct inspection of existing codebase, live JSONL files, live DB queries, and hook payload schemas confirmed via real SubagentStart/Stop data.
 
 ---
 
-## Existing Architecture (v1.0 Baseline)
+## Baseline Architecture (v1.0 Shipped)
 
-This document focuses on how v1.1 features integrate with what already exists. Understanding the baseline is required before mapping integrations.
-
-### What Currently Exists
+Everything below builds on what is already working in production. Do not modify what is not broken.
 
 ```
-Claude Code Process
-  PreToolUse / PostToolUse hook
-      |
+Claude Code Process(es)
+  Hooks: PreToolUse / PostToolUse / SubagentStart / SubagentStop
       | stdin JSON payload
       v
-hooks/relay.py                         (Python stdlib only, fire-and-forget)
-  reads stdin, POSTs to /ingest, exits 0
-      |
+hooks/relay.py                         (Python stdlib only, fire-and-forget, 500ms timeout)
+  Reads: tool_name, hook_event_name, session_id, tool_use_id, exit_status
+  For SubagentStart: also reads agent_id, agent_type
+  For SubagentStop: also reads agent_id, agent_type, agent_transcript_path
+  NEVER reads: tool_input, tool_response (security boundary)
+  POSTs to: http://localhost:4999/ingest, exits 0
       | HTTP POST
       v
-server.js (Fastify 5.7.4)
-  |
-  ├── routes/ingest.js                 (POST /ingest)
-  |     202 immediately → setImmediate → writeQueue.enqueue() + broadcast()
-  |
-  ├── routes/sse.js                    (GET /events)
-  |     SSE stream, fastify-sse-v2 plugin
-  |
-  ├── routes/api.js                    (GET /api/events)
-  |     Historical events, DESC limit 200
-  |
-  └── routes/dashboard.js             (GET /)
-        Serves public/index.html (inline vanilla JS)
-      |
-      |
-lib/writeQueue.js                      (single writer pattern, setImmediate drain)
-lib/sseClients.js                      (Set<reply>, broadcast())
-      |
+server.js (Fastify 5.7.4, WAL SQLite via better-sqlite3)
+  routes/ingest.js    — 202 immediately, setImmediate enqueue + broadcast
+  routes/sse.js       — GET /events, fastify-sse-v2 keepalive stream
+  routes/api.js       — REST endpoints for history/agents/cost/config
+  routes/dashboard.js — Serves public/index.html and public/history.html
+  lib/jsonlWatcher.js — fs.watch on ~/.claude/projects/ recursive, processFile on change
+  lib/writeQueue.js   — Single-writer queue, setImmediate drain, one stmt
+  lib/sseClients.js   — Set<reply>, broadcast() to all connected clients
+  lib/costEngine.js   — Pure computation: pricing, context fill, aggregation
       v
-db/schema.js                           (better-sqlite3 12.x, WAL mode)
-  TABLE: events
-    id           INTEGER PRIMARY KEY AUTOINCREMENT
-    tool_name    TEXT
-    hook_type    TEXT
-    session_id   TEXT
-    tool_call_id TEXT
-    timestamp    INTEGER
-    duration_ms  INTEGER
-    exit_status  INTEGER
+db/schema.js (better-sqlite3 12.x, WAL + NORMAL sync)
+  TABLE events:       tool_name, hook_type, session_id, tool_call_id, timestamp, duration_ms, exit_status
+  TABLE session_cost: session_id, agent_id, model, token columns, total_cost_usd, last_event_ts, project_name
+  TABLE agent_nodes:  agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts
+  TABLE observagent_config: key/value store for user settings
 
-public/index.html                      (inline vanilla JS + CSS, no build step)
-  - 2x2 grid layout (Tool Call Log | Agent Tree placeholder | Cost Meters placeholder | Health placeholder)
-  - EventSource /events for live SSE
-  - fetch /api/events for history hydration
-  - Per-session grouping via <details> accordion
-  - In-progress row animation with 60s stuck detection
+public/index.html (inline vanilla JS, no build step)
+  3-column CSS grid: agent tree (240px) | tool log + timeline tabs (1fr) | cost + health (1fr)
+  Two EventSources: /events for live tool events and agent lifecycle
+  REST hydration: /api/events, /api/agents, /api/cost, /api/config on load
 ```
 
-### What the Current Schema is Missing
+### Current relay.py Security Boundary (Non-Negotiable)
 
-The v1.1 features require schema additions. The existing `events` table is minimal and flat:
-- No `sessions` table — session data lives only as distinct `session_id` values in events
-- No `token_snapshots` table — no JSONL parsing exists yet
-- No `agent_id` or `parent_session_id` — no hierarchy linkage
-- No `raw_json` column — tool input summary not stored
-- No indexes beyond the implicit primary key
+The relay currently sends ONLY metadata — never `tool_input` or `tool_response`. This is intentional: those fields can contain file contents, command outputs, passwords, and private keys. The v2.0 selective capture feature EXTENDS this pattern by extracting specific safe sub-fields rather than abandoning the boundary.
 
 ---
 
-## Verified Data Sources (Live Inspection)
+## v2.0 Integration Architecture
 
-### JSONL Entry Schema (confirmed — Claude Code 2.1.59)
+### System Overview: What Changes
 
-The JSONL files at `~/.claude/projects/<project-hash>/<session-id>.jsonl` contain mixed entry types. Cost/token data lives exclusively in `assistant` entries:
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     Claude Code Process(es)                               │
+│  Hooks: PreToolUse / PostToolUse / SubagentStart / SubagentStop          │
+│                                                                           │
+│  tool_input now partially forwarded (safe fields only per tool type)     │
+└─────────────────────────────────────┬─────────────────────────────────────┘
+                                      │ stdin JSON payload
+                                      v
+┌─────────────────────────────────────────────────────────────────────────┐
+│               hooks/relay.py  [MODIFIED — Feature 1]                    │
+│                                                                          │
+│  NEW: selective_tool_input(payload) extracts safe fields by tool:       │
+│    Bash:           command + description (description is safe short label)│
+│    Read/Write/Edit: file_path only (NOT content)                        │
+│    Grep:           pattern, path (NOT results)                          │
+│    Glob:           pattern, path (NOT results)                          │
+│    Task:           description + subagent_type (NOT prompt)             │
+│    SubagentStart:  description (if present) from payload                │
+│    All others:     None (no tool_input forwarded)                       │
+│                                                                          │
+│  Adds to POST body: tool_input_summary: {field: value, ...} | null     │
+└─────────────────────────────────────┬───────────────────────────────────┘
+                                      │ HTTP POST /ingest
+                                      v
+┌─────────────────────────────────────────────────────────────────────────┐
+│           routes/ingest.js  [MODIFIED — Features 1, 3]                  │
+│                                                                          │
+│  Existing: PreToolUse/PostToolUse → events table                        │
+│  Existing: SubagentStart → agent_nodes upsert + agent_spawn SSE         │
+│  Existing: SubagentStop  → agent_nodes state update + agent_update SSE  │
+│                                                                          │
+│  NEW: tool_input_summary stored in events row (new column)              │
+│  NEW: SubagentStart also stores initial_prompt (from payload if present)│
+│       writes to agent_nodes.initial_prompt column (new)                 │
+└─────────────────────────────────────┬───────────────────────────────────┘
+                                      │
+                    ┌─────────────────┴──────────────────┐
+                    │                                    │
+                    v                                    v
+┌─────────────────────────────┐      ┌─────────────────────────────────┐
+│  lib/writeQueue.js          │      │  lib/sseClients.js              │
+│  [UNCHANGED in v2.0]        │      │  [UNCHANGED in v2.0]            │
+│  Single writer preserved    │      │  broadcast() unchanged          │
+└──────────────┬──────────────┘      └─────────────────────────────────┘
+               │ enqueue(event)
+               v
+┌─────────────────────────────────────────────────────────────────────────┐
+│           db/schema.js  [MODIFIED — Feature 1, 3]                       │
+│                                                                          │
+│  events table: ADD COLUMN tool_input_summary TEXT (nullable JSON)       │
+│  agent_nodes table: ADD COLUMN initial_prompt TEXT (nullable)           │
+│  agent_nodes table: ADD COLUMN description TEXT (nullable)              │
+│                                                                          │
+│  New API query (not new table):                                          │
+│    per-agent events = SELECT * FROM events                               │
+│    WHERE session_id = @parent_session_id                                 │
+│    AND tool_call_id IN (agent's time window)  ← problematic, see below  │
+└─────────────────────────────────────┬───────────────────────────────────┘
+               │
+               v
+┌─────────────────────────────────────────────────────────────────────────┐
+│           lib/costEngine.js  [MODIFIED — Feature 2]                     │
+│                                                                          │
+│  getContextFillPercent() — DIAGNOSIS + FIX:                             │
+│    Current formula: input_tokens + cache_read + cache_write             │
+│    This equals total tokens sent to the API (correct)                   │
+│    Discrepancy source: Claude Code's statusline uses its own tokenizer  │
+│    estimate which INCLUDES tool schema definitions (~8-15K tokens)      │
+│    PLUS applies an ~80% safety cap, showing usage scaled to that cap    │
+│                                                                          │
+│    Fix approach: no formula change needed; instead add a correction     │
+│    factor. The observed gap pattern:                                     │
+│    - ObservAgent reports actual API input tokens (accurate)             │
+│    - Claude Code statusline estimates and scales to 80% cap             │
+│    - They measure DIFFERENT things and will never match exactly         │
+│    Recommendation: document this, surface both if possible              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│           routes/api.js  [MODIFIED — Features 3, 4, 5]                  │
+│                                                                          │
+│  Existing: GET /api/events, /api/cost, /api/agents, /api/config        │
+│            GET /api/sessions (filtered), GET /api/sessions/:id/export   │
+│                                                                          │
+│  NEW: GET /api/agents/:id                                                │
+│    Returns: agent row + per-agent events (see data model section)        │
+│                                                                          │
+│  NEW: GET /api/events?session_id=X&since=T&until=T (time filter)       │
+│    Server-side time params added to existing stmtBySession prepared stmt │
+│                                                                          │
+│  MODIFIED: GET /api/events now returns tool_input_summary column        │
+└─────────────────────────────────────────────────────────────────────────┘
+                              │ SSE stream + REST
+                              v
+┌─────────────────────────────────────────────────────────────────────────┐
+│           public/index.html  [MODIFIED — Features 3, 4, 5]              │
+│                                                                          │
+│  Feature 3: Agent detail panel                                           │
+│    Click agent row → slide-in or replace panel with agent details       │
+│    Shows: initial_prompt, context fill %, per-agent tool call history   │
+│                                                                          │
+│  Feature 4: Dashboard layout change                                      │
+│    Current: 3-column (240px agent tree | tool log | cost+health stacked)│
+│    v2.0: Restructure to make agent hierarchy primary view               │
+│    Approach: CSS grid change + component reorganization                 │
+│                                                                          │
+│  Feature 5: Time filter                                                  │
+│    Client-side for live events (already in DOM)                          │
+│    Server-side for historical hydration (query param on /api/events)    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Component-by-Component Integration Details
+
+### Feature 1: Selective tool_input Capture
+
+#### relay.py Changes (MODIFIED)
+
+The selective capture function must run synchronously within the 500ms timeout. Since we are extracting individual fields from an already-parsed dict (not doing any I/O), this adds under 1ms.
+
+**Confirmed safe fields per tool (from live JSONL inspection):**
+
+| Tool | Safe Fields | Unsafe Fields (never capture) |
+|------|-------------|-------------------------------|
+| Bash | `command`, `description` | (none — command IS the interesting field) |
+| Read | `file_path` | `limit`, `offset` (metadata only, low value) |
+| Write | `file_path` | `content` (file contents, always unsafe) |
+| Edit | `file_path` | `old_string`, `new_string`, `replace_all` (code content) |
+| Grep | `pattern`, `path` | `output_mode` (metadata) |
+| Glob | `pattern`, `path` | (none beyond path/pattern) |
+| Task | `description`, `subagent_type` | `prompt` (full agent prompt, always unsafe), `model` (optional) |
+| SubagentStart | `description` | (if available in payload — verify field name) |
+| All others | None | Everything |
+
+**Implementation pattern in relay.py:**
+
+```python
+SAFE_FIELDS = {
+    'Bash':    ['command', 'description'],
+    'Read':    ['file_path'],
+    'Write':   ['file_path'],
+    'Edit':    ['file_path'],
+    'Grep':    ['pattern', 'path'],
+    'Glob':    ['pattern', 'path'],
+    'Task':    ['description', 'subagent_type'],
+}
+
+def extract_safe_tool_input(payload):
+    tool_name = payload.get('tool_name', '')
+    fields = SAFE_FIELDS.get(tool_name)
+    if not fields:
+        return None
+    tool_input = payload.get('tool_input', {})
+    if not isinstance(tool_input, dict):
+        return None
+    return {k: tool_input[k] for k in fields if k in tool_input} or None
+```
+
+The result is added to the event dict as `tool_input_summary` before the POST. For PostToolUse, `tool_input` is still present in the payload (confirmed by relay.py comment) — extract it there too.
+
+**SubagentStart payload research finding:** Current relay.py captures `agent_id` and `agent_type` from SubagentStart. The payload MAY also contain `description` (the Task tool's description that spawned this agent). This needs live verification — add a temporary logging line to relay.py for SubagentStart and run one GSD session to log the full payload fields.
+
+#### DB Schema Change (db/schema.js)
 
 ```javascript
-// assistant entry — the only type with token data
-{
-  "type": "assistant",
-  "sessionId": "353e93eb-bbc7-4641-bb31-ebc47eb1111b",   // session UUID
-  "uuid": "15358d26-5b15-43d6-ab34-7e8db165ee69",        // message UUID
-  "parentUuid": "f7fa156c-194d-486d-821b-c00a494de3cf",  // parent MSG uuid (not session)
-  "timestamp": "2026-02-26T07:38:33.000Z",               // ISO 8601
-  "cwd": "/Users/darshannere/claude/observagent",
-  "version": "2.1.59",
-  "gitBranch": "HEAD",
-  "requestId": "req_011CYW8bXdCWiMQGkdQTs5GZ",
-  "message": {
-    "id": "msg_01UyCwt1o3tkFpzCDqcEEFkE",               // Anthropic message ID
-    "model": "claude-sonnet-4-6",                        // model string
-    "role": "assistant",
-    "type": "message",
-    "stop_reason": "end_turn",
-    "usage": {
-      "input_tokens": 3,
-      "output_tokens": 8,
-      "cache_creation_input_tokens": 6191,               // billed at higher rate
-      "cache_read_input_tokens": 25354,                  // billed at lower rate
-      "cache_creation": {
-        "ephemeral_5m_input_tokens": 6191,
-        "ephemeral_1h_input_tokens": 0
-      },
-      "service_tier": "standard",
-      "inference_geo": "not_available"
+// Add to initDb() using the existing addColumnIfNotExists pattern:
+addColumnIfNotExists(db, 'events', 'tool_input_summary', 'TEXT');  // nullable JSON string
+
+// Add to agent_nodes:
+addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');  // nullable, from SubagentStart
+addColumnIfNotExists(db, 'agent_nodes', 'description', 'TEXT');     // nullable, Task description
+```
+
+No new tables required for Feature 1. The `addColumnIfNotExists` pattern already exists in `schema.js` and handles live DB migration safely.
+
+#### writeQueue.js Change (UNCHANGED)
+
+The `events` INSERT prepared statement must be updated to include `tool_input_summary`. Since `writeQueue.js` prepares the statement once, the new column must be added to the INSERT before the server starts. The prepared statement will fail if the column doesn't exist — schema migration must happen before the statement is prepared (already guaranteed by `initDb()` running before `new WriteQueue(db)`).
+
+**New prepared statement in writeQueue.js:**
+
+```javascript
+this.stmt = db.prepare(`
+  INSERT INTO events (tool_name, hook_type, session_id, tool_call_id,
+                      timestamp, duration_ms, exit_status, tool_input_summary)
+  VALUES (@tool_name, @hook_type, @session_id, @tool_call_id,
+          @timestamp, @duration_ms, @exit_status, @tool_input_summary)
+`);
+```
+
+The event object must include `tool_input_summary: JSON.stringify(raw.tool_input_summary) || null`.
+
+---
+
+### Feature 2: Context Fill % Accuracy
+
+#### Root Cause Diagnosis (Confirmed via Live Data)
+
+The ~10% gap between ObservAgent's context fill display and Claude Code's statusline is **not a bug in the formula**. They measure different things:
+
+**ObservAgent formula (current, correct):**
+```
+context_fill_pct = (input_tokens + cache_read_input_tokens + cache_creation_input_tokens) / 200_000
+```
+This uses actual Anthropic API token counts from the last JSONL assistant record. It is the most accurate representation of tokens that actually went into the model.
+
+**Claude Code statusline source:**
+The statusline hook receives `context_window.remaining_percentage` from the statusLine payload — a different pipeline entirely, not from the JSONL. Claude Code computes this internally using:
+1. Its own tokenizer estimate (not the API's reported count)
+2. Includes tool schema definitions (JSON schemas for ~30 built-in tools, ~8-15K tokens)
+3. Scales the display to an 80% safety cap (100% displayed = 80% actual usage)
+
+**Verified:** The statusline's `used_pct` in the bridge file is `Math.min(100, Math.round((rawUsed / 80) * 100))` — scaled to 80% maximum. If the API says 40% used, the statusline shows 50% (40/80*100).
+
+**Fix strategy:**
+
+Option A (Recommended): No formula change. Add a UI tooltip explaining the difference: "Context % is based on actual API token counts. Claude Code's statusline applies a safety scaling to 80% cap."
+
+Option B: Apply the same 80% scaling: `Math.min(100, Math.round((pct / 80) * 100))`. This matches the visual the user sees in their terminal but is less mathematically accurate.
+
+Option C (if exact match is critical): Read from the `/tmp/claude-ctx-{session_id}.json` bridge file in the JSONL watcher or as a new data source. The bridge file has `remaining_percentage` from the actual statusLine payload. This would require per-session bridge file reading — adds complexity.
+
+**Recommendation:** Option A for v2.0. Document the discrepancy clearly. The actual API counts are more useful for cost projection.
+
+**Additional finding: cache_write5m vs cache_write1h bucketing**
+
+The current `costEngine.js` correctly handles the nested `cache_creation` object:
+```javascript
+const cacheWrite5m = usage.cache_creation?.ephemeral_5m_input_tokens ?? usage.cache_creation_input_tokens ?? 0;
+const cacheWrite1h = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+```
+
+From live data: nearly all cache writes are `ephemeral_1h` (not 5m). The `getContextFillPercent` function sums both — correct behavior.
+
+**The formula IS correct.** The visual discrepancy is a display choice, not a calculation error.
+
+---
+
+### Feature 3: Agent Detail Panel
+
+#### Data Model for Per-Agent History (Critical Design Decision)
+
+This is the most architecturally complex part of v2.0. The problem:
+
+- `events` table has `session_id` (always the **parent** session ID for subagent tool calls)
+- `agent_nodes` has `agent_id`, `parent_session_id`
+- **There is no `agent_id` column in `events`** — and relay.py for PreToolUse/PostToolUse does NOT send agent_id
+
+**Confirmed via live DB query:** All subagent tool events share the parent session_id. The agent_id from SubagentStart is NOT forwarded for individual PreToolUse/PostToolUse events.
+
+**Two possible approaches:**
+
+**Approach A: Add agent_id to PreToolUse/PostToolUse hook forwarding (Recommended)**
+
+The PreToolUse/PostToolUse hook payload for a subagent tool call likely includes the agent's session context. However, relay.py currently only reads `session_id` (parent), not any agent-specific identifier. This needs verification: does the hook payload for a subagent's Bash tool call contain `agent_id` or a way to identify which agent is running it?
+
+If Claude Code includes `agent_id` in PreToolUse/PostToolUse payloads for subagent tool calls:
+- relay.py should extract and forward it
+- events table gets `agent_id TEXT` column
+- Per-agent history = `SELECT * FROM events WHERE session_id = @parent AND agent_id = @agent_id`
+
+**Approach B: Time-window attribution (Fallback)**
+
+If the hook payload does NOT include agent_id for individual tool calls:
+- Use `spawned_at` and `last_activity_ts` from `agent_nodes` to define a time window
+- Per-agent events = `SELECT * FROM events WHERE session_id = @parent_session_id AND timestamp BETWEEN @spawned_at AND @completed_at`
+- Limitation: overlapping time windows if multiple agents run concurrently (common in GSD)
+
+**Approach C: Track agent_id from SubagentStart context (Most Accurate)**
+
+When SubagentStart fires for agent X, ALL subsequent events with the same parent `session_id` from that point until SubagentStop are NOT necessarily from agent X (other agents may also be running). This approach does not work for concurrent agents.
+
+**Decision required before implementation:** Add temporary logging to relay.py to capture a full PreToolUse payload from a subagent tool call. If `agent_id` or equivalent is present, use Approach A. If not, use Approach B with documented limitation.
+
+**Schema addition regardless of approach:**
+
+```javascript
+// agents_nodes - store human-readable info
+addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');  // first user message
+addColumnIfNotExists(db, 'agent_nodes', 'description', 'TEXT');     // Task tool description
+addColumnIfNotExists(db, 'agent_nodes', 'slug', 'TEXT');            // JSONL slug field (human name)
+```
+
+**The `slug` field from JSONL is the agent's human-readable name.** Live data shows: `slug: "kind-doodling-riddle"` — a memorable adjective-noun-noun combination. This is available in the subagent JSONL's first user record. The `jsonlWatcher.js` already processes these files — it can extract `slug` and write it to `agent_nodes` via upsert.
+
+**Per-agent data serving approach:**
+
+```javascript
+// New API endpoint: GET /api/agents/:id
+fastify.get('/api/agents/:id', (req, reply) => {
+  const agent = db.prepare(`SELECT * FROM agent_nodes WHERE agent_id = ?`).get(req.params.id);
+  if (!agent) return reply.code(404).send();
+
+  // Get cost from session_cost where agent_id matches
+  const cost = db.prepare(`SELECT * FROM session_cost WHERE agent_id = ?`).get(req.params.id);
+
+  // Get tool history (Approach A or B depending on payload research)
+  const events = db.prepare(`
+    SELECT * FROM events
+    WHERE session_id = ? AND timestamp >= ? AND timestamp <= ?
+    ORDER BY timestamp ASC LIMIT 500
+  `).all(agent.parent_session_id, agent.spawned_at, agent.last_activity_ts + 60000);
+
+  reply.send({ agent, cost, events });
+});
+```
+
+**initial_prompt sourcing:**
+
+The subagent JSONL first user record's `message.content` contains the initial prompt. The `jsonlWatcher.js` already reads these files for cost data — it can also extract the first user message content on first processing and write it to `agent_nodes.initial_prompt`. This does NOT require any hook changes.
+
+```javascript
+// In jsonlWatcher.js processFile(), for subagent files only:
+function extractInitialPrompt(rawRecords) {
+  for (const r of rawRecords) {
+    if (r.type === 'user' && r.message) {
+      const content = r.message.content;
+      if (typeof content === 'string') return content.slice(0, 2000); // truncate
+      if (Array.isArray(content)) {
+        const textItem = content.find(c => c.type === 'text');
+        if (textItem) return String(textItem.text || '').slice(0, 2000);
+      }
     }
   }
+  return null;
+}
+
+// Also extract slug:
+function extractSlug(rawRecords) {
+  for (const r of rawRecords) {
+    if (r.type === 'user' && r.slug) return r.slug;
+  }
+  return null;
 }
 ```
 
-Other JSONL entry types (relevant to know, not for cost parsing): `user`, `system`, `progress`, `file-history-snapshot`, `queue-operation`.
-
-System entries contain `subtype: "turn_duration"` and `durationMs` — useful metadata but not token data.
-
-### Hook Payload Schema (confirmed — relay.py live inspection)
-
-```
-PreToolUse / PostToolUse payload fields:
-  session_id, transcript_path, cwd, permission_mode,
-  hook_event_name, tool_name, tool_use_id, tool_input, tool_response
-
-StatusLine hook payload (different hook type):
-  model, workspace, session_id,
-  context_window.remaining_percentage   ← context fill data lives here
-
-SubagentStop hook payload — NOT yet verified (requires live test)
-  Likely contains: session_id (of the parent that spawned it)
-  May or may not contain: child session_id
-  Action: add SubagentStop to settings.json → relay.py → log raw payload first before building hierarchy logic
-```
-
-### Models Observed in Real Sessions
-
-From live JSONL inspection: `claude-sonnet-4-6`, `claude-sonnet-4-5-20250929`, `claude-opus-4-6`, `claude-opus-4-5-20251101`, `claude-haiku-4-5-20251001`. The cost computation must handle all of these plus unknown future models — rates must be configurable, not hardcoded constants.
-
-### Agent Hierarchy Linking (verified gap)
-
-The JSONL `parentUuid` field links message nodes within a single session transcript — it is not a cross-session parent reference. It cannot be used to establish Task tool spawn hierarchy.
-
-The only reliable cross-session linkage mechanism confirmed through inspection:
-1. The `PreToolUse` hook fires in the parent session context with the parent's `session_id`
-2. When the Task tool fires, the `tool_input.prompt` and `tool_input.description` are available in the hook payload
-3. Child sessions start with the same `cwd` as the parent
-4. Child session start timestamps align with the parent's Task tool invocation timestamp
-
-This means hierarchy correlation requires: capture `PreToolUse` on Task tool → store `{parentSessionId, cwd, startedAt, toolUseId}` → when a new session JSONL appears with matching `cwd` within a 10s window → link it as a child.
-
-**SubagentStop** may provide cleaner linkage if its payload includes child session_id — but this is unverified. The fallback (cwd + time window) is the safe implementation path.
-
 ---
 
-## System Overview: v1.1 Architecture
+### Feature 4: Dashboard Layout Change
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Claude Code Process(es)                             │
-│  Top-level + Task-spawned sub-agents (separate OS processes)           │
-│                                                                         │
-│  Hooks: PreToolUse / PostToolUse / SubagentStop (new)                  │
-│    sessionId, cwd, tool_name, tool_use_id in every payload             │
-└──────────────────────────────┬──────────────────────────────────────────┘
-                               │ stdin JSON
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                    hooks/relay.py  [MODIFIED]                           │
-│  Existing: PreToolUse, PostToolUse forwarding                           │
-│  New:      SubagentStop hook type → forward with hook_type='SubagentStop'│
-│            context_window fields forwarded from statusLine bridge file   │
-└──────────────────────────────┬───────────────────────────────────────────┘
-                               │ HTTP POST /ingest
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│               ObservAgent Server (Fastify 5.7.4)                        │
-│                                                                          │
-│  ┌─────────────────────┐  ┌──────────────────────┐  ┌────────────────┐  │
-│  │  routes/ingest.js   │  │  lib/jsonlWatcher.js  │  │ lib/sseClients │  │
-│  │  [MODIFIED]         │  │  [NEW]                │  │  [UNCHANGED]   │  │
-│  │                     │  │                       │  │                │  │
-│  │ + sessions upsert   │  │ chokidar 4.x watches  │  │ Set<reply>     │  │
-│  │ + parent detection  │  │ ~/.claude/projects/   │  │ broadcast()    │  │
-│  │   (Task PreToolUse) │  │ byte-offset tail       │  │                │  │
-│  │ + SubagentStop      │  │ parses assistant{}    │  │                │  │
-│  │   hierarchy link    │  │ computes cost_usd     │  │                │  │
-│  └──────────┬──────────┘  └──────────┬────────────┘  └───────┬────────┘  │
-│             │                        │                        │           │
-│             └────────────────────────┤                        │           │
-│                                      │ normalized events      │           │
-│                                      ▼                        │           │
-│                        ┌─────────────────────────┐            │           │
-│                        │  db/schema.js [MODIFIED] │◄──────────┘           │
-│                        │  better-sqlite3, WAL     │  SSE push after write  │
-│                        │                          │                        │
-│  NEW tables:           │  events (existing)       │                        │
-│  sessions              │  sessions (new)          │                        │
-│  token_snapshots       │  token_snapshots (new)   │                        │
-│                        └──────────────────────────┘                        │
-│                                                                            │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                  routes/api.js  [MODIFIED]                           │  │
-│  │  Existing: GET /api/events                                           │  │
-│  │  New: GET /api/sessions   (session list with cost rollup)            │  │
-│  │       GET /api/agents     (agent tree — recursive CTE)               │  │
-│  │       GET /api/export     (session JSONL/CSV download)               │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                            │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                  bin/cli.js  [NEW]                                   │  │
-│  │  npx observagent init   — writes hooks to ~/.claude/settings.json   │  │
-│  │  npx observagent start  — starts server, opens browser              │  │
-│  │  npx observagent doctor — validates setup                           │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────────┘
-                               │ SSE stream (GET /events — unchanged URL)
-                               │ REST (GET /api/*)
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│               public/index.html  [MODIFIED — major expansion]           │
-│                                                                          │
-│  Existing: Tool Call Log panel (session-grouped, live + history)        │
-│                                                                          │
-│  New panels:                                                             │
-│  ├── Agent Tree panel (recursive HTML tree, live cost per node)         │
-│  ├── Cost Meters panel (per-session bars, live token counter)           │
-│  ├── Gantt Timeline panel (horizontal swimlanes per session)            │
-│  └── Session History panel (filterable table, export button)           │
-│                                                                          │
-│  New SSE event types handled:                                            │
-│  ├── cost_update    (token_snapshots written)                            │
-│  ├── session_new    (new session detected)                              │
-│  ├── session_end    (SubagentStop / Stop fired)                         │
-│  └── agent_stuck    (no events for >60s, surfaced as warning)           │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+#### Current Layout (from index.html inspection)
 
----
-
-## Component Responsibilities
-
-### What Gets Modified
-
-| Component | Current State | v1.1 Changes |
-|-----------|--------------|--------------|
-| `hooks/relay.py` | Handles PreToolUse, PostToolUse | Add SubagentStop to hook config; relay passes `hook_type='SubagentStop'`. Also consider forwarding `context_window` data read from the `/tmp/claude-ctx-{session}.json` bridge file. |
-| `db/schema.js` | Single `events` table | Add `sessions` and `token_snapshots` tables. Add `agent_id` and `tool_input_summary` columns to `events`. Add all indexes. |
-| `lib/writeQueue.js` | One prepared statement for events | Needs multiple prepared statements: events insert, sessions upsert, token_snapshots insert. Simplest approach: pass the specific statement to `enqueue()` rather than assuming a single stmt. |
-| `routes/ingest.js` | Normalizes event, writes to queue | Add sessions upsert on every event. Detect Task tool `PreToolUse` → store pending parent-child link. Detect SubagentStop → resolve hierarchy link. |
-| `routes/api.js` | GET /api/events only | Add GET /api/sessions, GET /api/agents (tree query), GET /api/export. |
-| `public/index.html` | 2x2 grid, one live panel | Major JS expansion: 3 new panels (Agent Tree, Cost Meters, Gantt/Timeline), Session History. Handle new SSE event types. |
-| `server.js` | Registers 4 routes | Register `jsonlWatcher` module on startup. Pass pricing config. |
-| `package.json` | 3 dependencies | Add `chokidar`, add `bin` field for CLI. |
-
-### What Gets Added (New Files)
-
-| File | Purpose |
-|------|---------|
-| `lib/jsonlWatcher.js` | chokidar watcher, byte-offset tailing, token/cost parsing, SSE push |
-| `lib/pricingConfig.js` | Model pricing map, cost computation function, config loading |
-| `lib/hierarchy.js` | In-memory pending Task map, parent-child resolution logic |
-| `bin/cli.js` | CLI entry point for `init`, `start`, `doctor` |
-
----
-
-## Data Flow Changes
-
-### New Path: Cost and Token Data (JSONL → SQLite → SSE)
-
-```
-Claude Code writes to ~/.claude/projects/<hash>/<session>.jsonl
-  ↓
-lib/jsonlWatcher.js (chokidar 4.x watcher, registered at server startup)
-  detects new bytes via 'change' event on *.jsonl glob
-  reads from last known byte offset (Map<filePath, offset>)
-  splits on \n, JSON.parse() each complete line in try/catch
-  filters for: entry.type === 'assistant' && entry.message?.usage
-  extracts: sessionId, message.id, message.model, usage fields
-  ↓
-lib/pricingConfig.js
-  looks up rate for model (fallback to default if unknown)
-  computes: cost_usd = (input * rate.input + output * rate.output + cache_create * rate.cache_create + cache_read * rate.cache_read) / 1_000_000
-  ↓
-writeQueue.enqueue({ type: 'token_snapshot', ...fields })
-writeQueue.enqueue({ type: 'session_cost_update', sessionId, deltaCost })
-  ↓
-SQLite writes to token_snapshots, updates sessions.total_cost_usd
-  ↓
-broadcast({ type: 'cost_update', sessionId, input_tokens, output_tokens, cost_usd, total_cost_usd })
-  ↓
-Dashboard: Cost Meters panel updates live counter for the session
-```
-
-### New Path: Agent Hierarchy (Task PreToolUse → Sessions Table)
-
-```
-Claude Code fires PreToolUse hook with tool_name='Task'
-  ↓
-relay.py → POST /ingest with hook_type='PreToolUse', tool_name='Task', session_id=<parent>
-  ↓
-routes/ingest.js
-  detects tool_name === 'Task' && hook_type === 'PreToolUse'
-  lib/hierarchy.js: pendingTasks.set(tool_use_id, { parentSessionId, cwd, startedAt })
-  ↓
-[Child session starts in separate OS process — Claude Code creates new JSONL file]
-  ↓
-lib/jsonlWatcher.js
-  detects new *.jsonl file
-  reads first entry to get child sessionId and cwd + timestamp
-  lib/hierarchy.js: resolveParent(childSessionId, cwd, timestamp)
-    → finds pending task with matching cwd within 10s window
-    → returns parentSessionId (or null if no match)
-  writeQueue.enqueue({ type: 'session_upsert', sessionId: childSessionId, parentSessionId })
-  ↓
-sessions table: parent_session_id set on child session row
-  ↓
-broadcast({ type: 'session_new', sessionId, parentSessionId, cwd })
-  ↓
-Dashboard: Agent Tree panel adds child node under parent
-```
-
-**If SubagentStop payload contains child session_id (verify before building):**
-
-```
-SubagentStop hook fires in parent process
-  ↓
-relay.py forwards: hook_type='SubagentStop', session_id=<parent>, child_session_id=<child> (if present)
-  ↓
-routes/ingest.js: skip the cwd+time inference entirely
-  directly updates sessions SET parent_session_id = parent WHERE session_id = child
-```
-
-This SubagentStop path eliminates the inference problem if the field is available. Verify this first in implementation.
-
-### New Path: Session History (REST API)
-
-```
-Browser loads Session History panel
-  ↓
-GET /api/sessions?project=<hash>&status=all&since=<timestamp>
-  ↓
-routes/api.js: query sessions JOIN token_snapshots aggregation
-  returns: session_id, parent_session_id, cwd, status, started_at, last_event_at,
-           total_cost_usd, total_input_tokens, total_output_tokens, event_count
-  ↓
-Dashboard: renders filterable table
-  filter controls: date range, cwd/project, min cost, status (active/completed)
-  export button: GET /api/export?session_id=<sid>&format=csv|json
-```
-
-### Modified Path: Dashboard Initial Load
-
-```
-Browser loads dashboard
-  ↓
-Promise.all([
-  fetch('/api/events'),         // existing — last 200 events for tool log
-  fetch('/api/sessions'),       // new — session list with cost rollup
-  fetch('/api/agents')          // new — agent tree (recursive CTE result)
-])
-  ↓
-Render Tool Call Log (existing)
-Render Agent Tree (new — hierarchical from /api/agents)
-Render Cost Meters (new — from /api/sessions)
-Render Gantt Timeline (new — from /api/events, grouped by session, sorted by timestamp)
-  ↓
-subscribeSSE() — same /events endpoint, new event types handled
-```
-
----
-
-## Updated SQLite Schema
-
-The existing `events` table needs two new columns and the schema needs two new tables. Use `ALTER TABLE` for the events columns to avoid losing existing data.
-
-```sql
--- MODIFY existing events table (ALTER TABLE, not recreate)
-ALTER TABLE events ADD COLUMN agent_id TEXT;           -- same as session_id initially; reserved for future named agents
-ALTER TABLE events ADD COLUMN tool_input_summary TEXT;  -- truncated to 500 chars, never full content
-
--- NEW: sessions table
-CREATE TABLE IF NOT EXISTS sessions (
-  session_id          TEXT PRIMARY KEY,
-  parent_session_id   TEXT REFERENCES sessions(session_id),
-  project_path        TEXT,                             -- cwd from first event
-  status              TEXT NOT NULL DEFAULT 'active',   -- 'active' | 'completed'
-  started_at          INTEGER NOT NULL,                 -- epoch ms
-  last_event_at       INTEGER NOT NULL,                 -- epoch ms, updated on every event
-  total_input_tokens  INTEGER NOT NULL DEFAULT 0,
-  total_output_tokens INTEGER NOT NULL DEFAULT 0,
-  total_cost_usd      REAL NOT NULL DEFAULT 0.0,
-  context_tokens_used INTEGER,                          -- from statusLine bridge if available
-  context_tokens_max  INTEGER
-);
-
--- NEW: token_snapshots table
-CREATE TABLE IF NOT EXISTS token_snapshots (
-  id                        TEXT PRIMARY KEY,            -- message.id from JSONL
-  session_id                TEXT NOT NULL REFERENCES sessions(session_id),
-  model                     TEXT NOT NULL,
-  input_tokens              INTEGER NOT NULL DEFAULT 0,
-  output_tokens             INTEGER NOT NULL DEFAULT 0,
-  cache_creation_tokens     INTEGER NOT NULL DEFAULT 0,
-  cache_read_tokens         INTEGER NOT NULL DEFAULT 0,
-  cost_usd                  REAL NOT NULL DEFAULT 0.0,
-  timestamp                 INTEGER NOT NULL,
-  UNIQUE(session_id, id)    -- deduplication: re-reads of JSONL don't double-count
-);
-
--- Indexes (add after CREATE TABLE statements)
-CREATE INDEX IF NOT EXISTS idx_events_session    ON events(session_id);
-CREATE INDEX IF NOT EXISTS idx_events_timestamp  ON events(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_parent   ON sessions(parent_session_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_status   ON sessions(status);
-CREATE INDEX IF NOT EXISTS idx_snapshots_session ON token_snapshots(session_id);
-```
-
-**Migration strategy:** The `initDb()` function already uses `CREATE TABLE IF NOT EXISTS`. Add `ALTER TABLE events ADD COLUMN IF NOT EXISTS agent_id TEXT` (SQLite 3.37+ supports this). For the new tables, `CREATE TABLE IF NOT EXISTS` handles first run and upgrades cleanly.
-
----
-
-## Recommended Project Structure (v1.1)
-
-```
-observagent/
-├── server.js                    # MODIFIED: register jsonlWatcher on startup
-├── package.json                 # MODIFIED: add chokidar, bin field
-├── db/
-│   └── schema.js                # MODIFIED: sessions + token_snapshots tables, ALTER events
-├── hooks/
-│   └── relay.py                 # MODIFIED: SubagentStop hook type support
-├── lib/
-│   ├── writeQueue.js            # MODIFIED: multi-statement support
-│   ├── sseClients.js            # UNCHANGED
-│   ├── jsonlWatcher.js          # NEW: chokidar watcher + byte-offset tailing
-│   ├── pricingConfig.js         # NEW: model rate map, cost computation
-│   └── hierarchy.js             # NEW: pending task map, parent resolution
-├── routes/
-│   ├── ingest.js                # MODIFIED: sessions upsert, Task detection, SubagentStop
-│   ├── sse.js                   # UNCHANGED
-│   ├── api.js                   # MODIFIED: add /api/sessions, /api/agents, /api/export
-│   └── dashboard.js             # UNCHANGED (just serves static HTML)
-├── bin/
-│   └── cli.js                   # NEW: init / start / doctor CLI
-├── public/
-│   └── index.html               # MODIFIED: 3 new panels, new SSE event handlers
-└── .planning/
-```
-
----
-
-## Architectural Patterns
-
-### Pattern 1: Typed Write Queue
-
-**What:** The existing `WriteQueue` has one hardcoded prepared statement. v1.1 requires writes to three tables. Extend with a type discriminator rather than creating multiple queues (multiple queues would lose the single-writer guarantee).
-
-**When to use:** Any time a new table needs write access from ingest or jsonlWatcher.
-
-**Implementation:**
-
-```javascript
-// lib/writeQueue.js — extended for v1.1
-export class WriteQueue {
-  constructor(db) {
-    this.db = db;
-    this.queue = [];
-    this.processing = false;
-
-    this.stmts = {
-      event: db.prepare(`INSERT INTO events ...`),
-      session_upsert: db.prepare(`INSERT INTO sessions ... ON CONFLICT(session_id) DO UPDATE SET ...`),
-      token_snapshot: db.prepare(`INSERT OR IGNORE INTO token_snapshots ...`),
-      session_cost: db.prepare(`UPDATE sessions SET total_cost_usd = total_cost_usd + @delta, total_input_tokens = total_input_tokens + @input, total_output_tokens = total_output_tokens + @output WHERE session_id = @session_id`),
-    };
-  }
-
-  enqueue(type, data) {
-    this.queue.push({ type, data });
-    if (!this.processing) this._process();
-  }
-
-  _process() {
-    if (this.queue.length === 0) { this.processing = false; return; }
-    this.processing = true;
-    const { type, data } = this.queue.shift();
-    try { this.stmts[type].run(data); }
-    catch (err) { console.error('[db] write error:', type, err.message); }
-    setImmediate(() => this._process());
-  }
+```css
+.dashboard {
+  display: grid;
+  grid-template-columns: 240px 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  height: 100vh;
 }
+/* panel-agents: grid-row: 1 / -1  (full height, 240px wide) */
+/* panel-log:    grid-row: 1 / -1  (full height, 1fr) */
+/* cost-panel:   row 1, column 3 */
+/* health-panel: row 2, column 3 */
 ```
 
-**Trade-off:** Slightly more complex initialization but preserves the critical single-writer invariant.
+#### v2.0 Layout Target
 
-### Pattern 2: Byte-Offset JSONL Tailing
+The goal is "agent hierarchy as primary view, active-first layout." Options:
 
-**What:** Track the last read position per JSONL file to avoid re-parsing from the start on every chokidar change event. This is O(new bytes) not O(file size).
+**Option A: Expand agent tree column + add detail panel**
+```css
+grid-template-columns: 300px 1fr 300px;
+/* Column 1: Agent tree (wider, with active count badge) */
+/* Column 2: Tool log / timeline (main content) */
+/* Column 3: Context-sensitive detail (cost/tokens OR agent detail on click) */
+```
+Advantage: detail panel slides into column 3 without layout shift. Clean.
 
-**When to use:** Always for JSONL file watching. Never use a streaming JSON parser — JSONL is already newline-delimited.
-
-**Implementation:**
-
-```javascript
-// lib/jsonlWatcher.js
-const offsets = new Map(); // filePath -> byteOffset
-const partialLines = new Map(); // filePath -> incomplete line buffer
-
-function readNewLines(filePath, sessionId) {
-  const stat = fs.statSync(filePath);
-  const offset = offsets.get(filePath) ?? 0;
-  if (stat.size <= offset) return;
-
-  const buf = Buffer.alloc(stat.size - offset);
-  const fd = fs.openSync(filePath, 'r');
-  fs.readSync(fd, buf, 0, buf.length, offset);
-  fs.closeSync(fd);
-
-  let text = (partialLines.get(filePath) ?? '') + buf.toString('utf8');
-  const lines = text.split('\n');
-
-  // Last element may be incomplete — buffer it
-  const incomplete = lines.pop();
-  partialLines.set(filePath, incomplete);
-
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    try {
-      const entry = JSON.parse(line);
-      if (entry.type === 'assistant' && entry.message?.usage) {
-        processTokenEntry(sessionId, entry);
-      }
-    } catch {} // malformed line — skip, will not retry
-  }
-
-  offsets.set(filePath, stat.size);
-}
+**Option B: Split column 1 into tree + detail (sidebar within sidebar)**
+```css
+grid-template-columns: 280px 1fr 260px;
+/* Agent tree: full column 1 with collapse/expand */
+/* Detail: opens in overlay or replaces column 3 */
 ```
 
-**Trade-off:** Requires storing offsets in memory — if server restarts, all JSONL files are re-read from offset 0. Deduplication via `UNIQUE(session_id, id)` in `token_snapshots` prevents double-counting.
+**Option C: Agent tree takes column 1+3, log in center**
+Higher complexity, less benefit. Not recommended.
 
-### Pattern 3: SSE Event Typing
+**Recommendation: Option A** — minimal CSS change, preserves existing panel positions, column 3 becomes a "context panel" that shows cost+health by default and agent details on agent click. Requires:
+- CSS: `grid-template-columns: 300px 1fr 300px` (adjust widths)
+- JS: click handler on agent rows that swaps column 3 content between cost/health view and agent detail view
+- No new HTML structure beyond the detail panel markup
 
-**What:** The current SSE broadcast sends raw event objects without a typed envelope. v1.1 needs the dashboard to distinguish cost updates from hierarchy updates from stuck alerts.
-
-**When to use:** All new SSE event types must include an explicit `type` field.
-
-**Current (unchanged):**
-```javascript
-broadcast(event); // dashboard checks hook_type field
-```
-
-**Extended for new event types:**
-```javascript
-// New events use typed wrapper — old events still raw for backwards compat
-broadcast({ type: 'cost_update', sessionId, cost_usd, total_cost_usd, input_tokens, output_tokens });
-broadcast({ type: 'session_new', sessionId, parentSessionId, cwd, startedAt });
-broadcast({ type: 'session_end', sessionId, status: 'completed' });
-broadcast({ type: 'agent_stuck', sessionId, lastEventAt, staleSecs });
-```
-
-Dashboard EventSource handler distinguishes by `event.type` field:
-```javascript
-es.onmessage = (e) => {
-  const msg = JSON.parse(e.data);
-  if (msg.type === 'connected') return;
-  if (msg.type === 'cost_update') return handleCostUpdate(msg);
-  if (msg.type === 'session_new') return handleSessionNew(msg);
-  if (msg.type === 'agent_stuck') return handleAgentStuck(msg);
-  // default: tool event (hook_type field present)
-  appendRow(msg);
-};
-```
-
-### Pattern 4: Gantt Timeline Rendering (Canvas or SVG)
-
-**What:** Gantt timelines require computing horizontal bars from `(start_ts, end_ts)` pairs per session. The existing tool log already has `PreToolUse/PostToolUse` pairs with `tool_call_id` correlation.
-
-**When to use:** Gantt panel uses events from `/api/events`, grouped by `session_id`, sorted by `timestamp ASC`.
-
-**Implementation approach (vanilla JS + Canvas):**
-
-```javascript
-// Simpler than SVG for dynamic data; no library needed
-// Each session = one horizontal lane
-// Each tool call = one bar: x = (start_ts - minTs) / scale, width = duration_ms / scale
-function renderGantt(sessions, events) {
-  const canvas = document.getElementById('gantt-canvas');
-  const ctx = canvas.getContext('2d');
-  const minTs = Math.min(...events.map(e => e.timestamp));
-  const maxTs = Math.max(...events.map(e => e.timestamp + (e.duration_ms ?? 0)));
-  const scale = (canvas.width - 120) / (maxTs - minTs); // 120px for labels
-
-  sessions.forEach((session, i) => {
-    const y = i * 28 + 14;
-    const sessionEvents = events.filter(e => e.session_id === session.session_id && e.hook_type === 'PostToolUse');
-    sessionEvents.forEach(event => {
-      const x = 120 + (event.timestamp - minTs) * scale;
-      const w = Math.max(2, (event.duration_ms ?? 0) * scale);
-      ctx.fillStyle = event.exit_status ? '#f85149' : '#3fb950';
-      ctx.fillRect(x, y - 8, w, 16);
-    });
-
-    // Session label
-    ctx.fillStyle = '#8b949e';
-    ctx.fillText(session.session_id.slice(0, 8), 0, y + 4);
-  });
-}
-```
-
-**Trade-off:** Canvas gives precise control and no dependency; SVG is easier to add tooltips. Start with Canvas — add tooltip layer with a single mousemove handler if needed.
+**Active-first layout for agent tree:**
+The agent tree already renders active agents highlighted. Sort change: move `state=active` agents to top of their session group. This is a JS sort change in the `renderAgentTree()` function, no DB change required.
 
 ---
 
-## Integration Points: New vs Modified Components
+### Feature 5: Time Filter
 
-### Ingest Route Modifications (routes/ingest.js)
+#### Client-side vs Server-side Decision
 
-**Currently:** Normalizes 5 fields, pairs PreToolUse/PostToolUse, writes event, broadcasts.
+| Scenario | Approach | Rationale |
+|----------|----------|-----------|
+| Live events (after page load) | Client-side | Already in DOM, filter by timestamp attribute |
+| Historical events on hydration | Server-side params | 500-event DB limit, time filter needed to narrow window |
+| Session history page (/history) | Already server-side | `/api/sessions` already supports `date_from` / `date_to` |
 
-**v1.1 adds:**
-1. **Sessions upsert on every event** — every event carries a `session_id`; insert/update the sessions row with `last_event_at` and `project_path` (from `cwd` if available, otherwise NULL).
-2. **Task tool detection** — if `tool_name === 'Task'` and `hook_type === 'PreToolUse'`: call `hierarchy.registerTask(tool_call_id, session_id, cwd)`.
-3. **SubagentStop handling** — if `hook_type === 'SubagentStop'`: mark the child session as `status='completed'`; if child session_id is in payload, link hierarchy directly; otherwise, leave `parent_session_id` to be set by jsonlWatcher.
-4. **Tool input summary** — for Task tool events, store truncated `tool_input.description` (100 chars max) in `tool_input_summary` for display in session history.
+**Implementation for main dashboard:**
 
-The 202-before-write pattern is unchanged. All of the above happens inside `setImmediate()`.
-
-### JSONL Watcher (lib/jsonlWatcher.js) — New Component
-
-**Registered in server.js** after `initDb()` and `writeQueue` creation:
-```javascript
-import { startWatcher } from './lib/jsonlWatcher.js';
-startWatcher({ writeQueue, broadcast, db });
-```
-
-**Responsibilities:**
-1. `chokidar.watch('~/.claude/projects/**/*.jsonl', { awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 } })`
-2. On `add` event (new file): extract session_id from filename, create sessions row, attempt parent resolution via `hierarchy.resolveParent(sessionId, cwd, timestamp)`
-3. On `change` event: byte-offset read → parse assistant entries → compute cost → `writeQueue.enqueue('token_snapshot', ...)` → `writeQueue.enqueue('session_cost', ...)` → `broadcast({ type: 'cost_update', ... })`
-4. On server startup: optionally scan existing JSONL files from offset 0 to hydrate token_snapshots for historical sessions (controlled by `--hydrate` flag or auto-detect if token_snapshots is empty)
-
-### Stuck Agent Detection
-
-No new component required. Add a single `setInterval` in `server.js` that runs every 30 seconds:
+The existing `/api/events` endpoint returns latest 200 events DESC. A time filter here needs server-side params:
 
 ```javascript
-setInterval(() => {
-  const staleMs = 60_000;
-  const cutoff = Date.now() - staleMs;
-  const stale = db.prepare(
-    `SELECT session_id, last_event_at FROM sessions WHERE status='active' AND last_event_at < ?`
-  ).all(cutoff);
-  for (const s of stale) {
-    broadcast({ type: 'agent_stuck', sessionId: s.session_id, lastEventAt: s.last_event_at, staleSecs: Math.round((Date.now() - s.last_event_at) / 1000) });
-  }
-}, 30_000);
+// Modify stmtAll in api.js to accept since/until:
+const stmtAllFiltered = db.prepare(`
+  SELECT * FROM events
+  WHERE (@since = 0 OR timestamp >= @since)
+    AND (@until = 0 OR timestamp <= @until)
+  ORDER BY timestamp DESC LIMIT 200
+`);
 ```
 
-This uses the existing `db` instance and existing `broadcast`. No new table needed.
+For the frontend, a time picker above the tool log panel with predefined ranges (Last 15m, Last 1h, Today, All) triggers a re-hydration fetch with `?since=...` param. Live SSE events are filtered client-side with `if (msg.timestamp < sinceFilter) return`.
+
+**UI approach:** A toolbar row above the panel-log with radio buttons or a segmented control. Keep it simple: no date pickers, just preset ranges plus "All." This avoids the complexity of timezone handling and date picker libraries.
 
 ---
 
-## Suggested Build Order (v1.1)
+## Data Flow Changes Summary
 
-Dependencies flow strictly top-to-bottom. Do not start a step until the previous step works end-to-end.
+### New Data Flow: Tool Input Enrichment (Feature 1)
 
 ```
-Step 1: Schema migration
-  - ALTER TABLE events ADD COLUMN agent_id, tool_input_summary
-  - CREATE TABLE sessions
-  - CREATE TABLE token_snapshots
-  - Add all indexes
-  - Verify with better-sqlite3 shell: .schema
-  ↓
-Step 2: WriteQueue extension (multi-statement)
-  - Add stmts map with session_upsert, token_snapshot, session_cost
-  - Update enqueue() signature to accept (type, data)
-  - Update all existing enqueue() call sites in ingest.js
-  ↓
-Step 3: Ingest route — sessions upsert
-  - Every POST /ingest now upserts sessions row (session_id, project_path, last_event_at)
-  - Verify: after hook fires, SELECT * FROM sessions shows the row
-  ↓
-Step 4: lib/hierarchy.js
-  - registerTask(toolCallId, parentSessionId, cwd, startedAt) — Map entry
-  - resolveParent(childSessionId, cwd, timestamp) — finds matching pending task, updates sessions row
-  - Verify: Task tool PreToolUse → entry in pending map; new session detected → parent_session_id set
-  ↓
-Step 5: lib/pricingConfig.js
-  - Model rate table (sonnet-4-6, sonnet-4-5, opus-4-6, opus-4-5, haiku-4-5, default fallback)
-  - computeCost(model, usage) → cost_usd
-  ↓
-Step 6: lib/jsonlWatcher.js
-  - chokidar setup on ~/.claude/projects/**/*.jsonl
-  - byte-offset tailing on 'change' events
-  - parse assistant entries → computeCost → writeQueue.enqueue
-  - 'add' events → register new session, attempt hierarchy resolution
-  - Verify: run a session, watch token_snapshots fill up
-  ↓
-Step 7: /api/sessions and /api/agents endpoints
-  - GET /api/sessions: sessions list with token aggregation
-  - GET /api/agents: recursive CTE for tree
-  - GET /api/export: CSV or JSON download
-  ↓
-Step 8: Dashboard — Cost Meters panel
-  - REST hydration from /api/sessions on load
-  - SSE cost_update handler updates live meters
-  - Context fill bar (if context_tokens_used / context_tokens_max available)
-  ↓
-Step 9: Dashboard — Agent Tree panel
-  - REST hydration from /api/agents on load
-  - SSE session_new / session_end handlers update tree
-  - Stuck agent badge from SSE agent_stuck events
-  ↓
-Step 10: Dashboard — Gantt Timeline panel
-  - REST hydration from /api/events (full history for active sessions)
-  - Canvas rendering of tool call bars
-  - Horizontal scroll if timeline exceeds panel width
-  ↓
-Step 11: Dashboard — Session History panel
-  - REST hydration from /api/sessions
-  - Filter controls (date, project, min cost, status)
-  - Export button → GET /api/export
-  ↓
-Step 12: bin/cli.js
-  - npx observagent init: read ~/.claude/settings.json, merge hooks, write back
-  - npx observagent start: spawn server, open browser
-  - npx observagent doctor: check server alive, hooks present, JSONL found
+Claude Code fires PreToolUse hook
+  → relay.py reads tool_input (full payload field)
+  → extract_safe_tool_input() picks safe fields per tool type
+  → adds tool_input_summary: {command: "...", description: "..."} to POST body
+  → ingest.js receives tool_input_summary
+  → stored as JSON string in events.tool_input_summary
+  → broadcast event includes tool_input_summary
+  → frontend tool log row shows tool-specific detail (file path, command description)
 ```
 
-This order ensures each step has working infrastructure beneath it. Steps 8-11 (dashboard panels) can be built in any order relative to each other once Step 7 is complete.
+### New Data Flow: Agent Detail (Feature 3)
+
+```
+Path A: Initial prompt from JSONL
+  jsonlWatcher.js processes subagent JSONL on first change
+  → extractInitialPrompt() reads first user record's message.content
+  → extractSlug() reads slug field
+  → upsertAgentNode includes initial_prompt, slug, description
+  → stored in agent_nodes
+  → served by GET /api/agents/:id
+
+Path B: Per-agent events (pending relay.py payload verification)
+  If agent_id in PreToolUse/PostToolUse payload:
+    → relay.py forwards agent_id
+    → events.agent_id column populated
+    → per-agent history = events WHERE agent_id = X
+  If not:
+    → time-window query: events WHERE session_id = parent AND timestamp BETWEEN spawned_at AND last_activity_ts
+```
+
+### Modified Data Flow: Context Fill Display (Feature 2)
+
+```
+UNCHANGED: costEngine.getContextFillPercent(model, lastUsage) → integer 0-100
+CHANGED: UI tooltip added explaining formula uses actual API tokens
+OPTIONAL: Add scaling factor (/ 0.80) to match Claude Code statusline visual
+```
+
+---
+
+## New vs Modified Components
+
+| Component | Status | What Changes |
+|-----------|--------|--------------|
+| `hooks/relay.py` | MODIFIED | Add `extract_safe_tool_input()`, add `tool_input_summary` to POST body |
+| `db/schema.js` | MODIFIED | `events.tool_input_summary` TEXT, `agent_nodes.initial_prompt/description/slug` TEXT |
+| `lib/writeQueue.js` | MODIFIED | Update prepared statement to include `tool_input_summary` column |
+| `routes/ingest.js` | MODIFIED | Pass `tool_input_summary` from raw body into event object for queue |
+| `lib/jsonlWatcher.js` | MODIFIED | Extract `initial_prompt` and `slug` from subagent JSONLs, upsert to agent_nodes |
+| `lib/costEngine.js` | MODIFIED | Document discrepancy, optionally add 80% scaling for statusline parity |
+| `routes/api.js` | MODIFIED | Add `GET /api/agents/:id`, add time filter params to `/api/events` |
+| `public/index.html` | MODIFIED | Agent detail panel, layout change, time filter toolbar, tool log enrichment display |
+| `lib/sseClients.js` | UNCHANGED | No changes needed |
+| `server.js` | UNCHANGED | No new routes or startup logic needed |
+| `bin/cli.js` | UNCHANGED | No v2.0 changes |
+
+**No new files required for v2.0.** All changes are modifications to existing components.
+
+---
+
+## Build Order (Dependency Graph)
+
+```
+1. relay.py selective capture (Feature 1, relay side)
+      ↓ produces tool_input_summary in POST body
+2. db/schema.js column additions (Feature 1, 3 schema side)
+      ↓ columns exist before any data flows
+3. writeQueue.js statement update (Feature 1, write side)
+      ↓ INSERT includes tool_input_summary
+4. ingest.js update (Feature 1, parse side)
+      ↓ passes tool_input_summary through
+5. jsonlWatcher.js update (Feature 3, JSONL side)
+      ↓ initial_prompt + slug populated in agent_nodes
+6. costEngine.js documentation update (Feature 2)
+      ↓ context fill explanation added
+7. api.js additions (Features 3, 5)
+      ↓ /api/agents/:id and time filter params served
+8. index.html changes (Features 3, 4, 5)
+      ↓ consumes all new endpoints and data
+```
+
+**Rationale:** Schema changes before any code that writes to the schema. relay.py before ingest.js because ingest.js must handle the new field. jsonlWatcher.js before api.js because api serves what the watcher writes. Frontend last because it consumes all backend changes.
+
+**Critical prerequisite before Step 1:** Add a temporary debug log to relay.py for SubagentStart events that prints the full payload fields (to a temp file, not stdout/stderr). Run one GSD session to capture a real SubagentStart payload. Confirm: (a) whether `description` is a field, and (b) whether PreToolUse/PostToolUse payloads for subagent tool calls include `agent_id`. This 10-minute test determines which approach is used for per-agent history.
+
+---
+
+## Integration Points
+
+### relay.py Security Boundary Preservation
+
+The selective capture must follow three rules:
+1. Never read `tool_response` for any field
+2. Never read `tool_input.content` for Write tool
+3. Never read `tool_input.prompt` for Task tool
+
+The `extract_safe_tool_input()` function must use an explicit allowlist (not a blocklist). New tool types default to returning `None` (nothing captured) unless explicitly added to the allowlist.
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| relay.py → ingest.js | HTTP POST, adds `tool_input_summary` field | Max 500ms total; string truncation in relay.py for safety |
+| jsonlWatcher.js → agent_nodes | Direct SQLite upsert | Already doing upsert for cost; add initial_prompt to same upsert |
+| api.js → frontend | REST + SSE | `tool_input_summary` included in event broadcasts and REST responses |
+| agent_nodes detail → frontend | New REST endpoint `/api/agents/:id` | Single-row lookup, fast |
+
+### SSE Event Type Changes
+
+No new SSE event types needed. Existing `agent_spawn` and `agent_update` events can carry the new fields (`description`, `slug`) when they are available.
+
+The existing `tool event broadcast` in ingest.js already calls `broadcast(event)` — the enriched event (with `tool_input_summary`) will automatically reach all connected clients.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Multiple Write Queues
+### Anti-Pattern 1: Capturing tool_response Fields
 
-**What people do:** Create one WriteQueue for events and a separate one for token_snapshots.
-**Why it's wrong:** Two queues = two concurrent writers = SQLite BUSY errors under load. The single-writer invariant is the core of the write queue pattern.
-**Do this instead:** Extend the single WriteQueue with a type discriminator (see Pattern 1 above).
+**What people do:** Add `exit_status` extraction and then think "I'll also grab the Bash stdout for display."
+**Why it's wrong:** Bash stdout can contain API keys, database dumps, private file contents. The relay.py security boundary was designed to prevent exactly this.
+**Do this instead:** Only capture what's in the explicit allowlist. `exit_status` is already derived from `stderr` presence (boolean, not content).
 
-### Anti-Pattern 2: Polling for New JSONL Lines
+### Anti-Pattern 2: Blocklist Instead of Allowlist for tool_input
 
-**What people do:** `setInterval(() => readNewLines(), 1000)` on every watched file.
-**Why it's wrong:** CPU waste (polling all files even when idle), latency (up to 1s delay for cost updates), doesn't handle new file creation.
-**Do this instead:** chokidar 4.x with `awaitWriteFinish` — fires only on actual changes, handles new file creation via `add` event.
+**What people do:** `{k: v for k, v in tool_input.items() if k not in ['content', 'prompt']}` — grab everything except known dangerous fields.
+**Why it's wrong:** New tool types or new fields in existing tools would be forwarded by default. A new `Bash.api_key` field would leak.
+**Do this instead:** Explicit per-tool field allowlist. Unknown tools return `None`.
 
-### Anti-Pattern 3: Timing-Based Hierarchy Inference
+### Anti-Pattern 3: Blocking the ingest Route on tool_input_summary Parsing
 
-**What people do:** Assume the sub-agent session that started closest in time to a Task spawn is the child.
-**Why it's wrong:** Under GSD parallel spawns (4+ agents at once), multiple sessions start within milliseconds of each other. Time alone cannot disambiguate.
-**Do this instead:** Match on `cwd` (project path) + time window. If SubagentStop payload includes child session_id, use that and skip inference entirely.
+**What people do:** Parse and validate `tool_input_summary` JSON in the ingest route before sending 202.
+**Why it's wrong:** The 202 must be sent immediately (< 500ms relay deadline). Any CPU work before the 202 risks timeout.
+**Do this instead:** Pass `raw.tool_input_summary` as-is (already JSON string from relay.py). Validate lazily on read.
 
-### Anti-Pattern 4: Hardcoding Model Pricing
+### Anti-Pattern 4: New DB Table for Per-Agent Events
 
-**What people do:** `const RATE_PER_TOKEN = 0.000003` at the top of a file.
-**Why it's wrong:** Anthropic changes pricing. New models are released (already 6+ models seen in real sessions). Hardcoded values go stale silently and produce wrong cost data.
-**Do this instead:** `lib/pricingConfig.js` with a model map + default fallback. Load overrides from env var or `~/.observagent.json`. Log a warning when an unknown model is encountered.
+**What people do:** Create an `agent_events` join table to support per-agent queries.
+**Why it's wrong:** Duplicates data; requires maintaining consistency with `events` table; double the write load under high-frequency tool calls.
+**Do this instead:** Add `agent_id` column to `events` (if payload supports it) or use time-window query on the existing table.
 
-### Anti-Pattern 5: Full JSONL Re-parse on Every Change Event
+### Anti-Pattern 5: Always-On agent_id Lookup in ingest.js
 
-**What people do:** `JSON.parse(fs.readFileSync(filePath, 'utf8').split('\n'))` on every chokidar change.
-**Why it's wrong:** Session files grow to hundreds of KB. Re-parsing 5,000+ lines on every new assistant message is O(n) per write.
-**Do this instead:** Byte-offset tailing (Pattern 2). Process only the delta since the last read.
+**What people do:** On every PreToolUse/PostToolUse, query `agent_nodes` to find which agent is active and attach its `agent_id` to the event.
+**Why it's wrong:** This turns a fire-and-forget DB write into a synchronous read-then-write. Under parallel agent load (GSD runs 4+ concurrent agents), this serializes and creates a write bottleneck.
+**Do this instead:** Let the hook payload provide `agent_id` directly. If the payload doesn't include it, use the time-window approach at read time, not write time.
 
-### Anti-Pattern 6: Blocking SQLite in the Ingest Critical Path
+### Anti-Pattern 6: Full Reparse of JSONL for initial_prompt on Every Change
 
-**What people do:** Call `db.run()` before `reply.code(202).send()`.
-**Why it's wrong:** Blocks the hook relay. If the DB write takes 10ms, the hook blocks Claude for 10ms. Under write contention, this can cascade.
-**Do this instead:** 202 immediately, all DB writes inside `setImmediate()` callback. This is already the existing pattern — do not regress it during v1.1 additions.
-
----
-
-## Scaling Considerations (Local Tool Context)
-
-This is a local developer tool running on a single machine. Scale concerns are different from production services.
-
-| Concern | At 1 Session | At 5 Parallel Agents | At 100 Sessions/Day |
-|---------|-------------|---------------------|---------------------|
-| SQLite writes | Trivial | WAL mode + write queue handles it | Events table grows; add cleanup job to archive >7d old events |
-| JSONL tailing | One file | One chokidar watcher, N files — fine | JSONL files are never deleted by Claude Code; add offset persistence to survive restarts |
-| SSE connections | 1 tab | 1 tab (typically) | N/A — local tool |
-| Memory | ~10MB | ~15MB (N pending task maps) | Offset map grows linearly; reset on restart |
-
-**First bottleneck:** JSONL offset map is lost on server restart, causing full re-parse of all JSONL files. The `UNIQUE(session_id, id)` constraint in `token_snapshots` prevents double-counting, but re-parsing 50+ sessions with thousands of entries adds 1-3 seconds to startup.
-
-**Mitigation:** Persist offsets to a `offsets.json` file at graceful shutdown, load on startup. This is a nice-to-have, not a v1.1 requirement — the deduplication constraint is the safety net.
+**What people do:** Every time a subagent JSONL changes, re-read the entire file to extract the initial prompt.
+**Why it's wrong:** The initial prompt is always in line 1 and never changes. Re-reading it on every cost update wastes I/O.
+**Do this instead:** Extract initial_prompt only if `agent_nodes.initial_prompt IS NULL` for this agent_id. One-time extraction.
 
 ---
 
-## Integration Boundaries
+## Scaling Considerations
 
-### Relay.py Minimal Modifications
+This is a local-first tool. Scaling concerns are about single-machine performance under GSD's multi-agent load, not distributed systems.
 
-The relay.py hook is the most sensitive file — any regression here blocks Claude Code. Minimize changes:
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 1-4 concurrent agents (typical GSD) | Current architecture is sufficient. WAL mode handles concurrent readers. Single write queue serializes safely. |
+| 8-16 concurrent agents (heavy GSD) | tool_input_summary JSON parsing in ingest.js may add measurable latency. Mitigation: move JSON.stringify to relay.py (already there if relay sends JSON). |
+| SQLite events table > 100K rows | Add index on `(session_id, timestamp)` for time-window queries. Current index is only on implicit rowid. |
 
-1. Add `SubagentStop` to `hook_type` whitelist — the file already handles multiple hook types via `hook_event_name` field
-2. Optionally: read `/tmp/claude-ctx-{session_id}.json` bridge file if it exists and forward `context_remaining_pct` — but only if it adds <1ms latency (simple file read, no stat if file doesn't exist)
-3. Never add network calls, retries, or stdout/stderr output
+### First Bottleneck
 
-### Dashboard Backward Compatibility
-
-The existing `/events` SSE endpoint URL and the existing SSE message format for tool events are unchanged. New SSE event types are additive. Existing JavaScript code for the Tool Call Log panel continues to work unmodified.
-
-### Claude Code settings.json Merge Strategy
-
-The CLI `init` command must **merge** into the existing hooks config, never overwrite. The existing settings.json has GSD hooks (`gsd-check-update.js`, `gsd-context-monitor.js`, `gsd-statusline.js`) that must not be removed.
+The events table time-window query for per-agent history (if using Approach B — no `agent_id` column) will be a full scan of events for a session_id. With 500-event limit this is fast, but add an index on `(session_id, timestamp)` preemptively.
 
 ```javascript
-// bin/cli.js — settings merge pseudocode
-const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-settings.hooks = settings.hooks ?? {};
-settings.hooks.PreToolUse = settings.hooks.PreToolUse ?? [];
-settings.hooks.PostToolUse = settings.hooks.PostToolUse ?? [];
-settings.hooks.SubagentStop = settings.hooks.SubagentStop ?? [];
-
-// Add only if not already present
-const relayCommand = `python3 ${relayPath}`;
-const alreadyInstalled = (hookArray) => hookArray.some(h => h.hooks?.some(hh => hh.command?.includes('relay.py')));
-
-if (!alreadyInstalled(settings.hooks.PreToolUse)) {
-  settings.hooks.PreToolUse.push({ hooks: [{ type: 'command', command: relayCommand }] });
-}
-// ... same for PostToolUse, SubagentStop
-
-fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+db.exec(`CREATE INDEX IF NOT EXISTS idx_events_session_ts ON events(session_id, timestamp)`);
 ```
-
----
-
-## Open Questions (Resolve in Early Implementation)
-
-| Question | Impact | How to Resolve |
-|----------|--------|---------------|
-| Does SubagentStop payload include child session_id? | HIGH — if yes, skip hierarchy inference entirely | Add SubagentStop to settings.json, trigger a Task tool, log the raw payload before writing any code |
-| Does PostToolUse payload include context_window data? | MEDIUM — if yes, can track fill% via relay.py without statusLine bridge | Add raw payload logging to relay.py in dev mode; trigger a tool use and inspect |
-| What is the correct agent_id concept? | LOW — currently same as session_id; GSD has subagent_type in Task input | Defer — use session_id as agent_id for v1.1; consider named agents in v2 |
-| How should startup JSONL hydration work? | MEDIUM — restart loses offsets; re-parse is slow for large history | Ship with deduplication (UNIQUE constraint) as safety net; optimize in v1.2 if startup time becomes a complaint |
 
 ---
 
 ## Sources
 
-- Direct codebase inspection: `server.js`, `db/schema.js`, `lib/writeQueue.js`, `lib/sseClients.js`, `routes/ingest.js`, `routes/sse.js`, `routes/api.js`, `routes/dashboard.js`, `hooks/relay.py`, `public/index.html`
-- Live JSONL inspection: `~/.claude/projects/-Users-darshannere-claude-observagent/*.jsonl` (Claude Code 2.1.59, session entries with confirmed usage field schema)
-- Hook payload confirmation: relay.py docstring comments (live payload inspection at Claude Code 2.1.59)
-- GSD hook ecosystem: `~/.claude/hooks/gsd-statusline.js`, `~/.claude/hooks/gsd-context-monitor.js` (statusLine payload schema, context_window.remaining_percentage location confirmed)
-- Installed package versions: Fastify 5.7.4 (not 4.x), better-sqlite3 12.6.2 (confirmed by package.json + node_modules)
-- Real session data: 7 project sessions inspected, models confirmed, cost calculation validated against real token counts
+- Direct codebase inspection: `hooks/relay.py`, `db/schema.js`, `lib/writeQueue.js`, `routes/ingest.js`, `routes/api.js`, `lib/jsonlWatcher.js`, `lib/costEngine.js`, `public/index.html` (2026-03-02)
+- Live DB query: `agent_nodes` table (agent_type values confirmed: gsd-research-synthesizer, gsd-project-researcher, etc.)
+- Live JSONL inspection: subagent JSONL first user record confirms `slug`, `agentId`, `sessionId`, `isSidechain` fields
+- Live tool input analysis: confirmed Bash (`command`, `description`), Read (`file_path`), Write (`file_path`, `content`), Edit (`file_path`, `old_string`, `new_string`), Grep (`pattern`, `path`, `output_mode`), Glob (`pattern`), Task (`description`, `subagent_type`, `prompt`)
+- Context fill analysis: confirmed formula correctness; statusline scaling (80% cap) from `gsd-statusline.js` source code
+- Existing research: v1.0 ARCHITECTURE.md (2026-02-26) — SubagentStop payload confirmed, hierarchy model confirmed
 
 ---
-*Architecture research for: ObservAgent v1.1 feature integration*
-*Researched: 2026-02-26*
+
+*Architecture research for: ObservAgent v2.0 Agent Intelligence features*
+*Researched: 2026-03-02*
+*Confidence: HIGH (all findings from direct codebase and live data inspection)*
