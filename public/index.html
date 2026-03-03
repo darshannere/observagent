@@ -88,7 +88,7 @@
       display: flex;
       gap: 8px;
       white-space: nowrap;
-      overflow: hidden;
+      min-width: 0;
     }
 
     .token-counts {
@@ -120,7 +120,8 @@
 
     .tool-name {
       color: var(--text);
-      min-width: 120px;
+      min-width: 0;
+      flex-shrink: 1;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -591,7 +592,7 @@
         <!-- Context window fill progress bar -->
         <div class="ctx-label">
           <span>Context</span>
-          <span id="ctx-pct">0%</span><span class="info-icon" title="ObservAgent calculates context fill from API token usage. Claude Code may apply internal scaling not exposed via the API.">ⓘ</span>
+          <span style="display:inline-flex;align-items:center;gap:2px;"><span id="ctx-pct">0%</span><span class="info-icon" title="ObservAgent calculates context fill from API token usage. Claude Code may apply internal scaling not exposed via the API.">ⓘ</span></span>
         </div>
         <div class="progress-track">
           <div id="ctx-bar" class="progress-fill"></div>
@@ -1580,7 +1581,9 @@
 
     function _tlRowHtml(call, start, totalMs) {
       const color  = call.isError ? '#f85149' : getToolColor(call.toolName);
-      const chipTitle = call.toolSummary ? ` title="${call.toolSummary.replace(/"/g, '&quot;')}"` : '';
+      const chipTitle = call.toolSummary
+        ? ` title="${call.toolSummary.replace(/"/g, '&quot;')}"`
+        : ` title="${call.toolName}"`;
       const chip   = `<span class="tl-tool-chip"${chipTitle} style="background:${color}20;color:${color};border-color:${color}50">${call.toolName}</span>`;
       const now    = Date.now();
       const endMs  = call.isInProgress ? now : call.endMs;
