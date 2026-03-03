@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-03T22:42:07.083Z"
+last_updated: "2026-03-03T22:45:00Z"
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 38
-  completed_plans: 34
+  completed_plans: 35
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 9 — React Migration (Plan 01 complete — scaffold, dark theme, types, format utils, routing)
+**Current focus:** Phase 9 — React Migration (Plan 02 complete — Zustand store, useSSE hook)
 
 ## Current Position
 
 Phase: 9 of 10 (React Migration)
-Plan: 01 (complete — 1 of 5 plans done)
-Status: In Progress — 1 of 5 plans complete
-Last activity: 2026-03-03 — Phase 9, Plan 01 complete (Vite scaffold, dark theme, TypeScript types, format utils, React Router v7 skeleton, SSE header patch)
+Plan: 02 (complete — 2 of 5 plans done)
+Status: In Progress — 2 of 5 plans complete
+Last activity: 2026-03-03 — Phase 9, Plan 02 complete (Zustand global store with all actions, useSSE hook with full SSE dispatch)
 
-Progress: [█████░░░░░] 20% (Phase 9, Plan 1 complete)
+Progress: [██████░░░░] 40% (Phase 9, Plan 2 complete)
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [█████░░░░░] 20% (Phase 9, Plan 1 complete)
 - Phase 8, Plan 03: 5 min (1 task, 1 file)
 - Phase 8, Plan 05: 12 min (2 tasks, 4 files)
 - Phase 9, Plan 01: 4 min (2 tasks, 14 files)
+- Phase 9, Plan 02: 2 min (2 tasks, 2 files)
 
 ## Accumulated Context
 
@@ -72,6 +73,10 @@ Recent decisions affecting v2.0 work:
 - [Phase 09-react-migration]: shadcn init requires path alias in root tsconfig.json — set up before running init
 - [Phase 09-react-migration]: Used oklch color space for CSS variables (shadcn v4 default) — functionally equivalent to hsl, more perceptually uniform
 - [Phase 09-react-migration]: Build outDir ../public/dist keeps Fastify serving unchanged while React SPA lives in frontend/
+- [09-02]: useObservStore.getState() used inside SSE effect (static getter, no subscription) — avoids component re-render loop
+- [09-02]: Map immutability — always new Map(existing) before mutation; Zustand reference equality requires new Map instances
+- [09-02]: updateEventDuration guards with duration_ms === null check to avoid double-patching duplicate PostToolUse events
+- [09-02]: SSEMessage interface typed locally in useSSE.ts — avoids polluting shared types with partial server message shapes
 
 ### Pending Todos
 
@@ -84,5 +89,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 09-01-PLAN.md (Vite React bootstrap, dark theme, format utils, types, React Router v7, SSE header)
+Stopped at: Completed 09-02-PLAN.md (Zustand store with all state/actions, useSSE hook with full SSE dispatch)
 Resume file: None
