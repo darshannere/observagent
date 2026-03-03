@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 08-tool-log-enrichment-calc-fix
 source: 08-01-SUMMARY.md, 08-02-SUMMARY.md, 08-03-SUMMARY.md, 08-04-SUMMARY.md, 08-05-SUMMARY.md
 started: 2026-03-03T00:00:00Z
@@ -75,7 +75,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Hovering over a timeline chip shows the full tool summary string via native title attribute"
-  status: failed
+  status: resolved
   reason: "User reported: doesnt work"
   severity: major
   test: 6
@@ -87,7 +87,7 @@ skipped: 0
     - "Fallback: show tool name in chip title when tool_summary is null"
 
 - truth: "Token count badge (e.g. '1.2K in / 456 out') appears on every row that has nearby api_call data, including rows with a tool_summary second line"
-  status: failed
+  status: resolved
   reason: "User reported: recent ones have token badge, but when there is a second line (tool summary), there is no token in/out text"
   severity: major
   test: 9
@@ -99,7 +99,7 @@ skipped: 0
     - "Move overflow: hidden + text-overflow: ellipsis to .tool-name, add min-width: 0 to .log-row-main"
 
 - truth: "api_calls table rows have accurate input_tokens and output_tokens (not 1)"
-  status: failed
+  status: resolved
   reason: "User reported: table exists but most recent input_tokens are just 1, token counts are wrong"
   severity: major
   test: 10
@@ -111,7 +111,7 @@ skipped: 0
     - "Replace stop_reason filter with last-record-per-message-ID dedup in extractUsageRecords()"
 
 - truth: "Info icon (ⓘ) next to context fill % shows tooltip text explaining the discrepancy on hover"
-  status: failed
+  status: resolved
   reason: "User reported: there is a tooltip, when i hover, it becomes a question mark, but no text comes up"
   severity: minor
   test: 8
