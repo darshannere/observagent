@@ -82,12 +82,14 @@ export function useSSE(isReplay = false): void {
         return
       }
 
-      if (msg.type === 'cost_update' && msg.agentId) {
-        const t = msg.tokens ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
-        const totalTokens = t.input + t.output + t.cacheRead + t.cacheWrite
-        store.updateAgentCost(msg.agentId, msg.cost ?? 0, totalTokens)
+      if (msg.type === 'cost_update') {
         if (msg.contextFillPct != null) {
           store.setContextFillPct(msg.contextFillPct)
+        }
+        if (msg.agentId) {
+          const t = msg.tokens ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+          const totalTokens = t.input + t.output + t.cacheRead + t.cacheWrite
+          store.updateAgentCost(msg.agentId, msg.cost ?? 0, totalTokens)
         }
         return
       }

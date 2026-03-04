@@ -51,6 +51,27 @@ export function LiveDashboard() {
       .then((r) => r.json())
       .then((data) => store.setConfig(data))
       .catch(() => {})
+
+    // 4. Agents — hydrate tree from DB (same as legacy dashboard)
+    if (!isReplay) {
+      fetch('/api/agents')
+        .then((r) => r.json())
+        .then((agents: Array<{ agent_id: string; agent_type: string; parent_session_id: string; state: string; last_activity_ts: number }>) => {
+          for (const a of agents) {
+            store.addAgent({
+              agentId: a.agent_id,
+              agentType: a.agent_type,
+              parentSessionId: a.parent_session_id,
+              state: (a.state as 'active' | 'idle' | 'errored') ?? 'idle',
+              lastActivityTs: a.last_activity_ts,
+            })
+            if (a.state !== 'active') {
+              store.updateAgentState(a.agent_id, a.state as 'idle' | 'errored', a.last_activity_ts)
+            }
+          }
+        })
+        .catch(() => {})
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

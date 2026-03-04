@@ -18,18 +18,20 @@ export async function dashboardRoutes(fastify, options) {
     reply.type('text/html').send(legacyHistoryHtml)
   })
 
-  // Serve React SPA build from public/dist/
-  // wildcard: false — we handle routing ourselves via setNotFoundHandler
+  // Serve React SPA static assets — wildcard: false so we control routing
   await fastify.register(fastifyStatic, {
     root: join(__dirname, '../public/dist'),
     wildcard: false,
   })
 
-  // SPA fallback — serve index.html for all non-API, non-SSE routes
-  // React Router handles /live, /history, etc. client-side
+  // Explicit route for Vite-built static assets (JS, CSS, images)
+  fastify.get('/assets/*', (request, reply) => {
+    return reply.sendFile('assets/' + request.params['*'])
+  })
+
+  // SPA fallback — serve index.html for React Router routes
   fastify.setNotFoundHandler((request, reply) => {
     const url = request.url
-    // Do not intercept API routes or SSE — let them 404 properly
     if (
       url.startsWith('/api') ||
       url === '/events' ||
@@ -39,7 +41,6 @@ export async function dashboardRoutes(fastify, options) {
       reply.code(404).send({ error: 'Not found' })
       return
     }
-    // Serve React SPA for all other routes (/, /live, /history, etc.)
-    reply.sendFile('index.html', join(__dirname, '../public/dist'))
+    reply.sendFile('index.html')
   })
 }
