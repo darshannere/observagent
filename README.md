@@ -18,6 +18,9 @@
   <img src="https://img.shields.io/badge/License-ISC-blue" alt="ISC">
 </p>
 
+<p align="center">
+  <img src="./image new.png" alt="Live dashboard" width="600" />
+</p>
 ---
 
 ## Why ObservAgent?
@@ -131,10 +134,14 @@ The History page (`/history`) groups sessions by repository/project name so user
 ## Screenshots
 
 Live Session  
-![Live dashboard](./image%20new.png)
+<p align="center">
+  <img src="./image new.png" alt="Live dashboard" width="600" />
+</p>
 
 History Panel  
-![Session history](./history.png)
+<p align="center">
+  <img src="./history.png" alt="History Panel" width="600" />
+</p>
 
 ---
 
