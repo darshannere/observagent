@@ -27,7 +27,7 @@ export function CostPanel() {
   const postConfig = useDebouncedPost('/api/config')
 
   const [budgetUsd, setBudgetUsd] = useState<string>('')
-  const [budgetTokens, setBudgetTokens] = useState<string>('')
+  const [contextBudgetPct, setContextBudgetPct] = useState<string>('')
 
   // Derive active session: prefer filter match, else highest cost
   const activeSession =
@@ -37,20 +37,36 @@ export function CostPanel() {
     sessionCosts[0] ??
     null
 
+  const costBudgetUsd = config?.budget_threshold_usd ?? config?.budget_usd ?? null
+  const contextBudget = config?.ctx_fill_threshold_pct ?? null
+
   const overBudget =
-    config?.budget_usd != null &&
+    costBudgetUsd != null &&
     activeSession != null &&
-    activeSession.total_cost_usd >= config.budget_usd
+    activeSession.total_cost_usd >= costBudgetUsd
+
+  const overContextBudget =
+    contextBudget != null &&
+    contextFillPct >= contextBudget
 
   const fillRed = contextFillPct >= 80
 
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
       {/* Budget alert */}
-      {overBudget && (
+      {(overBudget || overContextBudget) && (
         <div className="rounded border border-red-500 bg-red-950/30 px-3 py-2 text-red-400 font-semibold">
-          Budget exceeded — session cost {formatCost(activeSession!.total_cost_usd)} &ge;{' '}
-          {formatCost(config!.budget_usd!)}
+          {overBudget && activeSession && (
+            <div>
+              Cost budget exceeded — {formatCost(activeSession.total_cost_usd)} &ge;{' '}
+              {formatCost(costBudgetUsd!)}
+            </div>
+          )}
+          {overContextBudget && (
+            <div>
+              Context budget exceeded — {contextFillPct.toFixed(1)}% &ge; {contextBudget!.toFixed(1)}%
+            </div>
+          )}
         </div>
       )}
 
@@ -64,6 +80,9 @@ export function CostPanel() {
         </div>
         <div className="text-muted-foreground text-[10px] mt-0.5">
           Today: {formatCost(todayCost)}
+        </div>
+        <div className="text-muted-foreground text-[10px] mt-0.5">
+          Context budget: {contextBudget != null ? `${contextBudget.toFixed(1)}%` : 'Not set'}
         </div>
       </div>
 
@@ -131,30 +150,29 @@ export function CostPanel() {
               type="number"
               min="0"
               step="0.01"
-              placeholder={config?.budget_usd?.toString() ?? 'e.g. 1.00'}
+              placeholder={costBudgetUsd?.toString() ?? 'e.g. 1.00'}
               value={budgetUsd}
               onChange={(e) => {
                 setBudgetUsd(e.target.value)
                 const v = parseFloat(e.target.value)
-                if (!isNaN(v)) postConfig({ budget_usd: v })
+                if (!isNaN(v)) postConfig({ budget_threshold_usd: v })
               }}
               className="w-full rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground"
             />
           </label>
           <label className="flex items-center gap-2">
-            <span className="text-muted-foreground w-16 shrink-0">Tokens (K)</span>
+            <span className="text-muted-foreground w-16 shrink-0">Context (%)</span>
             <input
               type="number"
               min="0"
-              step="1"
-              placeholder={
-                config?.budget_tokens ? String(Math.round(config.budget_tokens / 1000)) : 'e.g. 100'
-              }
-              value={budgetTokens}
+              max="100"
+              step="0.5"
+              placeholder={contextBudget != null ? contextBudget.toString() : 'e.g. 80'}
+              value={contextBudgetPct}
               onChange={(e) => {
-                setBudgetTokens(e.target.value)
-                const v = parseInt(e.target.value, 10)
-                if (!isNaN(v)) postConfig({ budget_tokens: v * 1000 })
+                setContextBudgetPct(e.target.value)
+                const v = parseFloat(e.target.value)
+                if (!isNaN(v)) postConfig({ ctx_fill_threshold_pct: v })
               }}
               className="w-full rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground"
             />

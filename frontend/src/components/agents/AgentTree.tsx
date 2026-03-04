@@ -40,10 +40,20 @@ export function AgentTree() {
 
   return (
     <div className="flex flex-col gap-1 text-xs">
-      {Array.from(sessions.values()).map((session) => {
-        const sessionAgents = session.children
-          .map((id) => agents.get(id))
-          .filter((a): a is Agent => a !== undefined)
+      {Array.from(sessions.values())
+        .map((session) => {
+          const sessionAgents = session.children
+            .map((id) => agents.get(id))
+            .filter((a): a is Agent => a !== undefined)
+          const latestActivityTs = sessionAgents.reduce(
+            (maxTs, agent) => Math.max(maxTs, agent.lastActivityTs),
+            0,
+          )
+
+          return { session, sessionAgents, latestActivityTs }
+        })
+        .sort((a, b) => b.latestActivityTs - a.latestActivityTs)
+        .map(({ session, sessionAgents }) => {
         const isSessionSelected = activeSessionFilter === session.sessionId
 
         return (

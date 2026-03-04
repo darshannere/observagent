@@ -56,10 +56,12 @@ export interface HealthState {
 }
 
 export interface Config {
-  budget_usd: number | null
-  budget_tokens: number | null
-  context_max_tokens: number
-  autocompact_buffer: number
+  budget_threshold_usd?: number | null
+  ctx_fill_threshold_pct?: number | null
+  budget_usd?: number | null
+  budget_tokens?: number | null
+  context_max_tokens?: number
+  autocompact_buffer?: number
 }
 
 export type AgentState = 'active' | 'idle' | 'errored'
