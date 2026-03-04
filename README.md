@@ -19,8 +19,8 @@
 </p>
 
 <p align="center">
-  <img src="./image new.png" alt="Live dashboard" width="450"  /> &nbsp;
-  <img src="./history.png" alt="History Panel" width="450" />
+  <img src="./image new.png" alt="Live dashboard" width="400"  /> &nbsp;
+  <img src="./history.png" alt="History Panel" width="400" />
 </p>
 
 
