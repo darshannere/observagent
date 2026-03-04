@@ -7,23 +7,17 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
-  formatTs,
   formatCost,
-  formatTokens,
-  formatDuration,
 } from '@/utils/format'
 
 interface SessionSummary {
   session_id: string
-  project_path: string
-  start_time: number
-  end_time: number | null
+  project_name: string
+  last_event_ts: string
   total_cost_usd: number
-  total_tokens: number
   model: string | null
-  error_count: number
-  event_count: number
-  is_active: boolean
+  has_errors: number
+  is_live: number
 }
 
 async function exportSession(sessionId: string, format: 'jsonl' | 'csv') {
@@ -46,6 +40,14 @@ function modelShortName(model: string | null): string {
   return parts[parts.length - 1]
 }
 
+function formatLastEvent(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
 interface SessionRowProps {
   session: SessionSummary
   expanded: boolean
@@ -53,9 +55,6 @@ interface SessionRowProps {
 }
 
 function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
-  const duration =
-    s.end_time !== null ? formatDuration(s.end_time - s.start_time) : null
-
   return (
     <div className="border-b border-border last:border-b-0">
       {/* Main row — click to expand */}
@@ -68,32 +67,26 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
           {s.session_id.slice(-8)}
         </span>
 
-        {/* Date + duration */}
+        {/* Last event timestamp */}
         <span className="text-muted-foreground shrink-0">
-          {formatTs(s.start_time)}
-          {duration !== null && (
-            <span className="ml-1 text-muted-foreground/70">({duration})</span>
-          )}
+          {formatLastEvent(s.last_event_ts)}
         </span>
 
         {/* Cost */}
         <span className="text-green-400 shrink-0">{formatCost(s.total_cost_usd)}</span>
-
-        {/* Tokens */}
-        <span className="text-muted-foreground shrink-0">{formatTokens(s.total_tokens)}</span>
 
         {/* Model */}
         <span className="text-muted-foreground shrink-0 max-w-[120px] truncate" title={s.model ?? undefined}>
           {modelShortName(s.model)}
         </span>
 
-        {/* Error count */}
-        {s.error_count > 0 && (
-          <span className="text-red-400 shrink-0">{s.error_count} err</span>
+        {/* Error badge */}
+        {s.has_errors > 0 && (
+          <span className="text-red-400 shrink-0">err</span>
         )}
 
         {/* Active badge */}
-        {s.is_active && (
+        {s.is_live > 0 && (
           <span className="text-green-400 shrink-0 text-[10px]">● active</span>
         )}
 
@@ -139,20 +132,11 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
           </div>
           <div>
             <span className="text-foreground/60">project:</span>{' '}
-            {s.project_path}
+            {s.project_name}
           </div>
           <div>
-            <span className="text-foreground/60">start:</span>{' '}
-            {new Date(s.start_time).toISOString()}
-          </div>
-          {s.end_time !== null && (
-            <div>
-              <span className="text-foreground/60">end:</span>{' '}
-              {new Date(s.end_time).toISOString()}
-            </div>
-          )}
-          <div>
-            <span className="text-foreground/60">events:</span> {s.event_count}
+            <span className="text-foreground/60">last_event:</span>{' '}
+            {s.last_event_ts}
           </div>
         </div>
       )}
@@ -182,15 +166,17 @@ export function HistoryPage() {
       })
   }, [])
 
-  // Group sessions by project name, sorted by start_time desc within each group
+  // Group sessions by project name, sorted by last_event_ts desc within each group
   const grouped = useMemo(() => {
     const map = new Map<string, SessionSummary[]>()
     for (const s of sessions) {
-      const proj = s.project_path.split('/').pop() || s.project_path
+      const proj = s.project_name || 'unknown'
       if (!map.has(proj)) map.set(proj, [])
       map.get(proj)!.push(s)
     }
-    for (const [, arr] of map) arr.sort((a, b) => b.start_time - a.start_time)
+    for (const [, arr] of map) {
+      arr.sort((a, b) => new Date(b.last_event_ts).getTime() - new Date(a.last_event_ts).getTime())
+    }
     return map
   }, [sessions])
 
