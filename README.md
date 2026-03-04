@@ -12,6 +12,12 @@
   <a href="#-configuration"><img src="https://img.shields.io/badge/Configuration-→-5856D6?style=for-the-badge" alt="Configuration"></a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Local--First-No%20Cloud-success" alt="Local first">
+  <img src="https://img.shields.io/badge/Node-%3E%3D18-339933" alt="Node >=18">
+  <img src="https://img.shields.io/badge/License-ISC-blue" alt="ISC">
+</p>
+
 ---
 
 ## Why ObservAgent?
@@ -22,18 +28,18 @@ Claude Code sessions get expensive and opaque fast.
 • Which tool is slowing everything down?
 • Why did the agent silently fail?
 
-Claude writes JSONL transcripts — but they’re not usable in real time.
+Claude writes JSONL transcripts, but they’re not usable in real time.
 
 **ObservAgent turns Claude Code into a live, debuggable system.**
 No wrappers. No SDKs. No cloud. Just visibility.
 
 ObservAgent gives you complete visibility into your Claude Code sessions without any code changes:
 
-- **Cost Tracking** — Real-time token usage per model with automatic cost calculation (all Anthropic models supported)
-- **Tool Monitoring** — See every tool call, its latency, and success/failure status
-- **Latency Insights** — p50/p95 response times for all tools and models
-- **Zero Integration** — Works via Claude Code hooks, no wrapper code required
-- **Local & Private** — All data stays on your machine
+- **Cost Tracking** — Real-time token usage per model with automatic cost calculation
+- **Tool Monitoring** — See every tool call, latency, and success/failure status
+- **Agent Visibility** — Session + subagent timeline and filtering
+- **Zero Integration** — Works via Claude Code hooks
+- **Local & Private** — Server binds to `127.0.0.1`; no telemetry pipeline
 
 ---
 
@@ -51,24 +57,32 @@ Or clone and run locally:
 git clone https://github.com/darshannere/observagent.git
 cd observagent
 npm install
+npm --prefix frontend install
+npm --prefix frontend run build
 ```
 
 ### 2. Configure Claude Code Hooks
 
-Add the ObservAgent hook to your Claude Code configuration (`~/.claude/settings.json`):
+Recommended (automatic):
+
+```bash
+observagent init
+```
+
+This installs `relay.py` to `~/.claude/observagent/relay.py` and registers hooks in `~/.claude/settings.json`.
+
+Manual option (if you prefer):
 
 ```json
 {
   "hooks": {
-    "PreToolUse": "python3 /path/to/observagent/hooks/relay.py",
-    "PostToolUse": "python3 /path/to/observagent/hooks/relay.py",
-    "SubagentStart": "python3 /path/to/observagent/hooks/relay.py",
-    "SubagentStop": "python3 /path/to/observagent/hooks/relay.py"
+    "PreToolUse": [{ "hooks": [{ "type": "command", "command": "python3 /absolute/path/to/relay.py" }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "command", "command": "python3 /absolute/path/to/relay.py" }] }],
+    "SubagentStart": [{ "hooks": [{ "type": "command", "command": "python3 /absolute/path/to/relay.py" }] }],
+    "SubagentStop": [{ "hooks": [{ "type": "command", "command": "python3 /absolute/path/to/relay.py" }] }]
   }
 }
 ```
-
-> **Note**: Replace `/path/to/observagent` with your actual installation path.
 
 ### 3. Start ObservAgent
 
@@ -84,37 +98,49 @@ This opens the dashboard at `http://localhost:4999`.
 
 ### Real-Time Session Monitoring
 
-Every tool call streams instantly to the dashboard via Server-Sent Events (SSE). Watch your agent work live.
+Every tool call streams instantly to the dashboard via SSE.
 
 ### Cost Analytics
 
-Automatic cost calculation for all Anthropic models:
-- Claude Sonnet 4.6 / 4.5 / 4.0
-- Claude Opus 4.6 / 4.5 / 4.1
-- Claude Haiku 4.5 / 3.5
-
-Includes cache token tracking (5m and 1h ephemeral caches).
+Automatic cost calculation from Claude JSONL usage records, including cache token handling.
 
 ### Latency Insights
 
-Track response times across all tools:
-- Per-tool latency (p50, p95, max)
-- Model-level performance
-- Session duration metrics
+Track per-tool timing and identify slow calls quickly.
 
 ### Error Monitoring
 
-Track tool failures with exit status derived from stderr. Identify which commands or tools are causing issues.
+Track failed tool calls and session health metrics.
 
-### Multi-Session Support
+### Session + Subagent Filtering
 
-Multiple concurrent Claude Code sessions are tracked independently with session-level cost aggregation.
+Click a session to filter that session, or a subagent to filter only that subagent’s calls.
+
+### History Panel (Repo-Level)
+
+The History page (`/history`) groups sessions by repository/project name so users can quickly see:
+
+- how many sessions each repo has
+- per-session cost, model, and last event time
+- which sessions are active (`● active`) or have errors (`err`)
+- one-click replay into live mode
+- one-click log export in **JSONL** or **CSV**
+
+---
+
+## Screenshots
+
+Live Session  
+![Live dashboard](./image%20new.png)
+
+History Panel  
+![Session history](./history.png)
 
 ---
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐     HTTP POST      ┌─────────────────┐
 │  Claude Code    │──────────────────► │   ObservAgent   │
 │    (hooks)      │   relay.py         │    Server       │
@@ -124,11 +150,11 @@ Multiple concurrent Claude Code sessions are tracked independently with session-
                                        │  │  Database │  │
                                        │  └───────────┘  │
                                        └────────┬────────┘
-                                                │ SSE
+                                                │ SSE + API
                                                 ▼
                                        ┌─────────────────┐
                                        │   Dashboard     │
-                                       │  (real-time)    │
+                                       │   (React SPA)   │
                                        └─────────────────┘
 ```
 
@@ -136,16 +162,24 @@ Multiple concurrent Claude Code sessions are tracked independently with session-
 
 | Component | Purpose |
 |-----------|---------|
-| `hooks/relay.py` | Fire-and-forget hook that POSTs tool events to the server |
-| `server.js` | Fastify server handling ingestion, SSE streaming, and API |
-| `lib/costEngine.js` | Token pricing and cost aggregation logic |
-| `lib/jsonlWatcher.js` | Parses Claude Code JSONL files for detailed usage |
-| `routes/` | Ingest, SSE, dashboard, and API endpoints |
-| `public/` | Vanilla JS dashboard with Chart.js visualizations |
+| `hooks/relay.py` | Claude hook relay (fire-and-forget POST to `/ingest`) |
+| `server.js` | Fastify server + route registration |
+| `lib/jsonlWatcher.js` | Watches `~/.claude/projects` JSONL for usage/cost updates |
+| `lib/costEngine.js` | Pricing + cost aggregation |
+| `routes/` | Ingest, SSE, API, dashboard routes |
+| `frontend/` | React dashboard source (built to `public/dist`) |
 
 ---
 
 ## Configuration
+
+### CLI Commands
+
+```bash
+observagent init
+observagent start
+observagent doctor
+```
 
 ### Environment Variables
 
@@ -154,15 +188,9 @@ Multiple concurrent Claude Code sessions are tracked independently with session-
 | `PORT` | `4999` | Server port |
 | `OBSERVAGENT_DB_PATH` | `./observagent.db` | SQLite database path |
 
-### Database Location
-
-By default, the database is stored at:
+When started via `observagent start`, DB defaults to:
 - **macOS/Linux**: `~/.local/share/observagent/observagent.db`
 - **Windows**: `%APPDATA%/observagent/observagent.db`
-
-### Custom Hook Installation Path
-
-If you move the installation directory, update your hook paths in `~/.claude/settings.json`.
 
 ---
 
@@ -170,22 +198,15 @@ If you move the installation directory, update your hook paths in `~/.claude/set
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/ingest` | POST | Receive tool events from hooks |
-| `/events` | GET | SSE stream of real-time events |
-| `/api/sessions` | GET | List all sessions |
-| `/api/sessions/:id` | GET | Session details with tool calls |
-| `/api/costs` | GET | Aggregated cost data |
-| `/` | GET | Dashboard UI |
-
----
-
-## Screenshots
-
-The dashboard provides:
-- Live event feed with tool names, latency, and status
-- Cost breakdown by model and session
-- Latency histograms per tool
-- Session history with search
+| `/ingest` | POST | Receive hook events |
+| `/events` | GET | SSE stream |
+| `/api/health` | GET | Dashboard health metrics |
+| `/api/agents` | GET | Agent tree data |
+| `/api/events` | GET | Tool events |
+| `/api/cost` | GET | Session cost summary |
+| `/api/config` | GET/POST | Budget and threshold config |
+| `/api/sessions` | GET | Session history list |
+| `/api/sessions/:id/export` | GET | Export session data |
 
 ---
 
@@ -193,7 +214,7 @@ The dashboard provides:
 
 - **Node.js** 18+
 - **Python 3** (for hook relay)
-- **Claude Code** (any recent version)
+- **Claude Code**
 
 ---
 
@@ -201,29 +222,36 @@ The dashboard provides:
 
 ### Hook Not Triggering
 
-Ensure the path to `relay.py` is absolute in your `settings.json`. Claude Code expands `~` incorrectly in hooks.
+Run:
+
+```bash
+observagent doctor
+```
+
+Ensure hooks exist in `~/.claude/settings.json` and use absolute paths.
 
 ### Server Won't Start
 
-Check if port 4999 is available:
+Check if port 4999 is already in use:
+
 ```bash
 lsof -i :4999
 ```
 
 ### No Data Appearing
 
-1. Verify the server is running: `observagent start`
-2. Check hook is configured: `cat ~/.claude/settings.json | jq .hooks`
-3. Test relay manually: `echo '{}' | python3 /path/to/hooks/relay.py`
+1. Verify server is running: `observagent start`
+2. Verify hooks are installed: `observagent init`
+3. Verify Claude session files exist under `~/.claude/projects`
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+ISC — see [`package.json`](./package.json).
 
 ---
 
 ## Contributing
 
-Contributions welcome! Please open an issue or PR on GitHub.
+Contributions welcome. Open an issue or PR.
