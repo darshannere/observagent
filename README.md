@@ -1,4 +1,4 @@
-# ObservAgent
+<h1 align="center">ObservAgent</h1>
 
 <p align="center">
   <strong>Zero-config observability for Claude Code agent sessions</strong><br>
