@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 9 — React Migration (Plan 03 complete — all Live Dashboard components built)
+**Current focus:** Phase 9 — React Migration (Plan 04 complete — HistoryPage built)
 
 ## Current Position
 
 Phase: 9 of 10 (React Migration)
-Plan: 03 (complete — 3 of 5 plans done)
-Status: In Progress — 3 of 5 plans complete
-Last activity: 2026-03-03 — Phase 9, Plan 03 complete (all Live Dashboard components: ToolLog, AgentTree, CostPanel, HealthPanel, TimelineWaterfall, LiveDashboard)
+Plan: 04 (complete — 4 of 5 plans done)
+Status: In Progress — 4 of 5 plans complete
+Last activity: 2026-03-04 — Phase 9, Plan 04 complete (HistoryPage: project-grouped session list, JSONL/CSV export, replay navigation)
 
-Progress: [███████░░░] 60% (Phase 9, Plan 3 complete)
+Progress: [████████░░] 80% (Phase 9, Plan 4 complete)
 
 ## Performance Metrics
 
@@ -82,6 +82,9 @@ Recent decisions affecting v2.0 work:
 - [09-03]: AgentTree uses native HTML details/summary for collapsible groups — no JS overhead, accessible
 - [09-03]: TimelineWaterfall 4px min-width bars ensure sub-millisecond tool calls remain visible
 - [09-03]: HistoryPage stub created in Plan 03 to unblock App.tsx compile — full implementation in Plan 04
+- [09-04]: HistoryPage uses only local useState — history is not live-updated via SSE, so no Zustand store needed
+- [09-04]: Export via Blob + URL.createObjectURL mirrors the vanilla JS triggerDownload pattern exactly
+- [09-04]: Active badge uses inline text "● active" rather than shadcn Badge import — sufficient for compact row density
 
 ### Pending Todos
 
@@ -93,6 +96,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Completed 09-03-PLAN.md (all Live Dashboard components: ToolLog/TanStack Virtual, AgentTree, CostPanel, HealthPanel, TimelineWaterfall, LiveDashboard page)
+Last session: 2026-03-04
+Stopped at: Completed 09-04-PLAN.md (HistoryPage: project-grouped sessions, JSONL/CSV export, replay to /live?replay=SESSION_ID)
 Resume file: None
