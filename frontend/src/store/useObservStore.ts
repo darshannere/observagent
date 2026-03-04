@@ -21,6 +21,7 @@ interface ObservStore {
   config: Config | null
   health: HealthState | null
   sseConnected: boolean
+  contextFillPct: number
 
   // Actions
   addAgent(data: Omit<Agent, 'cost' | 'tokens'>): void
@@ -34,6 +35,7 @@ interface ObservStore {
   setSessionFilter(sessionId: string | null): void
   setHealth(h: HealthState): void
   setSseConnected(v: boolean): void
+  setContextFillPct(pct: number): void
 }
 
 export const useObservStore = create<ObservStore>()((set, _get) => ({
@@ -48,6 +50,7 @@ export const useObservStore = create<ObservStore>()((set, _get) => ({
   config: null,
   health: null,
   sseConnected: false,
+  contextFillPct: 0,
 
   // Actions
 
@@ -157,5 +160,9 @@ export const useObservStore = create<ObservStore>()((set, _get) => ({
 
   setSseConnected(v) {
     set({ sseConnected: v })
+  },
+
+  setContextFillPct(pct) {
+    set({ contextFillPct: pct })
   },
 }))

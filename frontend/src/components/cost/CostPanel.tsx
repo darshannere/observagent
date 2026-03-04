@@ -22,6 +22,7 @@ export function CostPanel() {
   const todayCost = useObservStore((s) => s.todayCost)
   const config = useObservStore((s) => s.config)
   const activeFilter = useObservStore((s) => s.activeSessionFilter)
+  const contextFillPct = useObservStore((s) => s.contextFillPct)
 
   const postConfig = useDebouncedPost('/api/config')
 
@@ -41,8 +42,7 @@ export function CostPanel() {
     activeSession != null &&
     activeSession.total_cost_usd >= config.budget_usd
 
-  const fillPct = activeSession?.context_fill_pct ?? 0
-  const fillRed = fillPct >= 80
+  const fillRed = contextFillPct >= 80
 
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
@@ -98,45 +98,26 @@ export function CostPanel() {
         </div>
       )}
 
-      {/* Context fill % bar */}
-      {activeSession && (
-        <div>
-          <div
-            className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1"
-            title="Context window fill %. Calculated using 160K effective window (200K model max − 40K autocompact buffer) to match Claude Code display."
-          >
-            Context Fill
-          </div>
-          <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-            <div
-              className={['h-full rounded-full transition-all', fillRed ? 'bg-red-500' : 'bg-primary'].join(' ')}
-              style={{ width: `${Math.min(fillPct, 100)}%` }}
-            />
-          </div>
-          <div
-            className={['text-[10px] mt-0.5', fillRed ? 'text-red-400' : 'text-muted-foreground'].join(' ')}
-          >
-            {fillPct.toFixed(1)}%
-          </div>
+      {/* Context fill % bar — populated from live cost_update SSE events */}
+      <div>
+        <div
+          className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1"
+          title="Context window fill %. Calculated using 160K effective window (200K model max − 40K autocompact buffer) to match Claude Code display."
+        >
+          Context Fill
         </div>
-      )}
-
-      {/* Model breakdown */}
-      {activeSession && activeSession.models.length > 0 && (
-        <div>
-          <div className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1">
-            Models
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {activeSession.models.map((m) => (
-              <div key={m.model} className="flex justify-between gap-2">
-                <span className="text-muted-foreground truncate">{m.model}</span>
-                <span className="tabular-nums shrink-0">{formatCost(m.cost)}</span>
-              </div>
-            ))}
-          </div>
+        <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+          <div
+            className={['h-full rounded-full transition-all', fillRed ? 'bg-red-500' : 'bg-primary'].join(' ')}
+            style={{ width: `${Math.min(contextFillPct, 100)}%` }}
+          />
         </div>
-      )}
+        <div
+          className={['text-[10px] mt-0.5', fillRed ? 'text-red-400' : 'text-muted-foreground'].join(' ')}
+        >
+          {contextFillPct.toFixed(1)}%
+        </div>
+      </div>
 
       {/* Budget threshold inputs */}
       <div>

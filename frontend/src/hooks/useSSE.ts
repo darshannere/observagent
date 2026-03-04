@@ -10,6 +10,7 @@ interface SSEMessage {
   agentType?: string
   state?: 'active' | 'idle' | 'errored'
   cost?: number
+  contextFillPct?: number
   tokens?: {
     input: number
     output: number
@@ -85,6 +86,9 @@ export function useSSE(isReplay = false): void {
         const t = msg.tokens ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
         const totalTokens = t.input + t.output + t.cacheRead + t.cacheWrite
         store.updateAgentCost(msg.agentId, msg.cost ?? 0, totalTokens)
+        if (msg.contextFillPct != null) {
+          store.setContextFillPct(msg.contextFillPct)
+        }
         return
       }
 
