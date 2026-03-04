@@ -1,8 +1,8 @@
 <h1 align="center">ObservAgent</h1>
 
 <p align="center">
-  <strong>Zero-config observability for Claude Code agent sessions</strong><br>
-  Track costs, monitor tool usage, analyze latency, and debug agent behavior in real-time.
+  <strong>Local-first observability for Claude Code power users running multi-agent workflows</strong><br>
+  Built for developers who want real-time visibility into cost, tools, latency, and subagents while the session is still running.
 </p>
 
 <p align="center">
@@ -19,35 +19,48 @@
 </p>
 
 <p align="center">
-  <img src="./image new.png" alt="Live dashboard" width="400"  /> &nbsp;
+  <img src="./image new.png" alt="Live dashboard" width="400" /> &nbsp;
   <img src="./history.png" alt="History Panel" width="400" />
 </p>
 
+⭐ If ObservAgent helps you understand or reduce Claude Code costs, consider starring the repo — it helps guide future development.
 
-## Why ObservAgent?
-
-Claude Code sessions get expensive and opaque fast.
-
-• Why did this run cost $3?
-• Which tool is slowing everything down?
-• Why did the agent silently fail?
-
-Claude writes JSONL transcripts, but they’re not usable in real time.
-
-**ObservAgent turns Claude Code into a live, debuggable system.**
+**ObservAgent turns Claude Code into a live, debuggable system.**  
 No wrappers. No SDKs. No cloud. Just visibility.
-
-ObservAgent gives you complete visibility into your Claude Code sessions without any code changes:
-
-- **Cost Tracking** — Real-time token usage per model with automatic cost calculation
-- **Tool Monitoring** — See every tool call, latency, and success/failure status
-- **Agent Visibility** — Session + subagent timeline and filtering
-- **Zero Integration** — Works via Claude Code hooks
-- **Local & Private** — Server binds to `127.0.0.1`; no telemetry pipeline
 
 ---
 
-## Quick Start
+## ❓ Why ObservAgent?
+
+Claude Code sessions get expensive and opaque fast.
+
+- Why did this run cost $3?
+- Which tool is slowing everything down?
+- Why did the agent silently fail?
+
+Claude writes JSONL transcripts, but they’re not usable in real time.
+
+ObservAgent gives you complete visibility into your Claude Code sessions without any code changes:
+
+- 💰 **Cost Tracking** — Real-time token usage per model with automatic cost calculation  
+- 🔧 **Tool Monitoring** — See every tool call, latency, and success/failure status  
+- 🧩 **Agent Visibility** — Session + subagent timeline and filtering  
+- 🪝 **Zero Integration** — Works via Claude Code hooks  
+- 🔒 **Local & Private** — Server binds to `127.0.0.1`; no telemetry pipeline  
+
+---
+
+## 🚀 Quick Start
+
+### TL;DR (30 seconds)
+
+```bash
+npm install -g observagent
+observagent init
+observagent start
+```
+Run a Claude Code session and open http://localhost:4999 to watch it live.
+
 
 ### 1. Install
 
@@ -98,31 +111,31 @@ This opens the dashboard at `http://localhost:4999`.
 
 ---
 
-## Features
+## ✨ Features
 
 ### Real-Time Session Monitoring
 
-Every tool call streams instantly to the dashboard via SSE.
+> Every tool call streams instantly to the dashboard via SSE.
 
 ### Cost Analytics
 
-Automatic cost calculation from Claude JSONL usage records, including cache token handling.
+> Automatic cost calculation from Claude JSONL usage records, including cache token handling.
 
 ### Latency Insights
 
-Track per-tool timing and identify slow calls quickly.
+> Track per-tool timing and identify slow calls quickly.
 
 ### Error Monitoring
 
-Track failed tool calls and session health metrics.
+> Track failed tool calls and session health metrics.
 
 ### Session + Subagent Filtering
 
-Click a session to filter that session, or a subagent to filter only that subagent’s calls.
+> Click a session to filter that session, or a subagent to filter only that subagent’s calls.
 
 ### History Panel (Repo-Level)
 
-The History page (`/history`) groups sessions by repository/project name so users can quickly see:
+> The History page (`/history`) groups sessions by repository/project name so users can quickly see:
 
 - how many sessions each repo has
 - per-session cost, model, and last event time
@@ -132,21 +145,9 @@ The History page (`/history`) groups sessions by repository/project name so user
 
 ---
 
-## Screenshots
 
-Live Session  
-<p align="center">
-  <img src="./image new.png" alt="Live dashboard" width="600" />
-</p>
 
-History Panel  
-<p align="center">
-  <img src="./history.png" alt="History Panel" width="600" />
-</p>
-
----
-
-## Architecture
+## 🧠 Architecture
 
 ```text
 ┌─────────────────┐     HTTP POST      ┌─────────────────┐
@@ -179,7 +180,7 @@ History Panel
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
 ### CLI Commands
 
@@ -218,7 +219,7 @@ When started via `observagent start`, DB defaults to:
 
 ---
 
-## Requirements
+## 📦 Requirements
 
 - **Node.js** 18+
 - **Python 3** (for hook relay)
@@ -226,7 +227,7 @@ When started via `observagent start`, DB defaults to:
 
 ---
 
-## Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Hook Not Triggering
 
@@ -252,14 +253,15 @@ lsof -i :4999
 2. Verify hooks are installed: `observagent init`
 3. Verify Claude session files exist under `~/.claude/projects`
 
+
 ---
 
-## License
+## 📄 License
 
 ISC — see [`package.json`](./package.json).
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Contributions welcome. Open an issue or PR.
