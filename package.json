@@ -1,11 +1,10 @@
 {
-  "name": "observagent",
-  "version": "1.0.0",
+  "name": "@darshannere/observagent",
+  "version": "2.0.0-beta.1",
   "description": "Zero-config observability for Claude Code agent sessions",
   "type": "module",
-  "main": "server.js",
   "bin": {
-    "observagent": "./bin/cli.js"
+    "observagent": "bin/cli.js"
   },
   "files": [
     "bin/",
@@ -14,7 +13,9 @@
     "public/",
     "db/",
     "hooks/",
-    "server.js"
+    "server.js",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "claude",
@@ -26,8 +27,7 @@
   "scripts": {
     "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@fastify/static": "^9.0.0",
     "better-sqlite3": "^12.6.2",

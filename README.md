@@ -55,7 +55,7 @@ ObservAgent gives you complete visibility into your Claude Code sessions without
 ### TL;DR (30 seconds)
 
 ```bash
-npm install -g observagent
+npm install -g @darshannere/observagent
 observagent init
 observagent start
 ```
@@ -65,7 +65,7 @@ Run a Claude Code session and open http://localhost:4999 to watch it live.
 ### 1. Install
 
 ```bash
-npm install -g observagent
+npm install -g @darshannere/observagent
 ```
 
 Or clone and run locally:
