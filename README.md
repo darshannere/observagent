@@ -258,7 +258,7 @@ lsof -i :4999
 
 ## 📄 License
 
-ISC — see [`package.json`](./package.json).
+Apache License 2.0 — see [`LICENSE`](./LICENSE).
 
 ---
 
