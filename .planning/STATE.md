@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-03T22:45:00Z"
+last_updated: "2026-03-04T00:00:00Z"
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 38
-  completed_plans: 35
+  completed_plans: 36
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 9 — React Migration (Plan 04 complete — HistoryPage built)
+**Current focus:** Phase 9 — React Migration (Plan 05 complete — React SPA production cutover done)
 
 ## Current Position
 
 Phase: 9 of 10 (React Migration)
-Plan: 04 (complete — 4 of 5 plans done)
-Status: In Progress — 4 of 5 plans complete
-Last activity: 2026-03-04 — Phase 9, Plan 04 complete (HistoryPage: project-grouped session list, JSONL/CSV export, replay navigation)
+Plan: 05 (complete — 5 of 5 plans done — Phase 9 COMPLETE)
+Status: Phase 9 Complete — React Migration finished
+Last activity: 2026-03-04 — Phase 9, Plan 05 complete (React SPA production cutover: Fastify serves React from public/dist/, legacy fallback at /legacy)
 
-Progress: [████████░░] 80% (Phase 9, Plan 4 complete)
+Progress: [█████████░] 90% (Phase 9 complete)
 
 ## Performance Metrics
 
@@ -85,6 +85,9 @@ Recent decisions affecting v2.0 work:
 - [09-04]: HistoryPage uses only local useState — history is not live-updated via SSE, so no Zustand store needed
 - [09-04]: Export via Blob + URL.createObjectURL mirrors the vanilla JS triggerDownload pattern exactly
 - [09-04]: Active badge uses inline text "● active" rather than shadcn Badge import — sufficient for compact row density
+- [09-05]: @fastify/static wildcard: false + explicit GET /assets/* route required — auto-wildcard mode conflicts with setNotFoundHandler SPA fallback
+- [09-05]: setNotFoundHandler guards /api, /events, /ingest, /legacy — these return JSON 404 instead of React index.html
+- [09-05]: decorateReply: false removed from fastify-static registration — not needed once wildcard conflict resolved
 
 ### Pending Todos
 
@@ -97,5 +100,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 09-04-PLAN.md (HistoryPage: project-grouped sessions, JSONL/CSV export, replay to /live?replay=SESSION_ID)
+Stopped at: Completed 09-05-PLAN.md (React SPA production cutover: Fastify serves React from public/dist/, /legacy fallback for vanilla JS)
 Resume file: None
