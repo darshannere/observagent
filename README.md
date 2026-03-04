@@ -64,6 +64,8 @@ Run a Claude Code session and open http://localhost:4999 to watch it live.
 
 ### 1. Install
 
+> ObservAgent is currently published as a beta.
+
 ```bash
 npm install -g @darshannere/observagent
 ```
