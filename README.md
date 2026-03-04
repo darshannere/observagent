@@ -19,9 +19,10 @@
 </p>
 
 <p align="center">
-  <img src="./image new.png" alt="Live dashboard" width="600" />
+  <img src="./image new.png" alt="Live dashboard" width="450"  /> &nbsp;
+  <img src="./history.png" alt="History Panel" width="450" />
 </p>
----
+
 
 ## Why ObservAgent?
 
