@@ -1,13 +1,14 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useObservStore } from '@/store/useObservStore'
 import { ToolLogRow } from './ToolLogRow'
 
 export function ToolLog() {
-  const events = useObservStore((s) =>
-    s.activeSessionFilter
-      ? s.events.filter((e) => e.session_id === s.activeSessionFilter)
-      : s.events,
+  const allEvents = useObservStore((s) => s.events)
+  const activeFilter = useObservStore((s) => s.activeSessionFilter)
+  const events = useMemo(
+    () => (activeFilter ? allEvents.filter((e) => e.session_id === activeFilter) : allEvents),
+    [allEvents, activeFilter],
   )
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -29,6 +30,8 @@ export function ToolLog() {
     const newLen = events.length
     if (newLen === prevLenRef.current) return
     prevLenRef.current = newLen
+
+    if (newLen === 0) return
 
     const container = containerRef.current
     if (!container) return
