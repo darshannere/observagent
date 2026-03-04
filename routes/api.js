@@ -3,7 +3,7 @@ export async function apiRoutes(fastify, options) {
 
   // Prepared once at registration time — reused for all requests
   const stmtAll = db.prepare(
-    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.tool_call_id,
+    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.agent_id, e.tool_call_id,
             e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
             (SELECT input_tokens FROM api_calls
                WHERE session_id = e.session_id
@@ -18,7 +18,7 @@ export async function apiRoutes(fastify, options) {
      LIMIT 200`
   );
   const stmtBySession = db.prepare(
-    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.tool_call_id,
+    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.agent_id, e.tool_call_id,
             e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
             (SELECT input_tokens FROM api_calls
                WHERE session_id = e.session_id
@@ -36,9 +36,10 @@ export async function apiRoutes(fastify, options) {
 
   const stmtSessionCost = db.prepare(`
     SELECT session_id, model, input_tokens, output_tokens,
-           cache_read_tokens, cache_write_5m, cache_write_1h,
+           cache_read_tokens, (cache_write_5m + cache_write_1h) AS cache_write_tokens,
            total_cost_usd, last_event_ts
     FROM session_cost
+    WHERE agent_id = ''
     ORDER BY updated_at DESC
     LIMIT 50
   `);
@@ -46,7 +47,8 @@ export async function apiRoutes(fastify, options) {
   const stmtTodayCost = db.prepare(`
     SELECT COALESCE(SUM(total_cost_usd), 0) as total
     FROM session_cost
-    WHERE date(last_event_ts) = date('now')
+    WHERE agent_id = ''
+      AND date(last_event_ts) = date('now')
   `);
 
   const stmtAgents = db.prepare(`

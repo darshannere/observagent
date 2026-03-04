@@ -3,6 +3,7 @@ export interface ToolEvent {
   tool_name: string
   hook_type: 'PreToolUse' | 'PostToolUse'
   session_id: string
+  agent_id: string | null
   tool_call_id: string | null
   timestamp: number
   duration_ms: number | null

@@ -79,6 +79,7 @@ Users navigate the full agent hierarchy with collapsible tree branches, see an a
 <deferred>
 ## Deferred Ideas
 
+- AGNT-10: Conversation history (Phase 11) — requires database schema for message storage, relay.py parsing of subagent JSONL files, new API endpoints
 - URL-based sharing of selected agent (future enhancement)
 - Search within agent messages (Phase 11)
 - Export agent history to JSONL (Phase 11)

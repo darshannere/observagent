@@ -28,8 +28,9 @@ function StuckBadge({ agent }: { agent: Agent }) {
 export function AgentTree() {
   const agents = useObservStore((s) => s.agents)
   const sessions = useObservStore((s) => s.sessions)
-  const activeFilter = useObservStore((s) => s.activeSessionFilter)
-  const { setFilter } = useSessionFilter()
+  const activeSessionFilter = useObservStore((s) => s.activeSessionFilter)
+  const activeAgentFilter = useObservStore((s) => s.activeAgentFilter)
+  const { setSessionFilter, setAgentFilter } = useSessionFilter()
 
   if (agents.size === 0) {
     return (
@@ -43,10 +44,26 @@ export function AgentTree() {
         const sessionAgents = session.children
           .map((id) => agents.get(id))
           .filter((a): a is Agent => a !== undefined)
+        const isSessionSelected = activeSessionFilter === session.sessionId
 
         return (
           <details key={session.sessionId} open className="group">
-            <summary className="cursor-pointer select-none list-none flex items-center gap-1 px-2 py-1 rounded hover:bg-accent/30 text-muted-foreground">
+            <summary
+              onClick={(e) => {
+                e.preventDefault()
+                if (isSessionSelected && activeAgentFilter === null) {
+                  setSessionFilter(null)
+                } else {
+                  setSessionFilter(session.sessionId)
+                }
+              }}
+              className={[
+                'cursor-pointer select-none list-none flex items-center gap-1 px-2 py-1 rounded text-muted-foreground border-l-2',
+                isSessionSelected
+                  ? 'bg-accent/50 border-primary'
+                  : 'hover:bg-accent/30 border-transparent',
+              ].join(' ')}
+            >
               <span className="font-mono font-semibold text-foreground">
                 {session.sessionId.slice(-8)}
               </span>
@@ -57,11 +74,17 @@ export function AgentTree() {
 
             <div className="pl-3 flex flex-col gap-0.5 mt-0.5">
               {sessionAgents.map((agent) => {
-                const isSelected = activeFilter === agent.agentId
+                const isAgentSelected = activeAgentFilter === agent.agentId
+                const isSelected = isAgentSelected || isSessionSelected
                 return (
                   <div
                     key={agent.agentId}
-                    onClick={() => setFilter(isSelected ? null : agent.agentId)}
+                    onClick={() =>
+                      setAgentFilter(
+                        isAgentSelected ? null : agent.agentId,
+                        isAgentSelected ? null : session.sessionId,
+                      )
+                    }
                     className={[
                       'flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer',
                       isSelected

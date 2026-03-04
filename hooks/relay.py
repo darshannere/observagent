@@ -13,6 +13,7 @@ CRITICAL CONSTRAINTS (non-negotiable):
 
 import sys
 import json
+import re
 import urllib.request
 import urllib.error
 
@@ -111,6 +112,30 @@ def _build_tool_summary(tool_name, tool_input):
     return None
 
 
+def _derive_agent_id(payload):
+    """
+    Derive agent_id for all hook events.
+
+    Priority:
+    1) explicit payload.agent_id (present on SubagentStart/SubagentStop and some runtimes)
+    2) transcript_path / agent_transcript_path suffix: .../subagents/agent-<id>.jsonl
+    3) empty string for top-level session events
+    """
+    direct = payload.get("agent_id", "")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    for key in ("transcript_path", "agent_transcript_path"):
+        path = payload.get(key, "")
+        if not isinstance(path, str):
+            continue
+        match = re.search(r"agent-([A-Za-z0-9]+)\.jsonl$", path)
+        if match:
+            return match.group(1)
+
+    return ""
+
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -123,6 +148,7 @@ def main():
             "tool_name":    payload.get("tool_name", ""),
             "hook_type":    payload.get("hook_event_name", ""),
             "session_id":   payload.get("session_id", ""),
+            "agent_id":     _derive_agent_id(payload),
             "tool_call_id": payload.get("tool_use_id", ""),
             "exit_status":  _derive_exit_status(payload),
         }
@@ -134,10 +160,8 @@ def main():
         # Extract additional fields for SubagentStart/SubagentStop
         hook_event = payload.get("hook_event_name", "")
         if hook_event == "SubagentStart":
-            event["agent_id"]   = payload.get("agent_id", "")
             event["agent_type"] = payload.get("agent_type", "")
         elif hook_event == "SubagentStop":
-            event["agent_id"]              = payload.get("agent_id", "")
             event["agent_type"]            = payload.get("agent_type", "")
             event["agent_transcript_path"] = payload.get("agent_transcript_path", "")
 

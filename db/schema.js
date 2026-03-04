@@ -18,6 +18,7 @@ export function initDb(path = './observagent.db') {
       tool_name    TEXT    NOT NULL,
       hook_type    TEXT    NOT NULL,
       session_id   TEXT    NOT NULL,
+      agent_id     TEXT,
       tool_call_id TEXT,
       timestamp    INTEGER NOT NULL,
       duration_ms  INTEGER,
@@ -74,6 +75,10 @@ export function initDb(path = './observagent.db') {
 
   addColumnIfNotExists(db, 'events', 'tool_summary', 'TEXT');
   console.log('[db] tool_summary column ready');
+
+  addColumnIfNotExists(db, 'events', 'agent_id', 'TEXT');
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent_id ON events(agent_id, timestamp DESC)`);
+  console.log('[db] agent_id column and index ready');
 
   db.prepare(`INSERT OR IGNORE INTO observagent_config (key, value) VALUES ('full_tool_input_enabled', '0')`).run();
   console.log('[db] full_tool_input_enabled config seeded (default: off)');

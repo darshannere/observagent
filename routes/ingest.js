@@ -36,6 +36,7 @@ export async function ingestRoutes(fastify, options) {
       tool_name:    raw.tool_name    || '',
       hook_type:    raw.hook_type    || '',
       session_id:   raw.session_id   || '',
+      agent_id:     raw.agent_id     || null,
       tool_call_id: raw.tool_call_id || null,
       timestamp:    Date.now(),
       duration_ms:  null,

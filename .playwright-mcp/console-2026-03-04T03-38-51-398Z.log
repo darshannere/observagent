@@ -1,0 +1,12 @@
+[  126011ms] [WARNING] Failed to get offset for index: 0 @ http://localhost:4999/assets/index-C4tzIE9l.js:13
+[  126081ms] Error: Minified React error #185; visit https://react.dev/errors/185 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at bu (http://localhost:4999/assets/index-C4tzIE9l.js:8:27648)
+    at Jl (http://localhost:4999/assets/index-C4tzIE9l.js:8:27221)
+    at Kr (http://localhost:4999/assets/index-C4tzIE9l.js:8:52743)
+    at Vr (http://localhost:4999/assets/index-C4tzIE9l.js:8:52572)
+    at Mn (http://localhost:4999/assets/index-C4tzIE9l.js:8:92663)
+    at sd (http://localhost:4999/assets/index-C4tzIE9l.js:8:107893)
+    at Lt (http://localhost:4999/assets/index-C4tzIE9l.js:8:107777)
+    at sd (http://localhost:4999/assets/index-C4tzIE9l.js:8:108659)
+    at Lt (http://localhost:4999/assets/index-C4tzIE9l.js:8:107777)
+    at sd (http://localhost:4999/assets/index-C4tzIE9l.js:8:108659)

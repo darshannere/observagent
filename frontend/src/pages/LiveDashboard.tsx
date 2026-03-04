@@ -23,12 +23,14 @@ export function LiveDashboard() {
   // Hydrate state on mount
   useEffect(() => {
     const store = useObservStore.getState()
+    let cancelled = false
 
     // 1. Events
     const eventsUrl = isReplay ? `/api/events?session_id=${replayId}` : '/api/events'
     fetch(eventsUrl)
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) return
         if (Array.isArray(data)) store.hydrateEvents(data)
         else if (Array.isArray(data?.events)) store.hydrateEvents(data.events)
       })
@@ -38,6 +40,7 @@ export function LiveDashboard() {
     fetch('/api/cost')
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) return
         store.setCostData(
           data?.sessions ?? [],
           data?.todayTotal ?? 0,
@@ -49,7 +52,10 @@ export function LiveDashboard() {
     // 3. Config
     fetch('/api/config')
       .then((r) => r.json())
-      .then((data) => store.setConfig(data))
+      .then((data) => {
+        if (cancelled) return
+        store.setConfig(data)
+      })
       .catch(() => {})
 
     // 4. Agents — hydrate tree from DB (same as legacy dashboard)
@@ -57,6 +63,7 @@ export function LiveDashboard() {
       fetch('/api/agents')
         .then((r) => r.json())
         .then((agents: Array<{ agent_id: string; agent_type: string; parent_session_id: string; state: string; last_activity_ts: number }>) => {
+          if (cancelled) return
           for (const a of agents) {
             store.addAgent({
               agentId: a.agent_id,
@@ -72,7 +79,10 @@ export function LiveDashboard() {
         })
         .catch(() => {})
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true
+    }
+  }, [isReplay, replayId])
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">

@@ -34,7 +34,7 @@ export function CostPanel() {
     (activeFilter
       ? sessionCosts.find((s) => s.session_id === activeFilter)
       : null) ??
-    [...sessionCosts].sort((a, b) => b.total_cost_usd - a.total_cost_usd)[0] ??
+    sessionCosts[0] ??
     null
 
   const overBudget =

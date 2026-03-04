@@ -5,11 +5,17 @@ import { ToolLogRow } from './ToolLogRow'
 
 export function ToolLog() {
   const allEvents = useObservStore((s) => s.events)
-  const activeFilter = useObservStore((s) => s.activeSessionFilter)
-  const events = useMemo(
-    () => (activeFilter ? allEvents.filter((e) => e.session_id === activeFilter) : allEvents),
-    [allEvents, activeFilter],
-  )
+  const activeSessionFilter = useObservStore((s) => s.activeSessionFilter)
+  const activeAgentFilter = useObservStore((s) => s.activeAgentFilter)
+  const events = useMemo(() => {
+    if (activeAgentFilter) {
+      return allEvents.filter((e) => e.agent_id === activeAgentFilter)
+    }
+    if (activeSessionFilter) {
+      return allEvents.filter((e) => e.session_id === activeSessionFilter)
+    }
+    return allEvents
+  }, [allEvents, activeSessionFilter, activeAgentFilter])
 
   const containerRef = useRef<HTMLDivElement>(null)
   const prevLenRef = useRef(0)
@@ -76,7 +82,9 @@ export function ToolLog() {
 
       {events.length === 0 && (
         <div className="flex items-center justify-center h-full text-muted-foreground text-xs py-8">
-          No events yet — waiting for tool calls...
+          {activeAgentFilter
+            ? 'No events for selected agent yet...'
+            : 'No events yet — waiting for tool calls...'}
         </div>
       )}
     </div>

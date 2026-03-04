@@ -1,0 +1,2 @@
+[      68ms] [WARNING] [agents-sse] reconnecting... @ http://localhost:4999/:1146
+[      68ms] [WARNING] [sse] connection lost — browser will auto-reconnect @ http://localhost:4999/:606

@@ -1,191 +1,83 @@
 # Phase 10: Agent Panel Redesign - Research
 
-**Researched:** 2026-03-04
-**Domain:** React/TypeScript frontend enhancement for multi-agent observability UI
-**Confidence:** HIGH
-
-## Summary
-
-Phase 10 enhances the existing AgentTree component with collapsible state persistence, active agent count badge, human-readable agent names with current tool indicator, and a tabbed detail panel. The backend already tracks agents via SubagentStart/SubagentStop hooks and broadcasts agent_spawn/agent_update events. Key work involves: (1) extending the Zustand store with collapsed/selected state, (2) enhancing the AgentTree component, (3) adding an active count badge to the header, and (4) creating a new AgentDetailPanel component. The main data gaps are the initial prompt and conversation history - these will need new API endpoints or SSE events.
-
-**Primary recommendation:** Use existing HTML details/summary pattern from Phase 9, extend Zustand store for panel state, create new AgentDetailPanel as a slide-in drawer component.
+**Phase:** 10
+**Goal:** Implement agent panel redesign with collapsible tree, active count badge, human-readable names, current tool display, and tabbed detail panel
+**Status:** Research Complete
 
 ---
 
-<user_constraints>
+## Executive Summary
 
-## User Constraints (from CONTEXT.md)
-
-### Locked Decisions
-- Collapse behavior: localStorage persistence tied to session ID, survives page refresh and SSE updates, default: expanded
-- Active count badge: header bar at top of dashboard, real-time updates, "X active" with green background
-- Human-readable names: `{agentType} [{last4}]` format (e.g., `gsd-executor [a1b2]`)
-- Current tool shown in agent tree rows (not just detail panel), updates on PreToolUse events
-- Tabbed detail panel: slide-in side panel (not modal), 4 tabs: Prompt, Context, Calls, Tokens
-
-### Claude's Discretion
-- Exact animation curves for collapse/expand
-- Side panel width and transition timing
-- Table column widths and sorting in Calls tab
-- Error states if data unavailable
-
-### Deferred Ideas (OUT OF SCOPE)
-- URL-based sharing of selected agent (future enhancement)
-- Search within agent messages (Phase 11)
-- Export agent history to JSONL (Phase 11)
-
-</user_constraints>
-
-<phase_requirements>
-
-## Phase Requirements
-
-| ID | Description | Research Support |
-|----|-------------|-----------------|
-| AGNT-01 | Collapsible tree (parent session → subagents indented, expandable/collapsible per branch) | HTML details/summary already used in AgentTree.tsx; needs localStorage persistence |
-| AGNT-02 | Live active agent count badge showing how many agents running | Header bar location decided; needs store action to compute count |
-| AGNT-03 | Human-readable name in format `description [short-id]` instead of raw hex | Format `{agentType} [{last4}]` from CONTEXT.md; existing agentLabel function needs update |
-| AGNT-04 | Current tool being executed in real time (updates on PreToolUse) | Need new field in Agent type; SSE event already includes tool_name |
-| AGNT-05 | Click agent row to open per-agent detail panel | Need selectedAgent state in store; new AgentDetailPanel component |
-| AGNT-06 | Detail panel shows initial task description / prompt when agent spawned | **DATA GAP**: No existing field for prompt; need to find source or defer |
-| AGNT-07 | Detail panel shows context fill % bar (cumulative input tokens / model context window max) | Context fill calculation exists in store; display in panel |
-| AGNT-08 | Detail panel shows per-agent tool call history with timestamps | Need new API endpoint for agent-specific events |
-| AGNT-09 | Detail panel shows input + output token counts per API call | API calls table exists but not linked to agents; need new query |
-| AGNT-10 | Detail panel shows full conversation history (context window contents) | **DATA GAP**: No existing message storage; need new mechanism |
-
-</phase_requirements>
-
-## Standard Stack
-
-### Core
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| React | ^18.3.x | UI framework | Already in use (Phase 9) |
-| TypeScript | ^5.x | Type safety | Already in use |
-| Zustand | ^5.x | State management | Already in use |
-| Tailwind CSS | ^3.4.x | Styling | Already in use |
-
-### Supporting
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| react-router | ^7.x | Navigation | Already in use |
-| @tanstack/react-virtual | ^3.x | Virtual scrolling | Tool log uses this; good for Calls tab with many rows |
-| lucide-react | ^0.400+ | Icons | Already installed with shadcn |
-
-**Installation:**
-No new packages required - all needed libraries already in use.
+Phase 10 implements the Agent Panel (AGNT) requirements from v2.0, enabling users to navigate the full agent hierarchy with collapsible branches, see real-time active agent count, view human-readable agent names with current tool indicators, and drill into any agent via a side panel with 4 tabs. This phase requires backend API additions, database schema changes, and frontend enhancements across the Zustand store, AgentTree component, and new AgentDetailPanel component.
 
 ---
 
-## Architecture Patterns
+## 1. Persisting Collapse State in localStorage with React
 
-### Recommended Project Structure
-```
-frontend/src/
-├── components/
-│   ├── agents/
-│   │   ├── AgentTree.tsx        # Enhanced with collapse state + current tool
-│   │   ├── AgentDetailPanel.tsx # NEW: slide-in tabbed panel
-│   │   └── ActiveBadge.tsx       # NEW: active count badge
-│   └── ui/
-│       └── tabs.tsx              # Already exists (shadcn)
-├── store/
-│   └── useObservStore.ts         # Add: collapsedSessions, selectedAgent
-├── hooks/
-│   └── useAgentDetail.ts         # NEW: fetch agent-specific data
-└── pages/
-    └── LiveDashboard.tsx         # Add header with ActiveBadge
-```
+### Approach
 
-### Pattern 1: Collapsible Tree with localStorage
-**What:** Use HTML `<details>`/`<summary>` with localStorage persistence tied to session ID
-**When to use:** Agent tree branches, session groups
-**Example:**
+The collapse state should be stored in localStorage with a key pattern that ties it to the session ID, allowing different sessions to have independent collapse states.
+
 ```typescript
-// AgentTree.tsx - use details element with localStorage sync
-const [isOpen, setIsOpen] = useState(() => {
-  const stored = localStorage.getItem(`agent-tree-${sessionId}`)
-  return stored === null ? true : stored === 'open'
-})
+// localStorage key pattern
+const COLLAPSE_STORAGE_KEY = 'observagent:collapsed-sessions'
 
-const toggle = () => {
-  setIsOpen(!isOpen)
-  localStorage.setItem(`agent-tree-${sessionId}`, !isOpen ? 'open' : 'closed')
+// Hook for managing collapse state
+function useCollapseState(sessionId: string) {
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY)
+    if (!stored) return false
+    try {
+      const collapsedSessions: Record<string, boolean> = JSON.parse(stored)
+      return collapsedSessions[sessionId] ?? false
+    } catch {
+      return false
+    }
+  })
+
+  const toggle = useCallback(() => {
+    setCollapsed(prev => {
+      const newValue = !prev
+      const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY)
+      const collapsedSessions: Record<string, boolean> = stored ? JSON.parse(stored) : {}
+      collapsedSessions[sessionId] = newValue
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(collapsedSessions))
+      return newValue
+    })
+  }, [sessionId])
+
+  return { collapsed, toggle }
 }
 ```
-**Source:** Existing AgentTree.tsx already uses details/summary pattern (line 48)
 
-### Pattern 2: Slide-in Drawer Panel
-**What:** Fixed-position side panel with CSS transform for slide animation
-**When to use:** Agent detail panel, should not block tool log
-**Example:**
-```typescript
-// AgentDetailPanel.tsx
-<div className={[
-  'fixed right-0 top-0 h-full w-80 bg-card border-l border-border',
-  'transform transition-transform duration-200 ease-out',
-  isOpen ? 'translate-x-0' : 'translate-x-full'
-].join(' ')}>
-  {/* Tabbed content */}
-</div>
+### Integration with AgentTree
+
+The existing AgentTree uses native `<details>`/`<summary>` elements for collapse behavior. The `open` attribute should be controlled by the localStorage-backed state:
+
+```tsx
+<details open={!collapsed} onToggle={(e) => {
+  // Prevent default and use our controlled state
+  e.preventDefault()
+  toggle()
+}}>
 ```
 
-### Pattern 3: Active Agent Count Badge
-**What:** Computed derived state from agents Map, updates on SSE events
-**When to use:** Header bar, real-time badge
-**Example:**
-```typescript
-// In LiveDashboard header
-const activeCount = useObservStore((s) =>
-  Array.from(s.agents.values()).filter(a => a.state === 'active').length
-)
+### Key Decision
 
-// Badge with green background
-<span className="bg-green-900/60 text-green-300 px-2 py-0.5 rounded text-xs">
-  {activeCount} active
-</span>
-```
+The CONTEXT.md specifies that collapse state should persist across SSE updates. The implementation must:
+- Load initial state from localStorage on component mount
+- Update localStorage on every toggle
+- Not rely on SSE events for collapse state (local-only preference)
 
 ---
 
-## Don't Hand-Roll
+## 2. Tracking Current Tool Per Agent
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Collapsible UI | Custom collapse logic | HTML details/summary | Native browser support, accessible, Phase 9 already uses it |
-| Side panel animation | Custom transition | Tailwind transform classes | Already used in codebase, consistent with theme |
-| Virtualized table | Custom virtualization | @tanstack/react-virtual | Already in use for ToolLog |
+### Required Agent Type Extension
 
----
+The current `Agent` interface needs to be extended to include `currentTool`:
 
-## Common Pitfalls
-
-### Pitfall 1: localStorage Serialization with Maps
-**What goes wrong:** Cannot directly store Map objects in localStorage; attempting to do so results in empty object `{}`
-**Why it happens:** localStorage only stores strings; JSON.stringify/parse with Map requires conversion
-**How to avoid:** Store collapsed state as simple object: `{ [sessionId]: boolean }`, convert Map to object when saving
-**Warning signs:** Collapse state not persisting after refresh
-
-### Pitfall 2: SSE Event Ordering
-**What goes wrong:** agent_spawn events may arrive after first tool events; current tool shows wrong value
-**Why it happens:** Network ordering not guaranteed; tool events may process faster
-**How to avoid:** Initialize currentTool to null/undefined, only display when confirmed by matching PreToolUse with agentId
-
-### Pitfall 3: Memory Leaks in SSE Subscriptions
-**What goes wrong:** Event listeners accumulate if component unmounts while panel is open
-**Why it happens:** useEffect cleanup missing or incomplete
-**How to avoid:** Always return cleanup function that removes event listeners
-
-### Pitfall 4: Context Window Overflow
-**What goes wrong:** Large conversation history crashes or freezes the browser
-**Why it happens:** Rendering thousands of message elements without virtualization
-**How to avoid:** Use @tanstack/react-virtual for Context tab, similar to ToolLog
-
----
-
-## Code Examples
-
-### Adding currentTool to Agent Type
 ```typescript
 // frontend/src/types/index.ts
 export interface Agent {
@@ -200,71 +92,467 @@ export interface Agent {
 }
 ```
 
-### Zustand Store Extension
-```typescript
-// frontend/src/store/useObservStore.ts
-interface ObservStore {
-  // ... existing fields
-  collapsedSessions: Set<string>    // NEW: session IDs that are collapsed
-  selectedAgent: string | null      // NEW: currently selected agent for detail panel
+### Backend SSE Event Enhancement
 
-  // ... existing actions
-  toggleSessionCollapse(sessionId: string): void
-  setSelectedAgent(agentId: string | null): void
-  updateAgentCurrentTool(agentId: string, toolName: string): void
+The SSE handler must emit `current_tool` information with each `PreToolUse` event. Looking at the existing `useSSE.ts`, the `PreToolUse` handling should be extended:
+
+```typescript
+// In useSSE.ts SSEMessage interface
+interface SSEMessage {
+  // ... existing fields
+  currentTool?: string  // ADD: tool_name from PreToolUse
 }
 
-// Implementation
-toggleSessionCollapse(sessionId) {
-  set(s => {
-    const collapsed = new Set(s.collapsedSessions)
-    if (collapsed.has(sessionId)) collapsed.delete(sessionId)
-    else collapsed.add(sessionId)
-    return { collapsedSessions: collapsed }
+// In the PreToolUse handler
+if (msg.hook_type === 'PreToolUse') {
+  store.appendEvent(msg as unknown as ToolEvent)
+  // NEW: Update current tool for the agent
+  if (msg.session_id) {
+    store.updateAgentCurrentTool(msg.session_id, msg.tool_name)
+  }
+  return
+}
+```
+
+### Store Action Addition
+
+```typescript
+// In useObservStore.ts
+updateAgentCurrentTool(agentId: string, toolName: string) {
+  set((s) => {
+    const existing = s.agents.get(agentId)
+    if (!existing) return {}
+    const agents = new Map(s.agents)
+    agents.set(agentId, { ...existing, currentTool: toolName })
+    return { agents }
   })
 }
 ```
 
-### SSE Current Tool Update
+### Database Consideration
+
+The `currentTool` is ephemeral state derived from the most recent `PreToolUse` event. It does not need to be persisted to the database - it is purely in-memory state that resets when the agent becomes idle.
+
+---
+
+## 3. Data Structure for Side Panel Tabs
+
+### Tab Definitions
+
+The AgentDetailPanel requires four distinct tabs with different data sources:
+
+| Tab | Data Source | Display |
+|-----|-------------|---------|
+| Prompt | Agent's initial task prompt | Text display with truncation |
+| Context | Conversation messages | Message history (user/assistant turns) |
+| Calls | Tool call events for this agent | Table with timestamps, tool name, duration, status |
+| Tokens | Per-API-call token breakdown | Table with input/output/cache tokens per call |
+
+### TypeScript Interfaces
+
 ```typescript
-// In useSSE.ts hook
-if (msg.type === 'PreToolUse' && msg.agentId) {
-  store.updateAgentCurrentTool(msg.agentId, msg.tool_name)
+// Tab configuration
+type AgentDetailTab = 'prompt' | 'context' | 'calls' | 'tokens'
+
+interface AgentDetailTabs {
+  activeTab: AgentDetailTab
+  setActiveTab: (tab: AgentDetailTab) => void
+}
+
+// Data structures for each tab
+interface PromptData {
+  initialPrompt: string
+  spawnedAt: number
+}
+
+interface ContextMessage {
+  role: 'user' | 'assistant' | 'tool'
+  content: string
+  timestamp: number
+}
+
+interface ToolCall {
+  toolName: string
+  timestamp: number
+  durationMs: number | null
+  exitStatus: number | null
+  toolSummary: string | null
+}
+
+interface TokenCall {
+  timestamp: number
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+}
+```
+
+### Component Structure
+
+```tsx
+// AgentDetailPanel.tsx
+export function AgentDetailPanel({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<AgentDetailTab>('prompt')
+  const agent = useObservStore(s => s.agents.get(agentId))
+
+  return (
+    <div className="w-80 border-l border-border flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b">
+        <span className="font-mono text-xs">{agent?.agentType}</span>
+        <button onClick={onClose}>&times;</button>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex border-b">
+        {(['prompt', 'context', 'calls', 'tokens'] as AgentDetailTab[]).map(tab => (
+          <button
+            key={tab}
+            className={activeTab === tab ? 'border-b-2 border-primary' : ''}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="flex-1 overflow-auto p-2">
+        {activeTab === 'prompt' && <PromptTab agentId={agentId} />}
+        {activeTab === 'context' && <ContextTab agentId={agentId} />}
+        {activeTab === 'calls' && <CallsTab agentId={agentId} />}
+        {activeTab === 'tokens' && <TokensTab agentId={agentId} />}
+      </div>
+    </div>
+  )
 }
 ```
 
 ---
 
-## State of the Art
+## 4. Fetching Agent Message History from Backend
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Raw hex session IDs | `{agentType} [{last4}]` format | Phase 10 | Better readability |
-| Collapsible without persistence | localStorage persistence | Phase 10 | State survives refresh |
-| No detail panel | Slide-in tabbed panel | Phase 10 | Full agent introspection |
+### Required: New API Endpoint
 
-**Deprecated/outdated:**
-- AgentTree without current tool indicator - replaced by real-time tool display
-- Modal-based detail view - replaced by slide-in side panel (less disruptive)
+The existing `/api/agents` endpoint only returns basic agent metadata. A new endpoint is needed to fetch detailed agent information including prompt and context:
+
+```javascript
+// routes/api.js - New endpoint
+fastify.get('/api/agents/:id/detail', (request, reply) => {
+  const { id } = request.params
+
+  // 1. Get agent metadata
+  const agent = stmtAgentById.get(id)
+  if (!agent) return reply.code(404).send({ error: 'Agent not found' })
+
+  // 2. Get tool call history for this agent
+  const toolCalls = stmtAgentToolCalls.all(id)
+  // Returns: tool_name, timestamp, duration_ms, exit_status, tool_summary
+
+  // 3. Get token data per API call (30s proximity matching)
+  const tokenData = stmtAgentTokens.all(id)
+  // Returns: timestamp_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens
+
+  // 4. Get initial prompt - REQUIRES NEW DATABASE COLUMN
+  // Currently no column stores the initial prompt
+
+  reply.send({
+    agent,
+    toolCalls,
+    tokenData,
+    // prompt: agent.initial_prompt  // when column exists
+  })
+})
+```
+
+### Database Schema Change Required
+
+The CONTEXT.md specifies that the Prompt tab should show "initial task prompt the agent was given when spawned". This requires a new column in `agent_nodes`:
+
+```sql
+-- Add to db/schema.js
+addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');
+```
+
+The initial prompt should be captured when the agent is first spawned (from the JSONL watcher or SSE relay). Looking at Phase 4 research, this was identified but deferred - now it is required for AGNT-06.
+
+### Alternative: Parse from Tool Events
+
+If the initial prompt is not explicitly stored, it could potentially be inferred from early `Task` tool calls or system messages. However, explicit storage is more reliable.
 
 ---
 
-## Open Questions
+## 5. Displaying Per-Call Token Breakdown
 
-1. **Initial Prompt Storage**
-   - What we know: Agent spawns via SubagentStart hook; no prompt field in agent_nodes table
-   - What's unclear: Where does the initial task description come from? Is it available in Claude Code hooks?
-   - Recommendation: Check relay.py for SubagentStart payload; may contain task description
+### Existing Token Data in Database
 
-2. **Conversation History / Messages**
-   - What we know: Events table has tool calls; no message history storage
-   - What's unclear: How to reconstruct conversation context? Is this part of the Claude Code event stream?
-   - Recommendation: Investigate if SubagentStart includes parent messages; may need Phase 11 or new ingest logic
+The `api_calls` table already exists with token columns:
 
-3. **API for Agent-Specific Events**
-   - What we know: /api/events returns all events; no filter by agent
-   - What's unclear: Best endpoint design - /api/agents/:id/events or /api/events?agent_id=X
-   - Recommendation: Add agent_id filter to existing /api/events for consistency
+```sql
+CREATE TABLE api_calls (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id    TEXT    NOT NULL,
+  timestamp_ms  INTEGER NOT NULL,
+  input_tokens  INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (session_id, timestamp_ms)
+);
+```
+
+However, the table is missing `cache_read_tokens` and `cache_write_tokens` columns that are needed for the Tokens tab (AGNT-09).
+
+### Schema Enhancement Required
+
+```sql
+-- Add to api_calls table
+ALTER TABLE api_calls ADD COLUMN cache_read_tokens INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE api_calls ADD COLUMN cache_write_tokens INTEGER NOT NULL DEFAULT 0;
+```
+
+### Frontend Token Display
+
+```tsx
+// TokensTab component
+function TokensTab({ agentId }: { agentId: string }) {
+  const [tokenData, setTokenData] = useState<TokenCall[]>([])
+  const agent = useObservStore(s => s.agents.get(agentId))
+
+  useEffect(() => {
+    fetch(`/api/agents/${agentId}/detail`)
+      .then(r => r.json())
+      .then(data => setTokenData(data.tokenData || []))
+  }, [agentId])
+
+  if (tokenData.length === 0) {
+    return <div className="text-muted-foreground text-xs">No token data available</div>
+  }
+
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-left text-muted-foreground">
+          <th>Time</th>
+          <th>Input</th>
+          <th>Output</th>
+          <th>Cache</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tokenData.map((call, i) => (
+          <tr key={i} className="border-t border-border">
+            <td className="py-1">{formatTime(call.timestamp_ms)}</td>
+            <td>{formatNumber(call.inputTokens)}</td>
+            <td>{formatNumber(call.outputTokens)}</td>
+            <td>{formatNumber(call.cacheReadTokens + call.cacheWriteTokens)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+### Token Aggregation Display
+
+For a summary view, show totals at the bottom:
+
+```tsx
+const totalInput = tokenData.reduce((sum, c) => sum + c.inputTokens, 0)
+const totalOutput = tokenData.reduce((sum, c) => sum + c.outputTokens, 0)
+const totalCache = tokenData.reduce((sum, c) => sum + c.cacheReadTokens + c.cacheWriteTokens, 0)
+
+return (
+  <tfoot className="font-semibold border-t-2 border-border">
+    <tr>
+      <td>Total</td>
+      <td>{formatNumber(totalInput)}</td>
+      <td>{formatNumber(totalOutput)}</td>
+      <td>{formatNumber(totalCache)}</td>
+    </tr>
+  </tfoot>
+)
+```
+
+---
+
+## 6. UI Patterns for Collapsible Tree Components
+
+### Existing Implementation
+
+The current `AgentTree.tsx` uses native HTML `<details>`/`<summary>` elements, which provides built-in accessibility and requires no JavaScript for basic functionality. This is the pattern to build upon.
+
+### Enhancement Pattern
+
+1. **Visual Indication**: Add chevron icon that rotates on expand/collapse
+2. **State Synchronization**: Controlled open state tied to localStorage
+3. **Animation**: CSS transitions for smooth expand/collapse (optional enhancement)
+
+```tsx
+// Enhanced collapse indicator
+<details open={!collapsed} className="group">
+  <summary className="cursor-pointer list-none flex items-center gap-1">
+    <ChevronIcon
+      className={collapsed ? 'rotate-0' : 'rotate-90'}
+      style={{ transition: 'transform 150ms ease' }}
+    />
+    <span className="font-mono">{session.sessionId.slice(-8)}</span>
+  </summary>
+  {/* children */}
+</details>
+```
+
+### Performance Consideration
+
+The CONTEXT.md references Phase 8 research about "DOM thrash fix — debounce at 150ms + external collapsed-state Set before adding collapsible tree UI". This indicates that render performance was previously an issue. The new implementation should:
+
+- Use controlled collapse state (not relying on React re-renders for DOM manipulation)
+- Consider using `useMemo` for session/agent derived data
+- Keep the `<details>`/`<summary>` approach as it does not require JavaScript for the toggle
+
+### Active Count Badge Implementation
+
+The active count badge should be in the header bar:
+
+```tsx
+// In LiveDashboard.tsx header
+const activeAgents = useObservStore(s =>
+  Array.from(s.agents.values()).filter(a => a.state === 'active').length
+)
+
+// In the header JSX
+<div className="flex items-center gap-2">
+  <span className="text-xs text-muted-foreground">Agents</span>
+  {activeAgents > 0 && (
+    <span className="px-2 py-0.5 bg-green-900/60 text-green-300 text-xs rounded-full">
+      {activeAgents} active
+    </span>
+  )}
+</div>
+```
+
+The badge should update in real-time via SSE - the existing `agent_update` event type should trigger a re-computation of the active count.
+
+---
+
+## 7. Summary of Required Changes
+
+### Database (db/schema.js)
+
+1. Add `initial_prompt TEXT` column to `agent_nodes` table (for AGNT-06)
+2. Add `cache_read_tokens INTEGER DEFAULT 0` column to `api_calls` table (for AGNT-09)
+3. Add `cache_write_tokens INTEGER DEFAULT 0` column to `api_calls` table (for AGNT-09)
+
+### Backend (routes/api.js)
+
+1. Add `GET /api/agents/:id/detail` endpoint returning:
+   - Agent metadata
+   - Tool call history (timestamp, tool_name, duration_ms, exit_status, tool_summary)
+   - Token breakdown per API call (timestamp_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens)
+   - Initial prompt (from new column)
+
+### Frontend Types (frontend/src/types/index.ts)
+
+1. Extend `Agent` interface with `currentTool: string | null`
+
+### Frontend Store (frontend/src/store/useObservStore.ts)
+
+1. Add `selectedAgent: string | null` state
+2. Add `collapsedSessions: Set<string>` state
+3. Add `setSelectedAgent(agentId: string | null)` action
+4. Add `toggleSessionCollapse(sessionId: string)` action
+5. Add `updateAgentCurrentTool(agentId: string, toolName: string)` action
+
+### Frontend Components
+
+1. **AgentTree.tsx** - Enhanced with:
+   - Controlled collapse state from localStorage
+   - Human-readable names: `{agentType} [{last4}]`
+   - Current tool display in each row
+   - Selection opens detail panel
+
+2. **AgentDetailPanel.tsx** (NEW) - Side panel with 4 tabs:
+   - PromptTab: Initial task prompt
+   - ContextTab: Conversation messages (placeholder - requires future API)
+   - CallsTab: Tool call history table
+   - TokensTab: Per-call token breakdown
+
+3. **LiveDashboard.tsx** - Enhanced with:
+   - Active count badge in header
+   - AgentDetailPanel integration (conditionally rendered when agent selected)
+
+---
+
+## 8. Requirement Coverage
+
+| Requirement | Implementation Approach |
+|-------------|------------------------|
+| AGNT-01: Collapsible tree | Extend AgentTree with localStorage-backed `<details open>` state |
+| AGNT-02: Active count badge | Computed from agents with state='active', displayed in header |
+| AGNT-03: Human-readable names | Format: `{agentType} [{last4}]` in AgentTree row |
+| AGNT-04: Current tool display | New `currentTool` field updated on PreToolUse events |
+| AGNT-05: Click to open detail | Add selectedAgent to store, render AgentDetailPanel |
+| AGNT-06: Prompt tab | New DB column + API endpoint + PromptTab component |
+| AGNT-07: Context fill % | Already exists in store (contextFillPct), display in PromptTab |
+| AGNT-08: Calls tab | API returns tool calls, CallsTab renders table |
+| AGNT-09: Tokens tab | New API + schema columns, TokensTab renders breakdown |
+| AGNT-10: Context tab | Deferred - requires conversation history API (future phase) |
+
+---
+
+## 9. Risks and Open Questions
+
+1. **Context Tab (AGNT-10)**: The conversation history is not currently captured in the database. This requirement may need to be scoped differently or deferred to a future phase unless message capture is added.
+
+2. **Initial Prompt Capture**: The relay.py or jsonlWatcher needs to capture and store the initial prompt when an agent spawns. This requires coordination between the Python relay and the Node.js backend.
+
+3. **Token Data Completeness**: The `api_calls` table needs the cache token columns added and populated. Need to verify the relay is sending this data.
+
+4. **Performance**: The active count computation runs on every store update. Consider memoization if performance becomes an issue.
+
+---
+
+## 10. Database Schema Implementation Details
+
+The codebase uses `addColumnIfNotExists` helper in `db/schema.js` for safe schema migrations. Here are the exact changes needed:
+
+### Schema Migration Code
+
+```javascript
+// In db/schema.js, add after line 73 (after tool_summary column):
+
+addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');
+console.log('[db] initial_prompt column ready for agent_nodes');
+
+addColumnIfNotExists(db, 'api_calls', 'cache_read_tokens', 'INTEGER NOT NULL DEFAULT 0');
+console.log('[db] cache_read_tokens column ready for api_calls');
+
+addColumnIfNotExists(db, 'api_calls', 'cache_write_tokens', 'INTEGER NOT NULL DEFAULT 0');
+console.log('[db] cache_write_tokens column ready for api_calls');
+```
+
+### Verification Queries
+
+After migration, verify columns exist:
+
+```sql
+PRAGMA table_info(agent_nodes);
+-- Should show: agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts, initial_prompt
+
+PRAGMA table_info(api_calls);
+-- Should show: id, session_id, timestamp_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens
+```
+
+---
+
+## 11. Validation Architecture
+
+For Nyquist validation, this phase should include:
+
+- Unit tests for localStorage collapse state persistence
+- Integration tests for new API endpoint
+- Visual regression tests for AgentTree with various collapse states
+- Verification that active badge updates in real-time
 
 ---
 
@@ -273,7 +561,8 @@ if (msg.type === 'PreToolUse' && msg.agentId) {
 ### Primary (HIGH confidence)
 - Context7: `/facebook/react` - React hooks, useState patterns
 - Context7: `/pmndrs/zustand` - Zustand store patterns
-- Existing codebase: AgentTree.tsx (line 48 details/summary), useObservStore.ts
+- Existing codebase: AgentTree.tsx (line 48 details/summary), useObservStore.ts, db/schema.js
+- Existing API: routes/api.js - existing endpoint patterns
 
 ### Secondary (MEDIUM confidence)
 - WebSearch: "React slide-in drawer component patterns" - verified against existing Tailwind patterns in codebase
@@ -283,12 +572,5 @@ if (msg.type === 'PreToolUse' && msg.agentId) {
 
 ---
 
-## Metadata
+*Research completed: 2026-03-04*
 
-**Confidence breakdown:**
-- Standard stack: HIGH - All libraries already in use, no new dependencies
-- Architecture: HIGH - Existing AgentTree pattern well-established, Zustand patterns clear
-- Pitfalls: MEDIUM - localStorage/Map serialization is known TypeScript issue; SSE ordering handled in Phase 9
-
-**Research date:** 2026-03-04
-**Valid until:** 2026-04-04 (30 days - stable domain)
