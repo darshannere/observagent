@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Local--First-No%20Cloud-success" alt="Local first">
   <img src="https://img.shields.io/badge/Node-%3E%3D18-339933" alt="Node >=18">
-  <img src="https://img.shields.io/badge/License-ISC-blue" alt="ISC">
+  <img src="https://img.shields.io/badge/License-Apache%202.0-blue" />
 </p>
 
 <p align="center">
