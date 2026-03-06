@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const program = new Command();
 
 program
   .name('observagent')
   .description('ObservAgent — Claude Code agent observability')
-  .version('1.0.0');
+  .version(version);
 
 program
   .command('init')
