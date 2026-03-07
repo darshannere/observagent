@@ -21,6 +21,7 @@ export interface Agent {
   lastActivityTs: number
   cost: number
   tokens: number
+  currentTool: string | null
 }
 
 export interface Session {

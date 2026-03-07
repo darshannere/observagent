@@ -61,7 +61,7 @@ interface ObservStore {
   contextFillPct: number
 
   // Actions
-  addAgent(data: Omit<Agent, 'cost' | 'tokens'>): void
+  addAgent(data: Omit<Agent, 'cost' | 'tokens' | 'currentTool'>): void
   updateAgentState(agentId: string, state: Agent['state'], ts: number): void
   updateAgentCost(agentId: string, cost: number, tokens: number): void
   appendEvent(event: ToolEvent): void
@@ -104,7 +104,7 @@ export const useObservStore = create<ObservStore>()((set) => ({
   addAgent(data) {
     set((s) => {
       const agents = new Map(s.agents)
-      agents.set(data.agentId, { ...data, cost: 0, tokens: 0 })
+      agents.set(data.agentId, { ...data, cost: 0, tokens: 0, currentTool: null })
 
       const sessions = new Map(s.sessions)
       const parentId = data.parentSessionId
