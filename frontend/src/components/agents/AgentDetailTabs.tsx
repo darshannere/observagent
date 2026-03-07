@@ -64,7 +64,16 @@ export function PromptTab({ data }: { data: AgentDetail }) {
 }
 
 export function ContextTab() {
-  return <div className="p-3 text-xs text-muted-foreground">Loading...</div>
+  return (
+    <div className="p-3 flex flex-col gap-2">
+      <div className="text-xs text-muted-foreground">
+        Conversation history will be available in Phase 11.
+      </div>
+      <div className="text-[10px] text-muted-foreground italic">
+        Requires: database schema for message storage, relay.py JSONL parsing, new API endpoints.
+      </div>
+    </div>
+  )
 }
 
 export function CallsTab(_props: { data: AgentDetail }) {
