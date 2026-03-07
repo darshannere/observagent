@@ -73,3 +73,28 @@ jobs:
           git config --local user.name "GitHub Action"
           git tag -a v${{ env.NEW_VERSION }} -m "Release v${{ env.NEW_VERSION }}"
           git push origin v${{ env.NEW_VERSION }}
+
+      - uses: actions/setup-node@v4
+        if: steps.should_release.outputs.should_release == 'true'
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npm
+        if: steps.should_release.outputs.should_release == 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.should_release.outputs.should_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          release_name: Release v${{ env.NEW_VERSION }}
+          body: |
+            Published to npm as `@darshannere/observagent@${{ env.NEW_VERSION }}`
+          draft: false
+          prerelease: false
