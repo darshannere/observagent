@@ -1,6 +1,6 @@
 {
   "name": "@darshannere/observagent",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Zero-config observability for Claude Code agent sessions",
   "type": "module",
   "bin": {
