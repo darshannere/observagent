@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
 import { AgentTree } from '@/components/agents/AgentTree'
+import { AgentDetailPanel } from '@/components/agents/AgentDetailPanel'
 import { ToolLog } from '@/components/log/ToolLog'
 import { TimelineWaterfall } from '@/components/timeline/TimelineWaterfall'
 import { CostPanel } from '@/components/cost/CostPanel'
@@ -19,6 +20,7 @@ export function LiveDashboard() {
   useSSE(isReplay)
 
   const activeAgentCount = useObservStore(selectActiveAgentCount)
+  const selectedAgent = useObservStore((s) => s.selectedAgent)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
 
   // Hydrate state on mount
@@ -85,6 +87,8 @@ export function LiveDashboard() {
     }
   }, [isReplay, replayId])
 
+  const setSelectedAgent = useObservStore((s) => s.setSelectedAgent)
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
       {/* Replay banner */}
@@ -140,6 +144,16 @@ export function LiveDashboard() {
             )}
           </div>
         </div>
+
+        {/* Agent detail panel — fixed overlay, slides in from right */}
+        <AgentDetailPanel />
+        {/* Backdrop: click outside panel to close */}
+        {selectedAgent && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setSelectedAgent(null)}
+          />
+        )}
 
         {/* Col 3: Cost + Health */}
         <div className="w-56 shrink-0 border-l border-border flex flex-col overflow-y-auto">
