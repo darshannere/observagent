@@ -63,6 +63,9 @@ interface ObservStore {
   contextFillPct: number
 
   // Actions
+  setSelectedAgent(agentId: string | null): void
+  toggleSessionCollapse(sessionId: string): void
+  updateAgentCurrentTool(agentId: string, toolName: string): void
   addAgent(data: Omit<Agent, 'cost' | 'tokens' | 'currentTool'>): void
   updateAgentState(agentId: string, state: Agent['state'], ts: number): void
   updateAgentCost(agentId: string, cost: number, tokens: number): void
@@ -104,6 +107,32 @@ export const useObservStore = create<ObservStore>()((set) => ({
   contextFillPct: 0,
 
   // Actions
+
+  setSelectedAgent(agentId) {
+    set({ selectedAgent: agentId })
+  },
+
+  toggleSessionCollapse(sessionId) {
+    set((s) => {
+      const collapsedSessions = new Set(s.collapsedSessions)
+      if (collapsedSessions.has(sessionId)) {
+        collapsedSessions.delete(sessionId)
+      } else {
+        collapsedSessions.add(sessionId)
+      }
+      return { collapsedSessions }
+    })
+  },
+
+  updateAgentCurrentTool(agentId, toolName) {
+    set((s) => {
+      const existing = s.agents.get(agentId)
+      if (!existing) return {}
+      const agents = new Map(s.agents)
+      agents.set(agentId, { ...existing, currentTool: toolName })
+      return { agents }
+    })
+  },
 
   addAgent(data) {
     set((s) => {
