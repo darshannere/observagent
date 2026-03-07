@@ -52,6 +52,8 @@ interface ObservStore {
   events: ToolEvent[]
   activeSessionFilter: string | null
   activeAgentFilter: string | null
+  selectedAgent: string | null
+  collapsedSessions: Set<string>
   sessionCosts: CostStateEntry[]
   todayCost: number
   costModels: ModelCost[]
@@ -91,6 +93,8 @@ export const useObservStore = create<ObservStore>()((set) => ({
   events: [],
   activeSessionFilter: null,
   activeAgentFilter: null,
+  selectedAgent: null,
+  collapsedSessions: new Set(),
   sessionCosts: [],
   todayCost: 0,
   costModels: [],
