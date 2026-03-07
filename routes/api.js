@@ -225,4 +225,34 @@ export async function apiRoutes(fastify, options) {
     const events = stmtExportEvents.all(id);
     reply.send({ session, events });
   });
+
+  // Prepared statements for agent detail — prepared inline (low-frequency endpoint)
+  fastify.get('/api/agents/:id/detail', (request, reply) => {
+    const { id } = request.params;
+
+    const agent = db.prepare(`
+      SELECT agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts, initial_prompt
+      FROM agent_nodes
+      WHERE agent_id = ?
+    `).get(id);
+
+    if (!agent) return reply.code(404).send({ error: 'Agent not found' });
+
+    const toolCalls = db.prepare(`
+      SELECT timestamp, tool_name, duration_ms, exit_status, tool_summary
+      FROM events
+      WHERE agent_id = ?
+        AND hook_type = 'PostToolUse'
+      ORDER BY timestamp ASC
+    `).all(id);
+
+    const tokenBreakdown = db.prepare(`
+      SELECT timestamp_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens
+      FROM api_calls
+      WHERE session_id = ?
+      ORDER BY timestamp_ms ASC
+    `).all(agent.parent_session_id);
+
+    reply.send({ agent, toolCalls, tokenBreakdown });
+  });
 }
