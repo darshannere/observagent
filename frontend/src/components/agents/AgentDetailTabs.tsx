@@ -76,8 +76,66 @@ export function ContextTab() {
   )
 }
 
-export function CallsTab(_props: { data: AgentDetail }) {
-  return <div className="p-3 text-xs text-muted-foreground">Loading...</div>
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function formatDuration(ms: number | null): string {
+  if (ms === null) return '—'
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+export function CallsTab({ data }: { data: AgentDetail }) {
+  if (data.toolCalls.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground px-3 py-4">No tool calls yet</div>
+    )
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="border-b border-border text-muted-foreground text-[10px] uppercase tracking-wide">
+            <th className="px-2 py-1.5 text-left">Tool</th>
+            <th className="px-2 py-1.5 text-left">Time</th>
+            <th className="px-2 py-1.5 text-right">Dur</th>
+            <th className="px-2 py-1.5 text-center">OK</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.toolCalls.map((call, i) => (
+            <tr key={i} className="border-b border-border/50 hover:bg-accent/10">
+              <td className="px-2 py-1 font-mono truncate max-w-[100px]">{call.tool_name}</td>
+              <td className="px-2 py-1 text-muted-foreground whitespace-nowrap">
+                {formatTime(call.timestamp * 1000)}
+              </td>
+              <td className="px-2 py-1 text-right text-muted-foreground">
+                {formatDuration(call.duration_ms)}
+              </td>
+              <td className="px-2 py-1 text-center">
+                <span
+                  className={
+                    call.exit_status === 0
+                      ? 'text-green-400'
+                      : call.exit_status === null
+                        ? 'text-muted-foreground'
+                        : 'text-red-400'
+                  }
+                >
+                  {call.exit_status === null ? '—' : call.exit_status === 0 ? '✓' : '✗'}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export function TokensTab(_props: { data: AgentDetail }) {
