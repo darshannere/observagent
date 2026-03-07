@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 9 — React Migration (Plan 05 complete — React SPA production cutover done)
+**Current focus:** Phase 10 — Agent Panel Redesign (Plan 02 complete)
 
 ## Current Position
 
-Phase: 9 of 10 (React Migration)
-Plan: 05 (complete — 5 of 5 plans done — Phase 9 COMPLETE)
-Status: Phase 9 Complete — React Migration finished
-Last activity: 2026-03-04 — Phase 9, Plan 05 complete (React SPA production cutover: Fastify serves React from public/dist/, legacy fallback at /legacy)
+Phase: 10 of 10 (Agent Panel Redesign)
+Plan: 02 (complete — 2 of N plans done)
+Status: Phase 10 In Progress — Frontend Store & Types complete
+Last activity: 2026-03-07 — Phase 10, Plan 02 complete (Zustand store extended with currentTool, selectedAgent, collapsedSessions, new actions, and selectActiveAgentCount selector)
 
-Progress: [█████████░] 90% (Phase 9 complete)
+Progress: [█████████░] 90%+ (Phase 10 in progress)
 
 ## Performance Metrics
 
@@ -88,6 +88,10 @@ Recent decisions affecting v2.0 work:
 - [09-05]: @fastify/static wildcard: false + explicit GET /assets/* route required — auto-wildcard mode conflicts with setNotFoundHandler SPA fallback
 - [09-05]: setNotFoundHandler guards /api, /events, /ingest, /legacy — these return JSON 404 instead of React index.html
 - [09-05]: decorateReply: false removed from fastify-static registration — not needed once wildcard conflict resolved
+- [10-02]: currentTool excluded from addAgent Omit, initialized to null — keeps callers unchanged
+- [10-02]: toggleSessionCollapse uses new Set(existing) for Zustand reference equality (mirrors Map pattern)
+- [10-02]: selectActiveAgentCount exported as standalone selector function for useObservStore(selectActiveAgentCount) pattern
+- [10-02]: updateAgentCurrentTool falls back to sessionId when agentId absent in PreToolUse (matches relay.py behavior)
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: Completed 09-05-PLAN.md (React SPA production cutover: Fastify serves React from public/dist/, /legacy fallback for vanilla JS)
+Last session: 2026-03-07
+Stopped at: Completed 10-02-PLAN.md (Zustand store extended with currentTool, selectedAgent, collapsedSessions, actions, selectActiveAgentCount selector; SSE hook wired to updateAgentCurrentTool)
 Resume file: None

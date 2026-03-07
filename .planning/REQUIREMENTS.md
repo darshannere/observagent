@@ -55,8 +55,8 @@
 - [ ] **AGNT-01**: User can see the agent hierarchy as a collapsible tree (parent session → subagents indented beneath, expandable/collapsible per branch)
 - [ ] **AGNT-02**: User can see a live active agent count badge showing how many agents are currently running (e.g., "3 running")
 - [ ] **AGNT-03**: Each agent row displays a human-readable name in the format `description [short-id]` (e.g., `gsd-executor [a1b2]`) instead of raw hex IDs
-- [ ] **AGNT-04**: Each agent row shows the current tool being executed in real time (live update on every PreToolUse event)
-- [ ] **AGNT-05**: User can click an agent row to open a per-agent detail panel
+- [x] **AGNT-04**: Each agent row shows the current tool being executed in real time (live update on every PreToolUse event)
+- [x] **AGNT-05**: User can click an agent row to open a per-agent detail panel
 - [ ] **AGNT-06**: Agent detail panel shows the initial task description / prompt the agent was given when spawned
 - [ ] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
 - [ ] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
@@ -163,8 +163,8 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | AGNT-01 | Phase 10 | Pending |
 | AGNT-02 | Phase 10 | Pending |
 | AGNT-03 | Phase 10 | Pending |
-| AGNT-04 | Phase 10 | Pending |
-| AGNT-05 | Phase 10 | Pending |
+| AGNT-04 | Phase 10 | Complete |
+| AGNT-05 | Phase 10 | Complete |
 | AGNT-06 | Phase 10 | Pending |
 | AGNT-07 | Phase 10 | Pending |
 | AGNT-08 | Phase 10 | Pending |
