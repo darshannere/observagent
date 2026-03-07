@@ -96,7 +96,13 @@ Plans:
   3. Clicking a time filter button (Last 5min / Last 15min / Last 1hr / All) updates the tool log to show only events in that window — live SSE events continue uninterrupted
   4. The context fill % bar in the cost/token panel is accurate and functional
   5. Session history page has a date/time range picker and quick filter buttons (Last 15min / Last 1hr / Last 24hr / All) that filter the displayed sessions
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — recharts install + Zustand timeFilter state + setTimeFilter action
+- [ ] 11-02-PLAN.md — AgentTree active/inactive split + LiveDashboard agent tree width + time filter buttons
+- [ ] 11-03-PLAN.md — ToolLog time-window filtering + InsightsPanel (recharts charts) + Insights tab + DASH2-04 verify
+- [ ] 11-04-PLAN.md — HistoryPage quick-filter buttons (Last 15m / Last 1hr / Last 24hr / All)
 
 ## Progress
 
@@ -112,4 +118,4 @@ Plans:
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | 4/5 | In Progress|  | - |
 | 10. Agent Panel Redesign | 5/5 | Complete    | 2026-03-07 | - |
-| 11. Dashboard Overhaul + Filters | v2.0 | 0/TBD | Not started | - |
+| 11. Dashboard Overhaul + Filters | v2.0 | 0/4 | Not started | - |
