@@ -13,7 +13,9 @@ function agentStateColor(state: Agent['state']): string {
 }
 
 function agentLabel(agent: Agent): string {
-  return agent.agentType || agent.agentId.slice(-8)
+  const type = agent.agentType || 'agent'
+  const last4 = agent.agentId.slice(-4)
+  return `${type} [${last4}]`
 }
 
 function StuckBadge({ agent }: { agent: Agent }) {
