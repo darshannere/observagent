@@ -31,7 +31,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for complete phase details.
 
 - [ ] **Phase 8: Tool Log Enrichment + Calc Fix** - Relay.py allowlist, DB schema column, frontend tool log display, and context window calculation fix
 - [ ] **Phase 9: React Migration** - Migrate dashboard from vanilla JS to React/Vite, feature parity with v1.0 + Phase 8
-- [ ] **Phase 10: Agent Panel Redesign** - Collapsible tree, active count badge, readable names, live current tool, tabbed detail panel (Prompt / Context / Calls / Tokens)
+- [x] **Phase 10: Agent Panel Redesign** - Collapsible tree, active count badge, readable names, live current tool, tabbed detail panel (Prompt / Context / Calls / Tokens) (completed 2026-03-07)
 - [ ] **Phase 11: Dashboard Overhaul + Filters** - Agent hierarchy as primary view, active-first layout, time filters, session history date filters
 
 ## Phase Details
@@ -111,5 +111,5 @@ Plans:
 | 7. Agent Timeline View and Health Panel | v1.0 | 4/4 | Complete | 2026-03-01 |
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | 4/5 | In Progress|  | - |
-| 10. Agent Panel Redesign | 3/5 | In Progress|  | - |
+| 10. Agent Panel Redesign | 5/5 | Complete   | 2026-03-07 | - |
 | 11. Dashboard Overhaul + Filters | v2.0 | 0/TBD | Not started | - |
