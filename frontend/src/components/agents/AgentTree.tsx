@@ -18,6 +18,15 @@ function agentLabel(agent: Agent): string {
   return `${type} [${last4}]`
 }
 
+function ToolBadge({ tool }: { tool: string | null }) {
+  if (!tool) return null
+  return (
+    <span className="rounded bg-blue-900/60 px-1 text-[10px] text-blue-300 truncate max-w-[80px]">
+      {tool}
+    </span>
+  )
+}
+
 function StuckBadge({ agent }: { agent: Agent }) {
   if (agent.state !== 'active') return null
   const idleMs = Date.now() - agent.lastActivityTs
@@ -137,6 +146,7 @@ export function AgentTree() {
                     <span className="font-mono truncate max-w-[120px]">
                       {agentLabel(agent)}
                     </span>
+                    <ToolBadge tool={agent.currentTool} />
                     <StuckBadge agent={agent} />
                     <span className="ml-auto text-muted-foreground text-[10px] shrink-0">
                       {formatAgentCost(agent.tokens, agent.cost)}
