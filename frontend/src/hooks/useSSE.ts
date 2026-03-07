@@ -177,6 +177,13 @@ export function useSSE(isReplay = false): void {
         if (preToolEvent) {
           store.appendEvent(preToolEvent)
         }
+        // Update currentTool for the agent on every PreToolUse event
+        const agentId = firstString(msg.agent_id, msg.agentId)
+        const sessionId = firstString(msg.session_id, msg.sessionId)
+        const toolName = msg.tool_name
+        if (toolName && (agentId || sessionId)) {
+          store.updateAgentCurrentTool(agentId ?? sessionId ?? '', toolName)
+        }
         return
       }
 
