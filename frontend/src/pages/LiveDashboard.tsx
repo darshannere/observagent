@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useSSE } from '@/hooks/useSSE'
-import { useObservStore } from '@/store/useObservStore'
+import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
 import { AgentTree } from '@/components/agents/AgentTree'
 import { ToolLog } from '@/components/log/ToolLog'
 import { TimelineWaterfall } from '@/components/timeline/TimelineWaterfall'
@@ -18,6 +18,7 @@ export function LiveDashboard() {
   // Mount SSE once — skipped in replay mode
   useSSE(isReplay)
 
+  const activeAgentCount = useObservStore(selectActiveAgentCount)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
 
   // Hydrate state on mount
@@ -97,8 +98,13 @@ export function LiveDashboard() {
       <div className="flex flex-1 overflow-hidden gap-0">
         {/* Col 1: Agent Tree */}
         <div className="w-56 shrink-0 border-r border-border flex flex-col overflow-y-auto">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+          <div className="px-2 py-1.5 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
             Agents
+            {activeAgentCount > 0 && (
+              <span className="ml-auto rounded-full bg-green-600 px-1.5 py-0.5 text-[9px] font-bold text-white leading-none">
+                {activeAgentCount} active
+              </span>
+            )}
           </div>
           <AgentTree />
         </div>
