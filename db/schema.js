@@ -80,6 +80,13 @@ export function initDb(path = './observagent.db') {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent_id ON events(agent_id, timestamp DESC)`);
   console.log('[db] agent_id column and index ready');
 
+  addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');
+  console.log('[db] initial_prompt column ready');
+
+  addColumnIfNotExists(db, 'api_calls', 'cache_read_tokens', 'INTEGER NOT NULL DEFAULT 0');
+  addColumnIfNotExists(db, 'api_calls', 'cache_write_tokens', 'INTEGER NOT NULL DEFAULT 0');
+  console.log('[db] cache token columns ready');
+
   db.prepare(`INSERT OR IGNORE INTO observagent_config (key, value) VALUES ('full_tool_input_enabled', '0')`).run();
   console.log('[db] full_tool_input_enabled config seeded (default: off)');
 
