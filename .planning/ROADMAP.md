@@ -111,5 +111,5 @@ Plans:
 | 7. Agent Timeline View and Health Panel | v1.0 | 4/4 | Complete | 2026-03-01 |
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | 4/5 | In Progress|  | - |
-| 10. Agent Panel Redesign | 5/5 | Complete   | 2026-03-07 | - |
+| 10. Agent Panel Redesign | 5/5 | Complete    | 2026-03-07 | - |
 | 11. Dashboard Overhaul + Filters | v2.0 | 0/TBD | Not started | - |
