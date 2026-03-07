@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-04T03:47:39.730Z"
+last_updated: "2026-03-07T16:31:02.662Z"
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 9
-  total_plans: 38
-  completed_plans: 38
+  total_plans: 43
+  completed_plans: 40
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 10 — Agent Panel Redesign (Plan 02 complete)
+**Current focus:** Phase 10 — Agent Panel Redesign (Plans 01 and 02 complete)
 
 ## Current Position
 
 Phase: 10 of 10 (Agent Panel Redesign)
-Plan: 02 (complete — 2 of N plans done)
-Status: Phase 10 In Progress — Frontend Store & Types complete
-Last activity: 2026-03-07 — Phase 10, Plan 02 complete (Zustand store extended with currentTool, selectedAgent, collapsedSessions, new actions, and selectActiveAgentCount selector)
+Plan: 01 (complete — 2 of N plans done, including 02 which was executed earlier)
+Status: Phase 10 In Progress — Backend schema + API endpoints and frontend store types both complete
+Last activity: 2026-03-07 — Phase 10, Plan 01 complete (schema migration: initial_prompt column, cache token columns; relay.py initial_prompt capture; jsonlWatcher cache token population; /api/agents/:id/detail endpoint)
 
 Progress: [█████████░] 90%+ (Phase 10 in progress)
 
@@ -43,6 +43,7 @@ Progress: [█████████░] 90%+ (Phase 10 in progress)
 - Phase 8, Plan 05: 12 min (2 tasks, 4 files)
 - Phase 9, Plan 01: 4 min (2 tasks, 14 files)
 - Phase 9, Plan 02: 2 min (2 tasks, 2 files)
+- Phase 10, Plan 01: 2 min (4 tasks, 5 files)
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting v2.0 work:
 - [10-02]: toggleSessionCollapse uses new Set(existing) for Zustand reference equality (mirrors Map pattern)
 - [10-02]: selectActiveAgentCount exported as standalone selector function for useObservStore(selectActiveAgentCount) pattern
 - [10-02]: updateAgentCurrentTool falls back to sessionId when agentId absent in PreToolUse (matches relay.py behavior)
+- [Phase 10]: relay.py sends initial_prompt on Task PreToolUse; ingest.js stashes per session_id and claims on SubagentStart
+- [Phase 10]: api_calls.cache_write_tokens = cacheWrite5m + cacheWrite1h combined — single value for detail panel
+- [Phase 10]: GET /api/agents/:id/detail queries api_calls by parent_session_id — api_calls table uses session_id not agent_id
 
 ### Pending Todos
 
@@ -104,5 +108,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Completed 10-02-PLAN.md (Zustand store extended with currentTool, selectedAgent, collapsedSessions, actions, selectActiveAgentCount selector; SSE hook wired to updateAgentCurrentTool)
+Stopped at: Completed 10-01-PLAN.md (Backend & Database Changes: initial_prompt column, cache token columns, relay initial_prompt capture, jsonlWatcher cache tokens, /api/agents/:id/detail endpoint)
 Resume file: None
