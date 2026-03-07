@@ -4,12 +4,20 @@ import { broadcast } from '../lib/sseClients.js';
 // Declared at module scope so it persists across requests within the same process
 const pendingCalls = new Map();
 
+// In-memory Map for pending initial_prompt from Task tool — keyed by session_id
+// Stores the last Task description seen per session until SubagentStart claims it
+const pendingInitialPrompts = new Map();
+
 // 5-minute TTL cleanup — scans every 60 seconds for stale entries
 // Prevents unbounded growth if PostToolUse is never received (e.g., tool crash)
 setInterval(() => {
   const cutoff = Date.now() - 5 * 60 * 1000; // 5 minutes
   for (const [id, entry] of pendingCalls) {
     if (entry.startTs < cutoff) pendingCalls.delete(id);
+  }
+  // Clean up stale initial_prompt entries (older than 5 minutes)
+  for (const [sessionId, entry] of pendingInitialPrompts) {
+    if (entry.ts < cutoff) pendingInitialPrompts.delete(sessionId);
   }
 }, 60_000); // scan every 60 seconds
 
@@ -26,6 +34,9 @@ export async function ingestRoutes(fastify, options) {
   `);
   const updateAgentState = db.prepare(
     `UPDATE agent_nodes SET state = @state, last_activity_ts = @last_activity_ts WHERE agent_id = @agent_id`
+  );
+  const updateAgentInitialPrompt = db.prepare(
+    `UPDATE agent_nodes SET initial_prompt = @initial_prompt WHERE agent_id = @agent_id`
   );
 
   fastify.post('/ingest', async (request, reply) => {
@@ -73,6 +84,11 @@ export async function ingestRoutes(fastify, options) {
     console.log('[ingest] 202 sent:', event.tool_name, event.hook_type);
     reply.code(202).send();
 
+    // If this is a Task PreToolUse with initial_prompt, stash it for the next SubagentStart
+    if (event.hook_type === 'PreToolUse' && raw.tool_name === 'Task' && raw.initial_prompt) {
+      pendingInitialPrompts.set(event.session_id, { prompt: raw.initial_prompt, ts: event.timestamp });
+    }
+
     // setImmediate guarantees the response flush happens in the current tick
     // before the queue write starts in the next tick
     setImmediate(() => {
@@ -89,6 +105,12 @@ export async function ingestRoutes(fastify, options) {
             spawned_at:        event.timestamp,
             last_activity_ts:  event.timestamp,
           });
+          // Claim the pending initial_prompt for this session's new subagent
+          const pending = pendingInitialPrompts.get(event.session_id);
+          if (pending) {
+            updateAgentInitialPrompt.run({ initial_prompt: pending.prompt, agent_id: agentId });
+            pendingInitialPrompts.delete(event.session_id);
+          }
           broadcast({ type: 'agent_spawn', agentId, agentType, parentSessionId: event.session_id, ts: event.timestamp });
         }
         return; // SubagentStart is not a tool call — do not insert into events table

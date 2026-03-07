@@ -157,6 +157,13 @@ def main():
         tool_input_val = payload.get("tool_input", {})
         event["tool_summary"] = _build_tool_summary(tool_name_val, tool_input_val)
 
+        # Capture initial prompt for Task tool spawns — forwarded to server for storage
+        # on the subsequent SubagentStart event for the same session
+        if tool_name_val == "Task" and isinstance(tool_input_val, dict):
+            desc = tool_input_val.get("description", "")
+            if isinstance(desc, str) and desc.strip():
+                event["initial_prompt"] = desc.strip()[:2000]
+
         # Extract additional fields for SubagentStart/SubagentStop
         hook_event = payload.get("hook_event_name", "")
         if hook_event == "SubagentStart":
