@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
 import { useObservStore } from '@/store/useObservStore'
 import { useSessionFilter } from '@/hooks/useSessionFilter'
 import { formatAgentCost } from '@/utils/format'
 import type { Agent } from '@/types'
+
+const LS_KEY = 'observagent:collapsed-sessions'
 
 function agentStateColor(state: Agent['state']): string {
   if (state === 'active') return 'text-green-400'
@@ -30,7 +33,31 @@ export function AgentTree() {
   const sessions = useObservStore((s) => s.sessions)
   const activeSessionFilter = useObservStore((s) => s.activeSessionFilter)
   const activeAgentFilter = useObservStore((s) => s.activeAgentFilter)
+  const collapsedSessions = useObservStore((s) => s.collapsedSessions)
+  const toggleSessionCollapse = useObservStore((s) => s.toggleSessionCollapse)
   const { setSessionFilter, setAgentFilter } = useSessionFilter()
+
+  // Load collapse state from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_KEY)
+      if (stored) {
+        const ids: string[] = JSON.parse(stored)
+        ids.forEach((id) => toggleSessionCollapse(id))
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist collapse state to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(Array.from(collapsedSessions)))
+    } catch {
+      // ignore storage errors
+    }
+  }, [collapsedSessions])
 
   if (agents.size === 0) {
     return (
@@ -55,12 +82,14 @@ export function AgentTree() {
         .sort((a, b) => b.latestActivityTs - a.latestActivityTs)
         .map(({ session, sessionAgents }) => {
         const isSessionSelected = activeSessionFilter === session.sessionId
+        const isCollapsed = collapsedSessions.has(session.sessionId)
 
         return (
-          <details key={session.sessionId} open className="group">
+          <details key={session.sessionId} open={!isCollapsed} className="group">
             <summary
               onClick={(e) => {
                 e.preventDefault()
+                toggleSessionCollapse(session.sessionId)
                 if (isSessionSelected && activeAgentFilter === null) {
                   setSessionFilter(null)
                 } else {
