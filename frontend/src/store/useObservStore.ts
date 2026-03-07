@@ -297,3 +297,11 @@ export const useObservStore = create<ObservStore>()((set) => ({
     set({ contextFillPct: pct })
   },
 }))
+
+/**
+ * Selector: returns the count of agents currently in the 'active' state.
+ * Usage: const activeCount = useObservStore(selectActiveAgentCount)
+ */
+export function selectActiveAgentCount(s: { agents: Map<string, { state: string }> }): number {
+  return Array.from(s.agents.values()).filter((a) => a.state === 'active').length
+}
