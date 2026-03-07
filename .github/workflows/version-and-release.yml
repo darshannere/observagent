@@ -66,16 +66,10 @@ jobs:
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }}"
           git push
 
-      - name: Create tag and release
+      - name: Create and push tag
         if: steps.should_release.outputs.should_release == 'true'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.NEW_VERSION }}
-          release_name: Release v${{ env.NEW_VERSION }}
-          body: |
-            ## Changes
-            See commit history for details.
-          draft: false
-          prerelease: false
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a v${{ env.NEW_VERSION }} -m "Release v${{ env.NEW_VERSION }}"
+          git push origin v${{ env.NEW_VERSION }}
