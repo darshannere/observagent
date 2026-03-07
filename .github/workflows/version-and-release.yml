@@ -3,15 +3,6 @@ name: Auto-bump version and release
 on:
   push:
     branches: [main]
-    paths:
-      - 'lib/**'
-      - 'bin/**'
-      - 'routes/**'
-      - 'public/**'
-      - 'db/**'
-      - 'hooks/**'
-      - 'server.js'
-      - 'package.json'
 
 jobs:
   release:
