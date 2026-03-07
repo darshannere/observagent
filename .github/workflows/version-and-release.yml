@@ -1,0 +1,90 @@
+name: Auto-bump version and release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'bin/**'
+      - 'routes/**'
+      - 'public/**'
+      - 'db/**'
+      - 'hooks/**'
+      - 'server.js'
+      - 'package.json'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determine version bump
+        id: version
+        run: |
+          # Get the last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LAST_VERSION=${LAST_TAG#v}
+
+          # Check commit messages since last tag
+          if git log ${LAST_TAG}..HEAD --pretty=%B 2>/dev/null | grep -q "^BREAKING CHANGE:"; then
+            BUMP="major"
+          elif git log ${LAST_TAG}..HEAD --pretty=%B 2>/dev/null | grep -q "^feat"; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+
+          echo "bump=${BUMP}" >> $GITHUB_OUTPUT
+          echo "last_version=${LAST_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Skip if no commits
+        id: should_release
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          COMMITS=$(git rev-list --count ${LAST_TAG}..HEAD 2>/dev/null || echo "0")
+
+          if [ "${COMMITS}" -gt 0 ] && [ "${LAST_TAG}" != "none" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        if: steps.should_release.outputs.should_release == 'true'
+        run: |
+          npm version ${{ steps.version.outputs.bump }} --no-git-tag-version
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Commit version bump
+        if: steps.should_release.outputs.should_release == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ env.NEW_VERSION }}"
+          git push
+
+      - name: Create tag and release
+        if: steps.should_release.outputs.should_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          release_name: Release v${{ env.NEW_VERSION }}
+          body: |
+            ## Changes
+            See commit history for details.
+          draft: false
+          prerelease: false
