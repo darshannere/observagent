@@ -46,6 +46,7 @@ export function AgentTree() {
   const activeAgentFilter = useObservStore((s) => s.activeAgentFilter)
   const collapsedSessions = useObservStore((s) => s.collapsedSessions)
   const toggleSessionCollapse = useObservStore((s) => s.toggleSessionCollapse)
+  const setSelectedAgent = useObservStore((s) => s.setSelectedAgent)
   const { setSessionFilter, setAgentFilter } = useSessionFilter()
 
   // Load collapse state from localStorage on mount
@@ -129,12 +130,13 @@ export function AgentTree() {
                 return (
                   <div
                     key={agent.agentId}
-                    onClick={() =>
+                    onClick={() => {
                       setAgentFilter(
                         isAgentSelected ? null : agent.agentId,
                         isAgentSelected ? null : session.sessionId,
                       )
-                    }
+                      setSelectedAgent(isAgentSelected ? null : agent.agentId)
+                    }}
                     className={[
                       'flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer',
                       isSelected
