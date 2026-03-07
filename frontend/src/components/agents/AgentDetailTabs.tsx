@@ -138,6 +138,54 @@ export function CallsTab({ data }: { data: AgentDetail }) {
   )
 }
 
-export function TokensTab(_props: { data: AgentDetail }) {
-  return <div className="p-3 text-xs text-muted-foreground">Loading...</div>
+export function TokensTab({ data }: { data: AgentDetail }) {
+  if (data.tokenBreakdown.length === 0) {
+    return <div className="text-xs text-muted-foreground px-3 py-4">No API calls yet</div>
+  }
+
+  const totals = data.tokenBreakdown.reduce(
+    (acc, r) => ({
+      input: acc.input + r.input_tokens,
+      output: acc.output + r.output_tokens,
+      cache: acc.cache + r.cache_read_tokens + r.cache_write_tokens,
+    }),
+    { input: 0, output: 0, cache: 0 },
+  )
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="border-b border-border text-muted-foreground text-[10px] uppercase tracking-wide">
+            <th className="px-2 py-1.5 text-left">Time</th>
+            <th className="px-2 py-1.5 text-right">In</th>
+            <th className="px-2 py-1.5 text-right">Out</th>
+            <th className="px-2 py-1.5 text-right">Cache</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.tokenBreakdown.map((row, i) => (
+            <tr key={i} className="border-b border-border/50 hover:bg-accent/10">
+              <td className="px-2 py-1 text-muted-foreground whitespace-nowrap">
+                {formatTime(row.timestamp_ms)}
+              </td>
+              <td className="px-2 py-1 text-right">{row.input_tokens.toLocaleString()}</td>
+              <td className="px-2 py-1 text-right">{row.output_tokens.toLocaleString()}</td>
+              <td className="px-2 py-1 text-right text-muted-foreground">
+                {(row.cache_read_tokens + row.cache_write_tokens).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t border-border font-semibold bg-muted/20">
+            <td className="px-2 py-1 text-muted-foreground text-[10px] uppercase">Total</td>
+            <td className="px-2 py-1 text-right">{totals.input.toLocaleString()}</td>
+            <td className="px-2 py-1 text-right">{totals.output.toLocaleString()}</td>
+            <td className="px-2 py-1 text-right text-muted-foreground">
+              {totals.cache.toLocaleString()}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
 }
