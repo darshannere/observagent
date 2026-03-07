@@ -82,10 +82,20 @@ export function LiveDashboard() {
         })
         .catch(() => {})
     }
+
+    // 5. Restore filter state from URL params
+    const agentId = searchParams.get('agent')
+    const sessionId = searchParams.get('session')
+    if (agentId) {
+      store.setAgentFilter(agentId, sessionId)
+    } else if (sessionId) {
+      store.setSessionFilter(sessionId)
+    }
+
     return () => {
       cancelled = true
     }
-  }, [isReplay, replayId])
+  }, [isReplay, replayId, searchParams])
 
   const setSelectedAgent = useObservStore((s) => s.setSelectedAgent)
 
