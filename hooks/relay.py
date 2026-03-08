@@ -167,7 +167,8 @@ def main():
         # Extract additional fields for SubagentStart/SubagentStop
         hook_event = payload.get("hook_event_name", "")
         if hook_event == "SubagentStart":
-            event["agent_type"] = payload.get("agent_type", "")
+            event["agent_type"]            = payload.get("agent_type", "")
+            event["agent_transcript_path"] = payload.get("agent_transcript_path", "")
         elif hook_event == "SubagentStop":
             event["agent_type"]            = payload.get("agent_type", "")
             event["agent_transcript_path"] = payload.get("agent_transcript_path", "")
