@@ -32,7 +32,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for complete phase details.
 - [ ] **Phase 8: Tool Log Enrichment + Calc Fix** - Relay.py allowlist, DB schema column, frontend tool log display, and context window calculation fix
 - [ ] **Phase 9: React Migration** - Migrate dashboard from vanilla JS to React/Vite, feature parity with v1.0 + Phase 8
 - [x] **Phase 10: Agent Panel Redesign** - Collapsible tree, active count badge, readable names, live current tool, tabbed detail panel (Prompt / Context / Calls / Tokens) (completed 2026-03-07)
-- [ ] **Phase 11: Dashboard Overhaul + Filters** - Agent hierarchy as primary view, active-first layout, time filters, session history date filters
+- [x] **Phase 11: Dashboard Overhaul + Filters** - Agent hierarchy as primary view, active-first layout, time filters, session history date filters (completed 2026-03-08)
 
 ## Phase Details
 
@@ -96,13 +96,14 @@ Plans:
   3. Clicking a time filter button (Last 5min / Last 15min / Last 1hr / All) updates the tool log to show only events in that window — live SSE events continue uninterrupted
   4. The context fill % bar in the cost/token panel is accurate and functional
   5. Session history page has a date/time range picker and quick filter buttons (Last 15min / Last 1hr / Last 24hr / All) that filter the displayed sessions
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — recharts install + Zustand timeFilter state + setTimeFilter action
-- [ ] 11-02-PLAN.md — AgentTree active/inactive split + LiveDashboard agent tree width + time filter buttons
-- [ ] 11-03-PLAN.md — ToolLog time-window filtering + InsightsPanel (recharts charts) + Insights tab + DASH2-04 verify
-- [ ] 11-04-PLAN.md — HistoryPage quick-filter buttons (Last 15m / Last 1hr / Last 24hr / All)
+- [x] 11-01-PLAN.md — recharts install + Zustand timeFilter state + setTimeFilter action
+- [x] 11-02-PLAN.md — AgentTree active/inactive split + LiveDashboard agent tree width + time filter buttons
+- [x] 11-03-PLAN.md — ToolLog time-window filtering + InsightsPanel (recharts charts) + Insights tab + DASH2-04 verify
+- [x] 11-04-PLAN.md — HistoryPage quick-filter buttons (Last 15m / Last 1hr / Last 24hr / All)
+- [ ] 11-05-PLAN.md — Gap closure: verify FILT-01 date range picker in HistoryPage + fix stale REQUIREMENTS.md checkboxes
 
 ## Progress
 
@@ -118,4 +119,4 @@ Plans:
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | 4/5 | In Progress|  | - |
 | 10. Agent Panel Redesign | 5/5 | Complete    | 2026-03-07 | - |
-| 11. Dashboard Overhaul + Filters | 3/4 | In Progress|  | - |
+| 11. Dashboard Overhaul + Filters | 4/5 | In Progress (gap closure) | 2026-03-08 | - |
