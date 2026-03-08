@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
+import type { TimeFilter } from '@/store/useObservStore'
 import { AgentTree } from '@/components/agents/AgentTree'
 import { AgentDetailPanel } from '@/components/agents/AgentDetailPanel'
 import { ToolLog } from '@/components/log/ToolLog'
@@ -21,6 +22,8 @@ export function LiveDashboard() {
 
   const activeAgentCount = useObservStore(selectActiveAgentCount)
   const selectedAgent = useObservStore((s) => s.selectedAgent)
+  const timeFilter = useObservStore((s) => s.timeFilter)
+  const setTimeFilter = useObservStore((s) => s.setTimeFilter)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
 
   // Hydrate state on mount
@@ -111,7 +114,10 @@ export function LiveDashboard() {
       {/* 3-column layout */}
       <div className="flex flex-1 overflow-hidden gap-0">
         {/* Col 1: Agent Tree */}
-        <div className="w-56 shrink-0 border-r border-border flex flex-col overflow-y-auto">
+        <div
+          className="shrink-0 border-r border-border flex flex-col overflow-y-auto"
+          style={{ flexBasis: '35%', minWidth: '200px', maxWidth: '400px' }}
+        >
           <div className="px-2 py-1.5 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
             Agents
             {activeAgentCount > 0 && (
@@ -119,6 +125,27 @@ export function LiveDashboard() {
                 {activeAgentCount} active
               </span>
             )}
+          </div>
+          {/* Time filter strip — filters tool log by time window */}
+          <div className="px-2 py-1.5 border-b border-border flex flex-wrap items-center gap-1">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-1">Log:</span>
+            {(['5m', '15m', '1h', 'all'] as const).map((value: TimeFilter) => {
+              const label = value === 'all' ? 'All' : `Last ${value}`
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTimeFilter(value)}
+                  className={[
+                    'px-2 py-0.5 rounded text-[10px] font-medium transition-colors border',
+                    timeFilter === value
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
           <AgentTree />
         </div>
