@@ -10,6 +10,8 @@ import {
   formatCost,
 } from '@/utils/format'
 
+type HistoryTimeFilter = '15m' | '1h' | '24h' | 'all'
+
 interface SessionSummary {
   session_id: string
   project_name: string
@@ -149,6 +151,7 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [historyTimeFilter, setHistoryTimeFilter] = useState<HistoryTimeFilter>('all')
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -166,10 +169,23 @@ export function HistoryPage() {
       })
   }, [])
 
+  const HISTORY_WINDOW_MS: Partial<Record<HistoryTimeFilter, number>> = {
+    '15m': 15 * 60 * 1000,
+    '1h':  60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+  }
+
+  const filteredSessions = useMemo(() => {
+    const windowMs = HISTORY_WINDOW_MS[historyTimeFilter]
+    if (windowMs == null) return sessions   // 'all' — no filtering
+    const cutoff = Date.now() - windowMs
+    return sessions.filter((s) => new Date(s.last_event_ts).getTime() >= cutoff)
+  }, [sessions, historyTimeFilter])
+
   // Group sessions by project name, sorted by last_event_ts desc within each group
   const grouped = useMemo(() => {
     const map = new Map<string, SessionSummary[]>()
-    for (const s of sessions) {
+    for (const s of filteredSessions) {
       const proj = s.project_name || 'unknown'
       if (!map.has(proj)) map.set(proj, [])
       map.get(proj)!.push(s)
@@ -178,7 +194,7 @@ export function HistoryPage() {
       arr.sort((a, b) => new Date(b.last_event_ts).getTime() - new Date(a.last_event_ts).getTime())
     }
     return map
-  }, [sessions])
+  }, [filteredSessions])
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -210,6 +226,34 @@ export function HistoryPage() {
       {/* Empty state */}
       {!loading && !error && sessions.length === 0 && (
         <div className="text-muted-foreground text-sm font-mono">No sessions recorded yet.</div>
+      )}
+
+      {/* Session history quick filters */}
+      {!loading && !error && sessions.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Show:</span>
+          {(
+            [
+              { label: 'Last 15m', value: '15m' },
+              { label: 'Last 1hr', value: '1h' },
+              { label: 'Last 24hr', value: '24h' },
+              { label: 'All', value: 'all' },
+            ] as const
+          ).map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => setHistoryTimeFilter(value)}
+              className={[
+                'px-2.5 py-1 rounded text-xs font-medium border transition-colors',
+                historyTimeFilter === value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
+              ].join(' ')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Project groups */}
