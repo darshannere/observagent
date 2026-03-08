@@ -160,6 +160,7 @@ export function ContextTab({ agentId }: { agentId: string | null }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    setData(null)
     if (!agentId) return
     setLoading(true)
     fetch(`/api/agents/${agentId}/context`)
