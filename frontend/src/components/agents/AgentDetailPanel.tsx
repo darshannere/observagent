@@ -87,7 +87,7 @@ export function AgentDetailPanel() {
         ) : (
           <>
             {activeTab === 'prompt' && <PromptTab data={data} />}
-            {activeTab === 'context' && <ContextTab />}
+            {activeTab === 'context' && <ContextTab agentId={selectedAgent} />}
             {activeTab === 'calls' && <CallsTab data={data} />}
             {activeTab === 'tokens' && <TokensTab data={data} />}
           </>
