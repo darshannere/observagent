@@ -52,15 +52,15 @@
 
 ### Agent Panel (AGNT)
 
-- [ ] **AGNT-01**: User can see the agent hierarchy as a collapsible tree (parent session → subagents indented beneath, expandable/collapsible per branch)
-- [ ] **AGNT-02**: User can see a live active agent count badge showing how many agents are currently running (e.g., "3 running")
-- [ ] **AGNT-03**: Each agent row displays a human-readable name in the format `description [short-id]` (e.g., `gsd-executor [a1b2]`) instead of raw hex IDs
+- [x] **AGNT-01**: User can see the agent hierarchy as a collapsible tree (parent session → subagents indented beneath, expandable/collapsible per branch)
+- [x] **AGNT-02**: User can see a live active agent count badge showing how many agents are currently running (e.g., "3 running")
+- [x] **AGNT-03**: Each agent row displays a human-readable name in the format `description [short-id]` (e.g., `gsd-executor [a1b2]`) instead of raw hex IDs
 - [x] **AGNT-04**: Each agent row shows the current tool being executed in real time (live update on every PreToolUse event)
 - [x] **AGNT-05**: User can click an agent row to open a per-agent detail panel
-- [ ] **AGNT-06**: Agent detail panel shows the initial task description / prompt the agent was given when spawned
-- [ ] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
-- [ ] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
-- [ ] **AGNT-09**: Agent detail panel shows input + output token counts per API call for that agent
+- [x] **AGNT-06**: Agent detail panel shows the initial task description / prompt the agent was given when spawned
+- [x] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
+- [x] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
+- [x] **AGNT-09**: Agent detail panel shows input + output token counts per API call for that agent
 - [ ] **AGNT-10**: Agent detail panel shows the agent's full conversation history — the messages it received and sent (context window contents)
 
 The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initial task), **Context** (conversation history), **Calls** (tool call history with timestamps), **Tokens** (input/output/cache breakdown per call).
@@ -160,15 +160,15 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | TOOL-04 | Phase 8 | Complete |
 | TOOL-05 | Phase 8 | Complete |
 | ARCH-01 | Phase 9 | Complete |
-| AGNT-01 | Phase 10 | Pending |
-| AGNT-02 | Phase 10 | Pending |
-| AGNT-03 | Phase 10 | Pending |
+| AGNT-01 | Phase 10 | Complete |
+| AGNT-02 | Phase 10 | Complete |
+| AGNT-03 | Phase 10 | Complete |
 | AGNT-04 | Phase 10 | Complete |
 | AGNT-05 | Phase 10 | Complete |
-| AGNT-06 | Phase 10 | Pending |
-| AGNT-07 | Phase 10 | Pending |
-| AGNT-08 | Phase 10 | Pending |
-| AGNT-09 | Phase 10 | Pending |
+| AGNT-06 | Phase 10 | Complete |
+| AGNT-07 | Phase 10 | Complete |
+| AGNT-08 | Phase 10 | Complete |
+| AGNT-09 | Phase 10 | Complete |
 | AGNT-10 | Phase 10 | Pending |
 | DASH2-01 | Phase 11 | Complete |
 | DASH2-02 | Phase 11 | Complete |
