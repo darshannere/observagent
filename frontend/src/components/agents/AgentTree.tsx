@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useObservStore } from '@/store/useObservStore'
 import { useSessionFilter } from '@/hooks/useSessionFilter'
 import { formatAgentCost } from '@/utils/format'
 import type { Agent } from '@/types'
 
 const LS_KEY = 'observagent:collapsed-sessions'
+const LS_INACTIVE_KEY = 'observagent:inactive-collapsed'
 
 function agentStateColor(state: Agent['state']): string {
   if (state === 'active') return 'text-green-400'
@@ -48,6 +49,21 @@ export function AgentTree() {
   const toggleSessionCollapse = useObservStore((s) => s.toggleSessionCollapse)
   const setSelectedAgent = useObservStore((s) => s.setSelectedAgent)
   const { setSessionFilter, setAgentFilter } = useSessionFilter()
+
+  const [inactiveCollapsed, setInactiveCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LS_INACTIVE_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  // Persist inactive section collapse to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_INACTIVE_KEY, String(inactiveCollapsed))
+    } catch {}
+  }, [inactiveCollapsed])
 
   // Load collapse state from localStorage on mount
   useEffect(() => {
@@ -124,38 +140,66 @@ export function AgentTree() {
             </summary>
 
             <div className="pl-3 flex flex-col gap-0.5 mt-0.5">
-              {sessionAgents.map((agent) => {
-                const isAgentSelected = activeAgentFilter === agent.agentId
-                const isSelected = isAgentSelected || isSessionSelected
+              {(() => {
+                const activeAgents = sessionAgents.filter((a) => a.state === 'active')
+                const inactiveAgents = sessionAgents.filter((a) => a.state !== 'active')
+                const renderAgentRow = (agent: Agent, withOpacity = false) => {
+                  const isAgentSelected = activeAgentFilter === agent.agentId
+                  const isSelected = isAgentSelected || isSessionSelected
+                  return (
+                    <div
+                      key={agent.agentId}
+                      onClick={() => {
+                        setAgentFilter(
+                          isAgentSelected ? null : agent.agentId,
+                          isAgentSelected ? null : session.sessionId,
+                        )
+                        setSelectedAgent(isAgentSelected ? null : agent.agentId)
+                      }}
+                      className={[
+                        'flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer',
+                        isSelected
+                          ? 'bg-accent/50 border-l-2 border-primary'
+                          : 'hover:bg-accent/20 border-l-2 border-transparent',
+                        withOpacity ? 'opacity-50 hover:opacity-75 transition-opacity' : '',
+                      ].join(' ')}
+                    >
+                      <span className={agentStateColor(agent.state)}>●</span>
+                      <span className="font-mono truncate max-w-[120px]">
+                        {agentLabel(agent)}
+                      </span>
+                      <ToolBadge tool={agent.currentTool} />
+                      <StuckBadge agent={agent} />
+                      <span className="ml-auto text-muted-foreground text-[10px] shrink-0">
+                        {formatAgentCost(agent.tokens, agent.cost)}
+                      </span>
+                    </div>
+                  )
+                }
+
+                if (activeAgents.length === 0) {
+                  // All agents are inactive — render them all normally, no split
+                  return sessionAgents.map((agent) => renderAgentRow(agent, false))
+                }
+
                 return (
-                  <div
-                    key={agent.agentId}
-                    onClick={() => {
-                      setAgentFilter(
-                        isAgentSelected ? null : agent.agentId,
-                        isAgentSelected ? null : session.sessionId,
-                      )
-                      setSelectedAgent(isAgentSelected ? null : agent.agentId)
-                    }}
-                    className={[
-                      'flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer',
-                      isSelected
-                        ? 'bg-accent/50 border-l-2 border-primary'
-                        : 'hover:bg-accent/20 border-l-2 border-transparent',
-                    ].join(' ')}
-                  >
-                    <span className={agentStateColor(agent.state)}>●</span>
-                    <span className="font-mono truncate max-w-[120px]">
-                      {agentLabel(agent)}
-                    </span>
-                    <ToolBadge tool={agent.currentTool} />
-                    <StuckBadge agent={agent} />
-                    <span className="ml-auto text-muted-foreground text-[10px] shrink-0">
-                      {formatAgentCost(agent.tokens, agent.cost)}
-                    </span>
-                  </div>
+                  <>
+                    {activeAgents.map((agent) => renderAgentRow(agent, false))}
+                    {inactiveAgents.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setInactiveCollapsed((c) => !c)}
+                          className="w-full flex items-center gap-1 px-3 py-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <span>{inactiveCollapsed ? '▶' : '▼'}</span>
+                          <span>Inactive ({inactiveAgents.length})</span>
+                        </button>
+                        {!inactiveCollapsed && inactiveAgents.map((agent) => renderAgentRow(agent, true))}
+                      </div>
+                    )}
+                  </>
                 )
-              })}
+              })()}
             </div>
           </details>
         )
