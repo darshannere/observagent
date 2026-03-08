@@ -9,6 +9,8 @@ import type {
   Config,
 } from '../types'
 
+export type TimeFilter = '5m' | '15m' | '1h' | 'all'
+
 type SessionCostInput = Partial<CostStateEntry> & {
   session_id?: string
   cache_write_5m?: number
@@ -61,6 +63,7 @@ interface ObservStore {
   health: HealthState | null
   sseConnected: boolean
   contextFillPct: number
+  timeFilter: TimeFilter
 
   // Actions
   setSelectedAgent(agentId: string | null): void
@@ -87,6 +90,7 @@ interface ObservStore {
   setHealth(h: HealthState): void
   setSseConnected(v: boolean): void
   setContextFillPct(pct: number): void
+  setTimeFilter(filter: TimeFilter): void
 }
 
 export const useObservStore = create<ObservStore>()((set) => ({
@@ -105,6 +109,7 @@ export const useObservStore = create<ObservStore>()((set) => ({
   health: null,
   sseConnected: false,
   contextFillPct: 0,
+  timeFilter: 'all',
 
   // Actions
 
@@ -295,6 +300,10 @@ export const useObservStore = create<ObservStore>()((set) => ({
 
   setContextFillPct(pct) {
     set({ contextFillPct: pct })
+  },
+
+  setTimeFilter(filter) {
+    set({ timeFilter: filter })
   },
 }))
 
