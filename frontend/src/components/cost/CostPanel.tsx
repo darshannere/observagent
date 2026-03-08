@@ -118,6 +118,7 @@ export function CostPanel() {
       )}
 
       {/* Context fill % bar — populated from live cost_update SSE events */}
+      {/* DASH2-04: contextFillPct is set from SSE cost_update events via useSSE.ts. CALC-01 fix (Phase 8) resolved the ~10% discrepancy. */}
       <div>
         <div
           className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1"

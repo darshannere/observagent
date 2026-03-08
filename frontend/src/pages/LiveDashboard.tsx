@@ -7,10 +7,11 @@ import { AgentTree } from '@/components/agents/AgentTree'
 import { AgentDetailPanel } from '@/components/agents/AgentDetailPanel'
 import { ToolLog } from '@/components/log/ToolLog'
 import { TimelineWaterfall } from '@/components/timeline/TimelineWaterfall'
+import { InsightsPanel } from '@/components/insights/InsightsPanel'
 import { CostPanel } from '@/components/cost/CostPanel'
 import { HealthPanel } from '@/components/health/HealthPanel'
 
-type ActiveTab = 'log' | 'timeline'
+type ActiveTab = 'log' | 'timeline' | 'insights'
 
 export function LiveDashboard() {
   const [searchParams] = useSearchParams()
@@ -154,7 +155,7 @@ export function LiveDashboard() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tab bar */}
           <div className="shrink-0 flex border-b border-border">
-            {(['log', 'timeline'] as ActiveTab[]).map((tab) => (
+            {(['log', 'timeline', 'insights'] as ActiveTab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -165,14 +166,18 @@ export function LiveDashboard() {
                     : 'border-transparent text-muted-foreground hover:text-foreground',
                 ].join(' ')}
               >
-                {tab === 'log' ? 'Log' : 'Timeline'}
+                {tab === 'log' ? 'Log' : tab === 'timeline' ? 'Timeline' : 'Insights'}
               </button>
             ))}
           </div>
 
           {/* Panel content */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            {activeTab === 'log' ? (
+            {activeTab === 'insights' ? (
+              <div className="flex-1 overflow-auto">
+                <InsightsPanel />
+              </div>
+            ) : activeTab === 'log' ? (
               <ToolLog />
             ) : (
               <div className="flex-1 overflow-auto p-2">
