@@ -61,7 +61,7 @@
 - [x] **AGNT-07**: Agent detail panel shows context fill % bar (cumulative input tokens for that agent / model context window max)
 - [x] **AGNT-08**: Agent detail panel shows per-agent tool call history with timestamps
 - [x] **AGNT-09**: Agent detail panel shows input + output token counts per API call for that agent
-- [ ] **AGNT-10**: Agent detail panel shows the agent's full conversation history — the messages it received and sent (context window contents)
+- [x] **AGNT-10**: Agent detail panel shows the agent's full conversation history — the messages it received and sent (context window contents)
 
 The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initial task), **Context** (conversation history), **Calls** (tool call history with timestamps), **Tokens** (input/output/cache breakdown per call).
 
@@ -169,7 +169,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | AGNT-07 | Phase 10 | Complete |
 | AGNT-08 | Phase 10 | Complete |
 | AGNT-09 | Phase 10 | Complete |
-| AGNT-10 | Phase 10 | Pending |
+| AGNT-10 | Phase 10 | Complete |
 | DASH2-01 | Phase 11 | Complete |
 | DASH2-02 | Phase 11 | Complete |
 | DASH2-03 | Phase 11 | Complete |
