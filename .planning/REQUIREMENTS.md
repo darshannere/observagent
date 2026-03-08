@@ -90,8 +90,8 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 ### Session History Filters (FILT)
 
-- [ ] **FILT-01**: Session history page has a date/time range picker (from → to)
-- [ ] **FILT-02**: Session history page has quick filter buttons: Last 15min / Last 1hr / Last 24hr / All
+- [x] **FILT-01**: Session history page has a date/time range picker (from → to)
+- [x] **FILT-02**: Session history page has quick filter buttons: Last 15min / Last 1hr / Last 24hr / All
 
 ---
 
@@ -174,8 +174,8 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | DASH2-02 | Phase 11 | Pending |
 | DASH2-03 | Phase 11 | Pending |
 | DASH2-04 | Phase 11 | Pending |
-| FILT-01 | Phase 11 | Pending |
-| FILT-02 | Phase 11 | Pending |
+| FILT-01 | Phase 11 | Complete |
+| FILT-02 | Phase 11 | Complete |
 
 **Coverage:**
 - v1.0 requirements: 21 total — all Complete ✓

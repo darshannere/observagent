@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-07T16:52:58.996Z"
+last_updated: "2026-03-08T01:14:58.170Z"
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 10
-  total_plans: 43
-  completed_plans: 43
+  total_plans: 47
+  completed_plans: 45
 ---
 
 # Project State
@@ -96,6 +96,11 @@ Recent decisions affecting v2.0 work:
 - [Phase 10]: relay.py sends initial_prompt on Task PreToolUse; ingest.js stashes per session_id and claims on SubagentStart
 - [Phase 10]: api_calls.cache_write_tokens = cacheWrite5m + cacheWrite1h combined — single value for detail panel
 - [Phase 10]: GET /api/agents/:id/detail queries api_calls by parent_session_id — api_calls table uses session_id not agent_id
+- [Phase 11]: Filtering is client-side only — no query params added to /api/sessions fetch URL
+- [Phase 11]: Quick buttons only per CONTEXT.md locked decision — no date range picker added
+- [Phase 11-01]: TimeFilter type exported from useObservStore.ts — keeps filter state collocated with its store
+- [Phase 11-01]: timeFilter initialized to 'all' — safe default, all events visible on load
+- [Phase 11-01]: recharts ^3.8.0 chosen — SVG-based, TypeScript types bundled in package (no @types/recharts needed)
 
 ### Pending Todos
 
@@ -107,6 +112,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-07
-Stopped at: Completed 10-01-PLAN.md (Backend & Database Changes: initial_prompt column, cache token columns, relay initial_prompt capture, jsonlWatcher cache tokens, /api/agents/:id/detail endpoint)
+Last session: 2026-03-08
+Stopped at: Completed 11-04-PLAN.md (HistoryPage quick-filter buttons: Last 15m / Last 1hr / Last 24hr / All, client-side filteredSessions useMemo, FILT-01 and FILT-02 complete)
 Resume file: None
