@@ -152,6 +152,8 @@ export function HistoryPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [historyTimeFilter, setHistoryTimeFilter] = useState<HistoryTimeFilter>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -176,11 +178,24 @@ export function HistoryPage() {
   }
 
   const filteredSessions = useMemo(() => {
-    const windowMs = HISTORY_WINDOW_MS[historyTimeFilter]
-    if (windowMs == null) return sessions   // 'all' — no filtering
-    const cutoff = Date.now() - windowMs
-    return sessions.filter((s) => new Date(s.last_event_ts).getTime() >= cutoff)
-  }, [sessions, historyTimeFilter])
+    let list = sessions
+    // Date range takes priority over quick buttons
+    if (dateFrom || dateTo) {
+      const fromMs = dateFrom ? new Date(dateFrom).getTime() : 0
+      const toMs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity
+      list = list.filter((s) => {
+        const ts = new Date(s.last_event_ts).getTime()
+        return ts >= fromMs && ts <= toMs
+      })
+    } else {
+      const windowMs = HISTORY_WINDOW_MS[historyTimeFilter]
+      if (windowMs != null) {
+        const cutoff = Date.now() - windowMs
+        list = list.filter((s) => new Date(s.last_event_ts).getTime() >= cutoff)
+      }
+    }
+    return list
+  }, [sessions, historyTimeFilter, dateFrom, dateTo])
 
   // Group sessions by project name, sorted by last_event_ts desc within each group
   const grouped = useMemo(() => {
@@ -242,10 +257,10 @@ export function HistoryPage() {
           ).map(({ label, value }) => (
             <button
               key={value}
-              onClick={() => setHistoryTimeFilter(value)}
+              onClick={() => { setHistoryTimeFilter(value); setDateFrom(''); setDateTo('') }}
               className={[
                 'px-2.5 py-1 rounded text-xs font-medium border transition-colors',
-                historyTimeFilter === value
+                historyTimeFilter === value && !dateFrom && !dateTo
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
               ].join(' ')}
@@ -253,6 +268,28 @@ export function HistoryPage() {
               {label}
             </button>
           ))}
+          <span className="text-[10px] text-muted-foreground ml-2">or range:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setHistoryTimeFilter('all') }}
+            className="px-2 py-0.5 rounded border border-border bg-background text-xs text-foreground focus:outline-none focus:border-primary"
+          />
+          <span className="text-[10px] text-muted-foreground">→</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setHistoryTimeFilter('all') }}
+            className="px-2 py-0.5 rounded border border-border bg-background text-xs text-foreground focus:outline-none focus:border-primary"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); setHistoryTimeFilter('all') }}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕ clear
+            </button>
+          )}
         </div>
       )}
 

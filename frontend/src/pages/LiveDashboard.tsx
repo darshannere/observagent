@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
@@ -26,7 +26,12 @@ export function LiveDashboard() {
   const setTimeFilter = useObservStore((s) => s.setTimeFilter)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
 
-  // Hydrate state on mount
+  // Capture initial URL params once — used to restore filter on mount only.
+  // Do NOT put searchParams in the effect deps: every agent/session click calls
+  // setSearchParams, which would re-run hydration and wipe live SSE events.
+  const initialParamsRef = useRef(searchParams)
+
+  // Hydrate state on mount only (isReplay/replayId changes are the only valid re-runs)
   useEffect(() => {
     const store = useObservStore.getState()
     let cancelled = false
@@ -64,7 +69,7 @@ export function LiveDashboard() {
       })
       .catch(() => {})
 
-    // 4. Agents — hydrate tree from DB (same as legacy dashboard)
+    // 4. Agents — hydrate tree from DB
     if (!isReplay) {
       fetch('/api/agents')
         .then((r) => r.json())
@@ -88,9 +93,10 @@ export function LiveDashboard() {
         .catch(() => {})
     }
 
-    // 5. Restore filter state from URL params
-    const agentId = searchParams.get('agent')
-    const sessionId = searchParams.get('session')
+    // 5. Restore filter state from initial URL params (read once on mount via ref)
+    const initialParams = initialParamsRef.current
+    const agentId = initialParams.get('agent')
+    const sessionId = initialParams.get('session')
     if (agentId) {
       store.setAgentFilter(agentId, sessionId)
     } else if (sessionId) {
@@ -100,7 +106,8 @@ export function LiveDashboard() {
     return () => {
       cancelled = true
     }
-  }, [isReplay, replayId, searchParams])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReplay, replayId])
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
