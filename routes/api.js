@@ -1,21 +1,29 @@
+import fs from 'fs';
+
 export async function apiRoutes(fastify, options) {
   const { db } = options;
 
   // Prepared once at registration time — reused for all requests
+  // Wrapped in a subquery: fetch the 200 most-recent events (DESC), then re-sort ASC so the
+  // hydrated array is oldest-first — matching the order that appendEvent() builds during live SSE.
+  // Without this, live events appended to the END of a DESC-ordered array appear below all
+  // hydrated events and are never visible without scrolling past 200 older items.
   const stmtAll = db.prepare(
-    `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.agent_id, e.tool_call_id,
-            e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
-            (SELECT input_tokens FROM api_calls
-               WHERE session_id = e.session_id
-                 AND ABS(timestamp_ms - e.timestamp) < 30000
-               LIMIT 1) AS nearest_input_tokens,
-            (SELECT output_tokens FROM api_calls
-               WHERE session_id = e.session_id
-                 AND ABS(timestamp_ms - e.timestamp) < 30000
-               LIMIT 1) AS nearest_output_tokens
-     FROM events e
-     ORDER BY e.timestamp DESC
-     LIMIT 200`
+    `SELECT * FROM (
+       SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.agent_id, e.tool_call_id,
+              e.timestamp, e.duration_ms, e.exit_status, e.tool_summary,
+              (SELECT input_tokens FROM api_calls
+                 WHERE session_id = e.session_id
+                   AND ABS(timestamp_ms - e.timestamp) < 30000
+                 LIMIT 1) AS nearest_input_tokens,
+              (SELECT output_tokens FROM api_calls
+                 WHERE session_id = e.session_id
+                   AND ABS(timestamp_ms - e.timestamp) < 30000
+                 LIMIT 1) AS nearest_output_tokens
+       FROM events e
+       ORDER BY e.timestamp DESC
+       LIMIT 200
+     ) ORDER BY timestamp ASC`
   );
   const stmtBySession = db.prepare(
     `SELECT e.id, e.tool_name, e.hook_type, e.session_id, e.agent_id, e.tool_call_id,
@@ -260,5 +268,47 @@ export async function apiRoutes(fastify, options) {
     `).all(agent.parent_session_id);
 
     reply.send({ agent, toolCalls, tokenBreakdown });
+  });
+
+  fastify.get('/api/agents/:id/context', (request, reply) => {
+    const { id } = request.params;
+
+    const agent = db.prepare(
+      `SELECT transcript_path FROM agent_nodes WHERE agent_id = ?`
+    ).get(id);
+
+    if (!agent || !agent.transcript_path) {
+      return reply.send({ turns: [], total_lines: 0 });
+    }
+
+    let raw;
+    try {
+      raw = fs.readFileSync(agent.transcript_path, 'utf8');
+    } catch {
+      return reply.send({ turns: [], total_lines: 0, error: 'transcript_not_found' });
+    }
+
+    const lines = raw.split('\n').filter(Boolean);
+    const total_lines = lines.length;
+
+    // Parse each line; skip malformed ones
+    const allTurns = [];
+    for (const line of lines) {
+      try {
+        const obj = JSON.parse(line);
+        // Claude Code transcript format: { type: "user"|"assistant", message: { role, content: [...] } }
+        // Also handle flat { role, content } format
+        const msg = obj.message || obj;
+        const role = msg.role;
+        if (!role || !Array.isArray(msg.content)) continue;
+        allTurns.push({ role, content: msg.content });
+      } catch {
+        // skip malformed lines
+      }
+    }
+
+    // Return last 50 turns
+    const turns = allTurns.slice(-50);
+    reply.send({ turns, total_lines });
   });
 }
