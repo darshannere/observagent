@@ -52,9 +52,15 @@ export async function apiRoutes(fastify, options) {
   `);
 
   const stmtAgents = db.prepare(`
-    SELECT agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts
-    FROM agent_nodes
-    ORDER BY spawned_at ASC
+    SELECT
+      an.agent_id, an.parent_session_id, an.agent_type, an.state,
+      an.spawned_at, an.last_activity_ts,
+      COALESCE(SUM(sc.total_cost_usd), 0) AS total_cost_usd,
+      COALESCE(SUM(sc.input_tokens + sc.output_tokens + sc.cache_read_tokens + sc.cache_write_5m + sc.cache_write_1h), 0) AS total_tokens
+    FROM agent_nodes an
+    LEFT JOIN session_cost sc ON sc.agent_id = an.agent_id AND sc.agent_id != ''
+    GROUP BY an.agent_id
+    ORDER BY an.spawned_at ASC
   `);
 
   const stmtGetConfig = db.prepare(
