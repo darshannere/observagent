@@ -83,6 +83,9 @@ export function initDb(path = './observagent.db') {
   addColumnIfNotExists(db, 'agent_nodes', 'initial_prompt', 'TEXT');
   console.log('[db] initial_prompt column ready');
 
+  addColumnIfNotExists(db, 'agent_nodes', 'transcript_path', 'TEXT');
+  console.log('[db] transcript_path column ready');
+
   addColumnIfNotExists(db, 'api_calls', 'cache_read_tokens', 'INTEGER NOT NULL DEFAULT 0');
   addColumnIfNotExists(db, 'api_calls', 'cache_write_tokens', 'INTEGER NOT NULL DEFAULT 0');
   console.log('[db] cache token columns ready');
