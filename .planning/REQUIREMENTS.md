@@ -85,7 +85,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 
 - [ ] **DASH2-01**: Dashboard reorganizes the agent hierarchy as the primary view — agent tree is the dominant panel with full-height prominence
 - [ ] **DASH2-02**: Active/running agents are visually prominent (full color); idle/completed agents are de-emphasized (muted)
-- [ ] **DASH2-03**: Dashboard has time filter quick-select controls (Last 5min / Last 15min / Last 1hr / All) that filter the tool log and agent view
+- [x] **DASH2-03**: Dashboard has time filter quick-select controls (Last 5min / Last 15min / Last 1hr / All) that filter the tool log and agent view
 - [ ] **DASH2-04**: Context fill % bar in the cost/token panel is fixed and functional (tied to CALC-01 fix)
 
 ### Session History Filters (FILT)
@@ -172,7 +172,7 @@ The agent detail panel is a tabbed side panel with four tabs: **Prompt** (initia
 | AGNT-10 | Phase 10 | Pending |
 | DASH2-01 | Phase 11 | Pending |
 | DASH2-02 | Phase 11 | Pending |
-| DASH2-03 | Phase 11 | Pending |
+| DASH2-03 | Phase 11 | Complete |
 | DASH2-04 | Phase 11 | Pending |
 | FILT-01 | Phase 11 | Complete |
 | FILT-02 | Phase 11 | Complete |

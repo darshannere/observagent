@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 10 — Agent Panel Redesign (Plans 01 and 02 complete)
+**Current focus:** Phase 11 — Dashboard Overhaul & Filters (Plan 01 complete)
 
 ## Current Position
 
-Phase: 10 of 10 (Agent Panel Redesign)
-Plan: 01 (complete — 2 of N plans done, including 02 which was executed earlier)
-Status: Phase 10 In Progress — Backend schema + API endpoints and frontend store types both complete
-Last activity: 2026-03-07 — Phase 10, Plan 01 complete (schema migration: initial_prompt column, cache token columns; relay.py initial_prompt capture; jsonlWatcher cache token population; /api/agents/:id/detail endpoint)
+Phase: 11 of 11 (Dashboard Overhaul & Filters)
+Plan: 01 (complete — 1 of N plans done)
+Status: Phase 11 In Progress — recharts installed; TimeFilter type + timeFilter state + setTimeFilter action added to Zustand store
+Last activity: 2026-03-07 — Phase 11, Plan 01 complete (recharts ^3.8.0 installed; TimeFilter exported from useObservStore.ts; timeFilter initialized to 'all'; setTimeFilter action added)
 
-Progress: [█████████░] 90%+ (Phase 10 in progress)
+Progress: [█████████░] 90%+ (Phase 11 in progress)
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [█████████░] 90%+ (Phase 10 in progress)
 - Phase 9, Plan 01: 4 min (2 tasks, 14 files)
 - Phase 9, Plan 02: 2 min (2 tasks, 2 files)
 - Phase 10, Plan 01: 2 min (4 tasks, 5 files)
+- Phase 11, Plan 01: 1 min (2 tasks, 3 files)
 
 ## Accumulated Context
 
@@ -112,6 +113,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: Completed 11-04-PLAN.md (HistoryPage quick-filter buttons: Last 15m / Last 1hr / Last 24hr / All, client-side filteredSessions useMemo, FILT-01 and FILT-02 complete)
+Last session: 2026-03-07
+Stopped at: Completed 11-01-PLAN.md (recharts installed; TimeFilter type + timeFilter state + setTimeFilter action added to Zustand store; foundation for Plans 02 and 03)
 Resume file: None
