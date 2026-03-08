@@ -1,4 +1,5 @@
 // Tab content components for AgentDetailPanel
+import { useState, useEffect } from 'react'
 
 export interface AgentDetail {
   agent: {
@@ -63,14 +64,136 @@ export function PromptTab({ data }: { data: AgentDetail }) {
   )
 }
 
-export function ContextTab() {
+interface ContentBlock {
+  type: string
+  text?: string
+  name?: string
+  input?: Record<string, unknown>
+  content?: string | Array<{ type: string; text?: string }>
+}
+
+interface ConversationTurn {
+  role: 'user' | 'assistant'
+  content: ContentBlock[]
+}
+
+interface ContextResponse {
+  turns: ConversationTurn[]
+  total_lines: number
+  error?: string
+}
+
+function truncate(text: string, max = 500): { text: string; truncated: boolean } {
+  if (text.length <= max) return { text, truncated: false }
+  return { text: text.slice(0, max), truncated: true }
+}
+
+function ToolUseBlock({ block }: { block: ContentBlock }) {
+  const inputStr = block.input ? JSON.stringify(block.input).slice(0, 100) : ''
   return (
-    <div className="p-3 flex flex-col gap-2">
-      <div className="text-xs text-muted-foreground">
-        Conversation history will be available in Phase 11.
+    <div className="text-[10px] font-mono bg-blue-950/40 text-blue-300 rounded px-1.5 py-0.5 truncate">
+      [{block.name}] {inputStr}
+    </div>
+  )
+}
+
+function TextBlock({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const { text: shown, truncated } = truncate(text, 500)
+  return (
+    <div className="text-xs whitespace-pre-wrap break-words">
+      {expanded ? text : shown}
+      {truncated && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="ml-1 text-[10px] text-primary underline"
+        >
+          show more
+        </button>
+      )}
+    </div>
+  )
+}
+
+function TurnRow({ turn }: { turn: ConversationTurn }) {
+  const isUser = turn.role === 'user'
+  return (
+    <div className={`flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1">
+        {turn.role}
+      </span>
+      <div
+        className={[
+          'max-w-[95%] rounded px-2 py-1.5 flex flex-col gap-1',
+          isUser ? 'bg-primary/10 text-foreground' : 'bg-muted/30 text-foreground',
+        ].join(' ')}
+      >
+        {turn.content.map((block, i) => {
+          if (block.type === 'text' && block.text) {
+            return <TextBlock key={i} text={block.text} />
+          }
+          if (block.type === 'tool_use') {
+            return <ToolUseBlock key={i} block={block} />
+          }
+          if (block.type === 'tool_result') {
+            const resultText =
+              typeof block.content === 'string'
+                ? block.content
+                : Array.isArray(block.content)
+                  ? block.content.map((c) => c.text || '').join('\n')
+                  : ''
+            return (
+              <div key={i} className="text-[10px] text-muted-foreground italic truncate">
+                [tool result] {resultText.slice(0, 80)}
+              </div>
+            )
+          }
+          return null
+        })}
       </div>
-      <div className="text-[10px] text-muted-foreground italic">
-        Requires: database schema for message storage, relay.py JSONL parsing, new API endpoints.
+    </div>
+  )
+}
+
+export function ContextTab({ agentId }: { agentId: string | null }) {
+  const [data, setData] = useState<ContextResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!agentId) return
+    setLoading(true)
+    fetch(`/api/agents/${agentId}/context`)
+      .then((r) => r.json())
+      .then((d: ContextResponse) => {
+        setData(d)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [agentId])
+
+  if (loading) {
+    return <div className="text-xs text-muted-foreground px-3 py-4">Loading...</div>
+  }
+
+  if (!data || data.turns.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground px-3 py-4">
+        {data?.error === 'transcript_not_found'
+          ? 'Transcript file not found.'
+          : 'No conversation history yet.'}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+        {data.turns.map((turn, i) => (
+          <TurnRow key={i} turn={turn} />
+        ))}
+      </div>
+      <div className="shrink-0 border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
+        Showing last {data.turns.length} turns · {data.total_lines.toLocaleString()} lines total
       </div>
     </div>
   )
