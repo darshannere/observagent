@@ -26,11 +26,12 @@ export async function ingestRoutes(fastify, options) {
 
   // Prepared statements for agent_nodes — called at registration time
   const upsertAgentNode = db.prepare(`
-    INSERT INTO agent_nodes (agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts)
-    VALUES (@agent_id, @parent_session_id, @agent_type, @state, @spawned_at, @last_activity_ts)
+    INSERT INTO agent_nodes (agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts, transcript_path)
+    VALUES (@agent_id, @parent_session_id, @agent_type, @state, @spawned_at, @last_activity_ts, @transcript_path)
     ON CONFLICT(agent_id) DO UPDATE SET
       state            = excluded.state,
-      last_activity_ts = excluded.last_activity_ts
+      last_activity_ts = excluded.last_activity_ts,
+      transcript_path  = COALESCE(excluded.transcript_path, agent_nodes.transcript_path)
   `);
   const updateAgentState = db.prepare(
     `UPDATE agent_nodes SET state = @state, last_activity_ts = @last_activity_ts WHERE agent_id = @agent_id`
@@ -104,6 +105,7 @@ export async function ingestRoutes(fastify, options) {
             state:             'active',
             spawned_at:        event.timestamp,
             last_activity_ts:  event.timestamp,
+            transcript_path:   raw.agent_transcript_path || null,
           });
           // Claim the pending initial_prompt for this session's new subagent
           const pending = pendingInitialPrompts.get(event.session_id);
