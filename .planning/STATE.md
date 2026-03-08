@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-08T01:19:53.679Z"
+last_updated: "2026-03-08T18:17:18.985Z"
 progress:
   total_phases: 11
-  completed_phases: 10
-  total_plans: 47
-  completed_plans: 46
+  completed_phases: 11
+  total_plans: 48
+  completed_plans: 48
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 11 — Dashboard Overhaul & Filters (Plan 02 complete)
+**Current focus:** Phase 11 — Dashboard Overhaul & Filters (Plan 05 complete — all plans done)
 
 ## Current Position
 
 Phase: 11 of 11 (Dashboard Overhaul & Filters)
-Plan: 02 (complete — 2 of N plans done)
-Status: Phase 11 In Progress — agent tree widened to 35%; active/inactive split with collapsible inactive section; time filter buttons added
-Last activity: 2026-03-07 — Phase 11, Plan 02 complete (LiveDashboard.tsx agent tree column flexBasis 35%; time filter strip; AgentTree.tsx active/inactive split with LS_INACTIVE_KEY localStorage persistence)
+Plan: 05 (complete — all plans done; FILT-01 gap formally closed)
+Status: Phase 11 Complete — FILT-01 verified and closed; DASH2-04 and FILT-01 requirements marked complete in REQUIREMENTS.md
+Last activity: 2026-03-08 — Phase 11, Plan 05 complete (gap closure: verified date range picker in HistoryPage.tsx; fixed stale DASH2-04 and FILT-01 checkboxes)
 
 Progress: [█████████░] 90%+ (Phase 11 in progress)
 
@@ -46,6 +46,7 @@ Progress: [█████████░] 90%+ (Phase 11 in progress)
 - Phase 10, Plan 01: 2 min (4 tasks, 5 files)
 - Phase 11, Plan 01: 1 min (2 tasks, 3 files)
 - Phase 11, Plan 02: 5 min (2 tasks, 3 files)
+- Phase 11, Plan 05: 1 min (2 tasks, 1 file)
 
 ## Accumulated Context
 
@@ -106,6 +107,7 @@ Recent decisions affecting v2.0 work:
 - [Phase 11]: flexBasis 35% with min/max constraints for agent tree column width
 - [Phase 11]: IIFE in JSX map for active/inactive agent split — keeps per-session render logic colocated
 - [Phase 11]: inactiveCollapsed is global single toggle for all sessions (viewport preference not per-session)
+- [Phase 11]: HistoryPage.tsx FILT-01 implementation complete from commit 9b9abc8; DASH2-04 checkbox was stale and fixed
 
 ### Pending Todos
 
@@ -117,6 +119,6 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 
 ## Session Continuity
 
-Last session: 2026-03-07
-Stopped at: Completed 11-02-PLAN.md (agent tree widened to 35%; active/inactive agent split with collapsible inactive section; time filter buttons in agent tree sidebar)
+Last session: 2026-03-08
+Stopped at: Completed 11-05-PLAN.md (FILT-01 gap closure; verified date range picker in HistoryPage.tsx; DASH2-04 + FILT-01 requirements marked complete)
 Resume file: None
