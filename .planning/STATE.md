@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agent Intelligence
 status: unknown
-last_updated: "2026-03-08T01:14:58.170Z"
+last_updated: "2026-03-08T01:19:53.679Z"
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 47
-  completed_plans: 45
+  completed_plans: 46
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** Phase 11 — Dashboard Overhaul & Filters (Plan 01 complete)
+**Current focus:** Phase 11 — Dashboard Overhaul & Filters (Plan 02 complete)
 
 ## Current Position
 
 Phase: 11 of 11 (Dashboard Overhaul & Filters)
-Plan: 01 (complete — 1 of N plans done)
-Status: Phase 11 In Progress — recharts installed; TimeFilter type + timeFilter state + setTimeFilter action added to Zustand store
-Last activity: 2026-03-07 — Phase 11, Plan 01 complete (recharts ^3.8.0 installed; TimeFilter exported from useObservStore.ts; timeFilter initialized to 'all'; setTimeFilter action added)
+Plan: 02 (complete — 2 of N plans done)
+Status: Phase 11 In Progress — agent tree widened to 35%; active/inactive split with collapsible inactive section; time filter buttons added
+Last activity: 2026-03-07 — Phase 11, Plan 02 complete (LiveDashboard.tsx agent tree column flexBasis 35%; time filter strip; AgentTree.tsx active/inactive split with LS_INACTIVE_KEY localStorage persistence)
 
 Progress: [█████████░] 90%+ (Phase 11 in progress)
 
@@ -45,6 +45,7 @@ Progress: [█████████░] 90%+ (Phase 11 in progress)
 - Phase 9, Plan 02: 2 min (2 tasks, 2 files)
 - Phase 10, Plan 01: 2 min (4 tasks, 5 files)
 - Phase 11, Plan 01: 1 min (2 tasks, 3 files)
+- Phase 11, Plan 02: 5 min (2 tasks, 3 files)
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting v2.0 work:
 - [Phase 11-01]: TimeFilter type exported from useObservStore.ts — keeps filter state collocated with its store
 - [Phase 11-01]: timeFilter initialized to 'all' — safe default, all events visible on load
 - [Phase 11-01]: recharts ^3.8.0 chosen — SVG-based, TypeScript types bundled in package (no @types/recharts needed)
+- [Phase 11]: flexBasis 35% with min/max constraints for agent tree column width
+- [Phase 11]: IIFE in JSX map for active/inactive agent split — keeps per-session render logic colocated
+- [Phase 11]: inactiveCollapsed is global single toggle for all sessions (viewport preference not per-session)
 
 ### Pending Todos
 
@@ -114,5 +118,5 @@ None — CALC-01 resolved in Plan 04. Context fill % now uses 160K effective win
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Completed 11-01-PLAN.md (recharts installed; TimeFilter type + timeFilter state + setTimeFilter action added to Zustand store; foundation for Plans 02 and 03)
+Stopped at: Completed 11-02-PLAN.md (agent tree widened to 35%; active/inactive agent split with collapsible inactive section; time filter buttons in agent tree sidebar)
 Resume file: None

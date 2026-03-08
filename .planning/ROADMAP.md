@@ -118,4 +118,4 @@ Plans:
 | 8. Tool Log Enrichment + Calc Fix | v2.0 | 5/5 | Complete | 2026-03-02 |
 | 9. React Migration | 4/5 | In Progress|  | - |
 | 10. Agent Panel Redesign | 5/5 | Complete    | 2026-03-07 | - |
-| 11. Dashboard Overhaul + Filters | 2/4 | In Progress|  | - |
+| 11. Dashboard Overhaul + Filters | 3/4 | In Progress|  | - |
