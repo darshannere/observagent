@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  AreaChart, Area,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import { useObservStore } from '@/store/useObservStore'
 import type { ToolEvent } from '@/types'
@@ -32,6 +33,37 @@ export function InsightsPanel() {
   const costModels = useObservStore((s) => s.costModels)
   const sessionCosts = useObservStore((s) => s.sessionCosts)
   const events = useObservStore((s) => s.events)
+
+  // Activity tab: auto-select latest active session
+  const latestSessionId = sessionCosts[0]?.session_id ?? null
+
+  const [activityData, setActivityData] = useState<{ bucket_ms: number; tool_calls: number }[]>([])
+  const [activityStatus, setActivityStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  const [tokensData, setTokensData] = useState<{ bucket_ms: number; input_tokens: number; output_tokens: number }[]>([])
+  const [tokensStatus, setTokensStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  useEffect(() => {
+    if (activeTab !== 'Activity' || !latestSessionId) return
+
+    const fetchData = () => {
+      setActivityStatus('loading')
+      setTokensStatus('loading')
+      fetch(`/api/insights/activity?session_id=${latestSessionId}`)
+        .then(r => r.json())
+        .then(d => { setActivityData(d); setActivityStatus('ok') })
+        .catch(() => setActivityStatus('error'))
+
+      fetch(`/api/insights/tokens-over-time?session_id=${latestSessionId}`)
+        .then(r => r.json())
+        .then(d => { setTokensData(d); setTokensStatus('ok') })
+        .catch(() => setTokensStatus('error'))
+    }
+
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [activeTab, latestSessionId])
 
   const modelChartData = useMemo(() =>
     costModels.map((m) => ({
@@ -142,7 +174,140 @@ export function InsightsPanel() {
         )}
 
         {activeTab === 'Activity' && (
-          <p className="text-xs text-muted-foreground">Charts loading...</p>
+          <div className="space-y-6">
+            {latestSessionId ? (
+              <p className="text-xs text-muted-foreground mb-3">
+                Session: {latestSessionId.slice(0, 8)}
+              </p>
+            ) : null}
+
+            {!latestSessionId ? (
+              <p className="text-xs text-muted-foreground">
+                No active session yet. Run an agent to see activity.
+              </p>
+            ) : (
+              <>
+                {/* Chart 1: Tool Call Activity */}
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Tool Call Activity
+                  </h3>
+                  {activityStatus === 'loading' ? (
+                    <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+                  ) : activityStatus === 'error' ? (
+                    <p className="text-xs text-muted-foreground">
+                      Failed to load —{' '}
+                      <button
+                        className="underline"
+                        onClick={() => {
+                          setActivityStatus('loading')
+                          fetch(`/api/insights/activity?session_id=${latestSessionId}`)
+                            .then(r => r.json())
+                            .then(d => { setActivityData(d); setActivityStatus('ok') })
+                            .catch(() => setActivityStatus('error'))
+                        }}
+                      >
+                        retry?
+                      </button>
+                    </p>
+                  ) : activityData.length === 0 && activityStatus === 'ok' ? (
+                    <p className="text-xs text-muted-foreground">No data yet</p>
+                  ) : (
+                    <div style={{ height: 160 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={activityData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                          <XAxis
+                            dataKey="bucket_ms"
+                            tick={{ fontSize: 9, fill: '#6b7280' }}
+                            tickFormatter={(v: number) =>
+                              new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+                            }
+                          />
+                          <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} allowDecimals={false} />
+                          <Tooltip
+                            formatter={(v) => [`${v} calls`, 'Tool Calls']}
+                            contentStyle={TOOLTIP_STYLE}
+                          />
+                          <Area
+                            dataKey="tool_calls"
+                            fill="#4ade80"
+                            stroke="#22c55e"
+                            fillOpacity={0.3}
+                            type="monotone"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chart 2: Token Burn Rate */}
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Token Burn Rate
+                  </h3>
+                  {tokensStatus === 'loading' ? (
+                    <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+                  ) : tokensStatus === 'error' ? (
+                    <p className="text-xs text-muted-foreground">
+                      Failed to load —{' '}
+                      <button
+                        className="underline"
+                        onClick={() => {
+                          setTokensStatus('loading')
+                          fetch(`/api/insights/tokens-over-time?session_id=${latestSessionId}`)
+                            .then(r => r.json())
+                            .then(d => { setTokensData(d); setTokensStatus('ok') })
+                            .catch(() => setTokensStatus('error'))
+                        }}
+                      >
+                        retry?
+                      </button>
+                    </p>
+                  ) : tokensData.length === 0 && tokensStatus === 'ok' ? (
+                    <p className="text-xs text-muted-foreground">No data yet</p>
+                  ) : (
+                    <div style={{ height: 160 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                          <XAxis
+                            dataKey="bucket_ms"
+                            tick={{ fontSize: 9, fill: '#6b7280' }}
+                            tickFormatter={(v: number) =>
+                              new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+                            }
+                          />
+                          <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} allowDecimals={false} />
+                          <Tooltip
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(v: any, name: any) => [`${v}`, name]}
+                            contentStyle={TOOLTIP_STYLE}
+                          />
+                          <Legend wrapperStyle={{ fontSize: 9 }} />
+                          <Area
+                            dataKey="input_tokens"
+                            fill="#60a5fa"
+                            stroke="#3b82f6"
+                            fillOpacity={0.2}
+                            type="monotone"
+                            name="Input"
+                          />
+                          <Area
+                            dataKey="output_tokens"
+                            fill="#a78bfa"
+                            stroke="#8b5cf6"
+                            fillOpacity={0.2}
+                            type="monotone"
+                            name="Output"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {activeTab === 'Health' && (
