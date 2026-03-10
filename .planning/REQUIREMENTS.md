@@ -8,8 +8,8 @@
 
 ### Insights
 
-- [ ] **INSG-01**: User can see daily cost trend over the past 7 days as an area chart in the Insights panel
-- [ ] **INSG-02**: User can see cost breakdown by agent type (gsd-executor, gsd-planner, etc.) as a bar chart
+- [x] **INSG-01**: User can see daily cost trend over the past 7 days as an area chart in the Insights panel
+- [x] **INSG-02**: User can see cost breakdown by agent type (gsd-executor, gsd-planner, etc.) as a bar chart
 - [ ] **INSG-03**: User can see tool call activity timeline for the current session (tool calls per minute as area chart)
 - [ ] **INSG-04**: User can see token consumption rate over time (input + output tokens per minute chart)
 - [ ] **INSG-05**: User can see error rate timeline showing errors over time with visual spike highlighting
@@ -38,8 +38,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INSG-01 | Phase 12, Phase 13 | Pending |
-| INSG-02 | Phase 12, Phase 13 | Pending |
+| INSG-01 | Phase 12, Phase 13 | Complete |
+| INSG-02 | Phase 12, Phase 13 | Complete |
 | INSG-03 | Phase 12, Phase 13 | Pending |
 | INSG-04 | Phase 12, Phase 13 | Pending |
 | INSG-05 | Phase 12, Phase 14 | Pending |

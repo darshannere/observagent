@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Insights Expansion
-status: roadmap_ready
-last_updated: "2026-03-10T00:00:00Z"
+status: unknown
+last_updated: "2026-03-10T04:26:26.266Z"
 progress:
-  total_phases: 14
+  total_phases: 12
   completed_phases: 11
-  total_plans: TBD
-  completed_plans: 48
+  total_plans: 51
+  completed_plans: 49
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 12 of 14 (Insights API Layer)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-10 — Roadmap created for v2.1 (3 phases, 12-14)
+Plan: 1 of 3 complete (12-01 done)
+Status: In progress
+Last activity: 2026-03-10 — Completed 12-01-PLAN.md (cost-daily + cost-by-agent endpoints)
 
-Progress: [████████░░░░░░] 57% (11/14 phases complete)
+Progress: [████████░░░░░░] 57% (11/14 phases complete, 1/3 plans in phase 12)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [████████░░░░░░] 57% (11/14 phases complet
 - [v2.0] SPA serving: @fastify/static wildcard:false + explicit /assets/* + setNotFoundHandler catch-all
 - [v2.0] Solo sessions auto-create agent_nodes root on first PreToolUse (agent_id = session_id)
 - [v2.0 debug] GET /api/events ORDER ASC via inner-DESC subquery — fixes ToolLog live event ordering
+- [Phase 12-insights-api-layer]: cost-daily uses agent_id='' filter; cost-by-agent excludes solo sessions (no agent_type); session_id param on cost-by-agent reserved for Phase 13
 
 ### Blockers
 
@@ -61,5 +62,5 @@ Progress: [████████░░░░░░] 57% (11/14 phases complet
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Roadmap created — ready to plan Phase 12
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
