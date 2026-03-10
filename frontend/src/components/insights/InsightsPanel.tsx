@@ -98,6 +98,13 @@ export function InsightsPanel() {
   const [stalledStatus, setStalledStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const stalledCount = stalledStatus === 'ok' ? stalledAgents.length : 0
 
+  // --- Health tab: error rate + latency (tab-gated) ---
+  const [errorRateData, setErrorRateData] = useState<{ bucket_ms: number; error_rate: number }[]>([])
+  const [errorRateStatus, setErrorRateStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  const [latencyData, setLatencyData] = useState<{ tool_name: string; p50_ms: number; p95_ms: number; sample_count: number }[]>([])
+  const [latencyStatus, setLatencyStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
   // Always-on poll — not gated on activeTab so badge stays live across tab switches
   useEffect(() => {
     const fetchStalled = () => {
@@ -114,6 +121,40 @@ export function InsightsPanel() {
     const id = setInterval(fetchStalled, 30000)
     return () => clearInterval(id)
   }, []) // empty deps — mount/unmount only
+
+  // Health tab polling — error rate + latency (gated on Health tab visibility and session)
+  useEffect(() => {
+    if (activeTab !== 'Health' || !latestSessionId) return
+
+    const fetchHealth = () => {
+      setErrorRateStatus('loading')
+      setLatencyStatus('loading')
+
+      fetch(`/api/insights/error-rate?session_id=${latestSessionId}`)
+        .then(r => r.json())
+        .then((raw: { bucket_ms: number; errors: number; total: number }[]) => {
+          const transformed = raw.map(d => ({
+            bucket_ms: d.bucket_ms,
+            error_rate: d.total > 0 ? (d.errors / d.total) * 100 : 0,
+          }))
+          setErrorRateData(transformed)
+          setErrorRateStatus('ok')
+        })
+        .catch(() => setErrorRateStatus('error'))
+
+      fetch(`/api/insights/latency-by-tool?session_id=${latestSessionId}`)
+        .then(r => r.json())
+        .then((data: { tool_name: string; p50_ms: number; p95_ms: number; sample_count: number }[]) => {
+          setLatencyData(data)
+          setLatencyStatus('ok')
+        })
+        .catch(() => setLatencyStatus('error'))
+    }
+
+    fetchHealth()
+    const id = setInterval(fetchHealth, 30000)
+    return () => clearInterval(id)
+  }, [activeTab, latestSessionId])
 
   useEffect(() => {
     if (activeTab !== 'Activity' || !latestSessionId) return
