@@ -1,5 +1,14 @@
 # Milestones
 
+## v2.1 Insights Expansion (Shipped: 2026-03-10)
+
+**Phases completed:** 3 phases, 8 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v2.0 Agent Intelligence (Shipped: 2026-03-10)
 
 **Phases completed:** 4 phases (8–11), 20 plans, 148 commits, 151 files changed

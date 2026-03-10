@@ -54,17 +54,65 @@
 
 ---
 
+## Milestone: v2.1 — Insights Expansion
+
+**Shipped:** 2026-03-10
+**Phases:** 3 (12–14) | **Plans:** 8 | **Commits:** 33
+
+### What Was Built
+
+- 7 new `/api/insights/*` backend endpoints using SQLite prepared statements + NTILE window functions
+- InsightsPanel refactored from flat scroll to 3-tab layout (Cost / Activity / Health)
+- Cost tab: 7-day cost trend AreaChart (lazy one-time fetch) + cost-by-agent-type BarChart
+- Activity tab: tool call timeline + token burn rate charts with 30s tab-gated polling
+- Health tab: stalled agents widget + error rate AreaChart with spike-dot overlay + per-tool latency grouped BarChart
+- Always-on background poll for stalled agents drives live "Health (N)" tab badge regardless of active tab
+
+### What Worked
+
+- **Pure frontend phase**: All 3 charts phases were UI-only — no backend changes after Phase 12. Planning correctly identified the API layer as a separate phase, making frontend work clean and predictable.
+- **Research phase quality**: Researcher correctly identified that all recharts primitives were already imported, no new packages needed, and the exact dot prop API for spike rendering. Zero import-related surprises during execution.
+- **Phase 13 as foundation for 14**: Introducing the tab layout in Phase 13 meant Phase 14 had a clear insertion point (Health tab placeholder comment). No structural rework.
+- **Always-on / tab-gated poll split**: Planning caught the architectural requirement that stalled-agents badge must poll even when Health tab is not active. Two separate useEffects, clearly specified, executed cleanly.
+
+### What Was Inefficient
+
+- **Activity tab idle-skeleton gap**: Phase 13 executor used `activityStatus === 'loading'` for skeleton guard instead of `'loading' || 'idle'` (Cost tab pattern). Integration checker caught this post-execution. Minor UX debt, easy one-line fix — but shows the value of running integration check before ship.
+- **Phase 12 research included INSG-05/06/07 but Phase 14 plans had to re-read API contracts**: Some context duplication. A lighter "context handoff" in the Phase 12 summary would have saved Phase 14 research time.
+
+### Patterns Established
+
+- **Tab-gated polling**: `useEffect` with `[activeTab, latestSessionId]` deps + `if (activeTab !== 'Target' || !latestSessionId) return` guard — clean pattern for any tabbed chart component.
+- **Always-on vs tab-gated split**: Separate `useEffect(fn, [])` for badge-driving data vs `useEffect(fn, [activeTab, sessionId])` for tab-visible charts.
+- **Fetch callback transform**: Raw API `{errors, total}` → derived `error_rate` computed at fetch site, not render. Chart binds to the derived field directly.
+- **Recharts spike dots**: `dot={props => props.payload.value > 0 ? <circle ...> : null}` — explicit `null` (not `undefined`) prevents React warnings.
+- **NTILE p50/p95**: `NTILE(100) OVER (PARTITION BY tool_name ORDER BY duration_ms)` — no external library, works in SQLite 3.25+.
+
+### Key Lessons
+
+- **Idle state is a real UI state**: Always cover `'idle'` alongside `'loading'` in skeleton conditions. The flash of empty content is visible on fast connections.
+- **Integration check before committing to complete**: Running the integration checker found the idle-skeleton gap before the release tag. Worth making it a mandatory pre-ship step.
+- **Recharts v3 dot prop typings are loose**: Use `props: any` to avoid TypeScript errors on the dot function argument — this is a recharts v3 known issue.
+
+### Cost Observations
+
+- Model mix: ~100% sonnet (balanced profile)
+- Phase 14 was the most complex (3 widgets, 2 polling strategies, checkpoint) — handled cleanly by sonnet
+- No opus usage needed; plans were specific enough that execution was mechanical
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v2.0 |
-|--------|------|------|
-| Phases | 7 | 4 |
-| Plans | 28 | 20 |
-| Avg plans/phase | 4.0 | 5.0 |
-| Timeline | ~3 days | ~8 days |
-| Commits | ~80 | ~148 |
-| Primary debug issues | 1 (timeline tooltip) | 3 (tooltip, toollog ordering, agent tree) |
-| Post-ship bugs fixed | 1 | 3 |
+| Metric | v1.0 | v2.0 | v2.1 |
+|--------|------|------|------|
+| Phases | 7 | 4 | 3 |
+| Plans | 28 | 20 | 8 |
+| Avg plans/phase | 4.0 | 5.0 | 2.7 |
+| Timeline | ~3 days | ~8 days | ~13 days |
+| Commits | ~80 | ~148 | 33 |
+| Post-ship bugs / gaps | 1 | 3 | 0 (1 minor UX debt) |
+| Integration gaps caught | — | 1 (post-ship) | 1 (pre-ship via integration checker) |
 
-**Trend:** v2.0 was more architecturally complex (React migration, real-time state management) — longer timeline expected. Debug session count increasing as product grows; worth investing in more thorough integration checks pre-ship.
+**Trend:** v2.1 was the smallest milestone by plan count — focused scope (UI charts only after API phase). Integration checker caught the idle-skeleton UX gap before the release tag for the first time. Minor tech debt remains; no broken flows shipped. Milestone cadence is stabilizing: backend API → frontend charts is a repeatable pattern.
 

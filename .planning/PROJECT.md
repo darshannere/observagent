@@ -10,17 +10,26 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 
 ---
 
-## Current Milestone: v2.1 Insights Expansion
+## v2.1 Shipped ✅
 
-**Goal:** Transform the Insights panel into a comprehensive at-a-glance analytics dashboard with cost trends, activity timelines, and health charts.
+**Shipped:** 2026-03-10
+**Phases:** 12-14 (3 phases, 8 plans)
+**Status:** Production-ready with full Insights panel analytics
 
-**Target features:**
-- Daily cost trend chart + cost by agent type
-- Tool call activity timeline (busy vs idle)
-- Token burn rate over time
-- Error rate timeline with spike highlighting
-- Per-tool latency chart (p50/p95 per tool type)
-- Stalled agent indicator in Insights panel
+### Key Deliverables
+
+- 7 new `/api/insights/*` backend endpoints (SQLite time-series queries)
+- Insights panel refactored into 3-tab layout: Cost, Activity, Health
+- Cost tab: 7-day cost trend AreaChart + cost-by-agent-type BarChart
+- Activity tab: tool call timeline + token burn rate charts (30s polling, tab-gated)
+- Health tab: stalled agents widget + error rate AreaChart (spike dots) + per-tool latency BarChart (p50/p95)
+- Always-on stalled-agent poll drives live "Health (N)" badge across all tabs
+
+### Technical Notes
+
+- recharts `dot` prop pattern for conditional spike rendering (returns `null` for zero-rate points)
+- NTILE(100) window function in SQLite for p50/p95 approximation
+- Tab-gated polling: `[activeTab, latestSessionId]` deps; empty-deps always-on for badge
 
 ---
 
@@ -82,16 +91,17 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 - ✓ AGNT-01 through AGNT-10 — full agent panel redesign with tabbed detail — v2.0
 - ✓ DASH2-01 through DASH2-04 — dashboard overhaul, active-first layout, time filters — v2.0
 - ✓ FILT-01, FILT-02 — session history date range picker + quick filters — v2.0
+- ✓ INSG-01 — daily cost trend area chart (7 days) — v2.1
+- ✓ INSG-02 — cost breakdown by agent type bar chart — v2.1
+- ✓ INSG-03 — tool call activity timeline per minute — v2.1
+- ✓ INSG-04 — token consumption rate over time — v2.1
+- ✓ INSG-05 — error rate timeline with spike highlighting — v2.1
+- ✓ INSG-06 — per-tool latency chart (p50/p95 bars) — v2.1
+- ✓ INSG-07 — stalled agents indicator with live badge — v2.1
 
-### Active (v2.1)
+### Active (v2.2+)
 
-- [ ] INSG-01: User can see daily cost trend over the past 7 days (area chart)
-- [ ] INSG-02: User can see cost breakdown by agent type (bar chart)
-- [ ] INSG-03: User can see tool call activity timeline for the current session (tool calls per minute)
-- [ ] INSG-04: User can see token consumption rate over time (tokens per minute chart)
-- [ ] INSG-05: User can see error rate timeline with spike highlighting
-- [ ] INSG-06: User can see per-tool-type latency chart (p50/p95 per tool: Bash, Read, Write, etc.)
-- [ ] INSG-07: User can identify stalled agents from the Insights panel
+_(Start next milestone with `/gsd:new-milestone` to define requirements)_
 
 ### Out of Scope
 
@@ -136,7 +146,11 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 | Session root nodes auto-created on first PreToolUse | v2.0 | ✓ Good — solo sessions now visible in tree |
 | Stale agent timeout at 10 min + startup interrupted sweep | v2.0 | ✓ Good — handles crash/kill scenarios cleanly |
 | GET /api/events ORDER ASC (inner DESC subquery for newest 200) | v2.0 (debug) | ✓ Good — fixed live event ordering in ToolLog |
+| NTILE(100) for p50/p95 in SQLite (no external stats lib) | v2.1 | ✓ Good — SQLite 3.25+ window functions sufficient |
+| Always-on stalled-agents poll (empty deps, separate from tab-gated poll) | v2.1 | ✓ Good — badge stays live across all tabs |
+| Tab-gated polling with `[activeTab, latestSessionId]` deps | v2.1 | ✓ Good — stops API calls when tab not visible |
+| Inline `error_rate` transform at fetch callback, not render | v2.1 | ✓ Good — chart binds directly to derived value |
 
 ---
 
-*Last updated: 2026-03-10 after v2.1 milestone start*
+*Last updated: 2026-03-10 after v2.1 milestone completion*
