@@ -77,7 +77,12 @@ Plans:
   2. User can see cost broken down by agent type (gsd-executor, gsd-planner, etc.) as a bar chart
   3. User can see tool call activity for the current session as a per-minute area chart showing busy vs idle periods
   4. User can see input and output token consumption rate over time as a per-minute chart
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Refactor InsightsPanel into tabbed layout (Cost/Activity/Health); move existing charts to Cost tab
+- [ ] 13-02-PLAN.md — Add 7-day cost trend area chart and cost-by-agent bar chart to Cost tab
+- [ ] 13-03-PLAN.md — Add tool call activity and token burn rate charts to Activity tab with 30s polling
 
 ### Phase 14: Health and Latency Charts
 **Goal**: Users can assess agent health, identify error spikes, understand tool latency profiles, and spot stalled agents — all from the Insights panel
@@ -105,5 +110,5 @@ Plans:
 | 10. Agent Panel Redesign | v2.0 | — | Complete | 2026-03-09 |
 | 11. Dashboard Overhaul + Filters | v2.0 | — | Complete | 2026-03-09 |
 | 12. Insights API Layer | 3/3 | Complete    | 2026-03-10 | - |
-| 13. Cost and Activity Charts | v2.1 | 0/TBD | Not started | - |
+| 13. Cost and Activity Charts | v2.1 | 0/3 | Not started | - |
 | 14. Health and Latency Charts | v2.1 | 0/TBD | Not started | - |
