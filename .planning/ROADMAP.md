@@ -92,7 +92,11 @@ Plans:
   1. User can see an error rate timeline chart with visual spike highlighting for anomalous error bursts
   2. User can see a per-tool-type latency chart displaying p50 and p95 bars for Bash, Read, Write, Grep, and other tool types
   3. User can identify stalled agents from the Insights panel — agents active beyond 10 minutes are surfaced with their name and idle duration
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Add stalled agents widget + always-on poll + dynamic Health tab badge
+- [ ] 14-02-PLAN.md — Add error rate timeline chart and latency-by-tool grouped bar chart
 
 ## Progress
 
