@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Insights Expansion
 status: completed
-stopped_at: Completed 13-02-PLAN.md (cost-daily area chart + cost-by-agent bar chart)
-last_updated: "2026-03-10T09:09:22.250Z"
+stopped_at: Phase 14 context gathered
+last_updated: "2026-03-10T09:22:51.913Z"
 last_activity: 2026-03-10 — Completed 13-03-PLAN.md (Activity tab area charts)
 progress:
   total_phases: 3
@@ -74,6 +74,6 @@ Progress: [██████████] 98% (53/54 plans complete, Phase 13 c
 
 ## Session Continuity
 
-Last session: 2026-03-10T09:06:16.427Z
-Stopped at: Completed 13-02-PLAN.md (cost-daily area chart + cost-by-agent bar chart)
-Resume file: None
+Last session: 2026-03-10T09:22:51.909Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-health-and-latency-charts/14-CONTEXT.md
