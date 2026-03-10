@@ -43,7 +43,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for complete phase details.
 
 **Milestone Goal:** Transform the Insights panel into a comprehensive at-a-glance analytics dashboard with cost trends, activity timelines, and health charts.
 
-- [ ] **Phase 12: Insights API Layer** - Backend time-series endpoints that serve chart data for all seven new Insights charts
+- [x] **Phase 12: Insights API Layer** - Backend time-series endpoints that serve chart data for all seven new Insights charts (completed 2026-03-10)
 - [ ] **Phase 13: Cost and Activity Charts** - Daily cost trend, cost-by-agent, tool call timeline, and token burn rate charts in the Insights panel
 - [ ] **Phase 14: Health and Latency Charts** - Error rate timeline, per-tool latency (p50/p95), and stalled agent indicator in the Insights panel
 
@@ -104,6 +104,6 @@ Plans:
 | 9. React Migration | v2.0 | — | Complete | 2026-03-09 |
 | 10. Agent Panel Redesign | v2.0 | — | Complete | 2026-03-09 |
 | 11. Dashboard Overhaul + Filters | v2.0 | — | Complete | 2026-03-09 |
-| 12. Insights API Layer | 2/3 | In Progress|  | - |
+| 12. Insights API Layer | 3/3 | Complete   | 2026-03-10 | - |
 | 13. Cost and Activity Charts | v2.1 | 0/TBD | Not started | - |
 | 14. Health and Latency Charts | v2.1 | 0/TBD | Not started | - |
