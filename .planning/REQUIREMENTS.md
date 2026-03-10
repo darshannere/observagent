@@ -10,8 +10,8 @@
 
 - [x] **INSG-01**: User can see daily cost trend over the past 7 days as an area chart in the Insights panel
 - [x] **INSG-02**: User can see cost breakdown by agent type (gsd-executor, gsd-planner, etc.) as a bar chart
-- [ ] **INSG-03**: User can see tool call activity timeline for the current session (tool calls per minute as area chart)
-- [ ] **INSG-04**: User can see token consumption rate over time (input + output tokens per minute chart)
+- [x] **INSG-03**: User can see tool call activity timeline for the current session (tool calls per minute as area chart)
+- [x] **INSG-04**: User can see token consumption rate over time (input + output tokens per minute chart)
 - [ ] **INSG-05**: User can see error rate timeline showing errors over time with visual spike highlighting
 - [ ] **INSG-06**: User can see per-tool-type latency chart (p50/p95 bars for Bash, Read, Write, Grep, etc.)
 - [ ] **INSG-07**: User can identify stalled agents directly from the Insights panel (agents active beyond 10-min threshold)
@@ -40,8 +40,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | INSG-01 | Phase 12, Phase 13 | Complete |
 | INSG-02 | Phase 12, Phase 13 | Complete |
-| INSG-03 | Phase 12, Phase 13 | Pending |
-| INSG-04 | Phase 12, Phase 13 | Pending |
+| INSG-03 | Phase 12, Phase 13 | Complete |
+| INSG-04 | Phase 12, Phase 13 | Complete |
 | INSG-05 | Phase 12, Phase 14 | Pending |
 | INSG-06 | Phase 12, Phase 14 | Pending |
 | INSG-07 | Phase 12, Phase 14 | Pending |

@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Insights Expansion
 status: unknown
-last_updated: "2026-03-10T04:26:26.266Z"
+last_updated: "2026-03-10T04:29:00.580Z"
 progress:
   total_phases: 12
   completed_phases: 11
   total_plans: 51
-  completed_plans: 49
+  completed_plans: 50
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 12 of 14 (Insights API Layer)
-Plan: 1 of 3 complete (12-01 done)
+Plan: 2 of 3 complete (12-01, 12-02 done)
 Status: In progress
-Last activity: 2026-03-10 — Completed 12-01-PLAN.md (cost-daily + cost-by-agent endpoints)
+Last activity: 2026-03-10 — Completed 12-02-PLAN.md (activity + tokens-over-time endpoints)
 
-Progress: [████████░░░░░░] 57% (11/14 phases complete, 1/3 plans in phase 12)
+Progress: [████████░░░░░░] 57% (11/14 phases complete, 2/3 plans in phase 12)
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [████████░░░░░░] 57% (11/14 phases complet
 - [v2.0] Solo sessions auto-create agent_nodes root on first PreToolUse (agent_id = session_id)
 - [v2.0 debug] GET /api/events ORDER ASC via inner-DESC subquery — fixes ToolLog live event ordering
 - [Phase 12-insights-api-layer]: cost-daily uses agent_id='' filter; cost-by-agent excludes solo sessions (no agent_type); session_id param on cost-by-agent reserved for Phase 13
+- [Phase 12-02]: cache_read_tokens/cache_write_tokens excluded from tokens-over-time; activity counts PostToolUse only; bucket_ms via SQLite integer division
 
 ### Blockers
 
@@ -62,5 +63,5 @@ Progress: [████████░░░░░░] 57% (11/14 phases complet
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 12-01-PLAN.md
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
