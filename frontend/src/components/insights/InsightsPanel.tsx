@@ -471,7 +471,63 @@ export function InsightsPanel() {
         )}
 
         {activeTab === 'Health' && (
-          <p className="text-xs text-muted-foreground">Health charts coming in next release.</p>
+          <div className="space-y-6">
+            {/* Widget 1: Stalled Agents */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Stalled Agents
+              </h3>
+              {stalledStatus === 'loading' || stalledStatus === 'idle' ? (
+                <div style={{ height: 48 }} className="animate-pulse bg-muted rounded" />
+              ) : stalledStatus === 'error' ? (
+                <p className="text-xs text-muted-foreground">
+                  Failed to load —{/* */}{' '}
+                  <button
+                    className="underline"
+                    onClick={() => {
+                      setStalledStatus('loading')
+                      fetch('/api/insights/stalled-agents')
+                        .then(r => r.json())
+                        .then((data: StalledAgent[]) => { setStalledAgents(data); setStalledStatus('ok') })
+                        .catch(() => setStalledStatus('error'))
+                    }}
+                  >
+                    retry?
+                  </button>
+                </p>
+              ) : stalledAgents.length === 0 ? (
+                <div className="rounded border border-green-800 bg-green-950/30 p-3 text-center">
+                  <p className="text-xs text-green-400">All agents healthy</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {stalledAgents.map((agent) => {
+                    const minutes = Math.floor(agent.idle_seconds / 60)
+                    const seconds = agent.idle_seconds % 60
+                    const idleLabel = `${minutes}m ${seconds}s`
+                    const startTime = new Date(agent.last_activity_ts).toLocaleTimeString('en', {
+                      hour: '2-digit', minute: '2-digit', hour12: false,
+                    })
+                    const displayName = agent.agent_type || agent.agent_id.slice(0, 8)
+                    return (
+                      <div
+                        key={agent.agent_id}
+                        className="rounded border border-border p-2 flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{displayName}</p>
+                          <p className="text-[10px] text-muted-foreground">last active {startTime}</p>
+                        </div>
+                        <div className="text-xs font-mono text-yellow-400 shrink-0">{idleLabel}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Placeholder for error rate + latency charts (added in plan 02) */}
+          </div>
         )}
       </div>
     </div>
