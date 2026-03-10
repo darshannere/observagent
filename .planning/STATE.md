@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Insights Expansion
-status: unknown
-last_updated: "2026-03-10T04:35:33.169Z"
+status: in-progress
+last_updated: "2026-03-10T09:05:00.000Z"
 progress:
-  total_phases: 12
+  total_phases: 14
   completed_phases: 12
-  total_plans: 51
-  completed_plans: 51
+  total_plans: 54
+  completed_plans: 52
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** v2.1 Insights Expansion — Phase 12: Insights API Layer
+**Current focus:** v2.1 Insights Expansion — Phase 13: Cost and Activity Charts
 
 ## Current Position
 
-Phase: 12 of 14 (Insights API Layer) — COMPLETE
-Plan: 3 of 3 complete (12-01, 12-02, 12-03 done)
-Status: Phase complete — ready for Phase 13 (Insights Charts)
-Last activity: 2026-03-10 — Completed 12-03-PLAN.md (error-rate, stalled-agents, latency-by-tool endpoints)
+Phase: 13 of 14 (Cost and Activity Charts) — IN PROGRESS
+Plan: 1 of 3 complete (13-01 done)
+Status: Plan 13-01 complete — ready for Plan 13-02
+Last activity: 2026-03-10 — Completed 13-01-PLAN.md (InsightsPanel tabbed layout)
 
-Progress: [█████████░░░░░] 64% (12/14 phases complete, Phase 12 fully done)
+Progress: [█████████░░░░░] 66% (12/14 phases complete, Phase 13 plan 1/3 done)
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████████░░░░░] 64% (12/14 phases complet
 - [Phase 12-02]: cache_read_tokens/cache_write_tokens excluded from tokens-over-time; activity counts PostToolUse only; bucket_ms via SQLite integer division
 - [Phase 12-03]: stmtErrorRate uses 5-minute buckets (300000ms) consistent with health panel time horizon
 - [Phase 12-03]: HAVING sample_count >= 2 on latency-by-tool excludes single-sample tools where NTILE percentile math is meaningless
+- [Phase 13-01]: InsightsPanel tab state managed with local useState<Tab> — no external tab library; active tab styled with border-b-2 border-green-400
 
 ### Blockers
 
@@ -66,5 +67,5 @@ Progress: [█████████░░░░░] 64% (12/14 phases complet
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 12-03-PLAN.md (Phase 12 complete)
+Stopped at: Completed 13-01-PLAN.md (InsightsPanel tabbed layout)
 Resume file: None
