@@ -61,7 +61,12 @@ See `.planning/milestones/v2.0-ROADMAP.md` for complete phase details.
   5. GET /api/insights/error-rate returns error counts per time bucket with timestamps for the selected range
   6. GET /api/insights/latency-by-tool returns p50 and p95 latency per tool type (Bash, Read, Write, Grep, etc.)
   7. GET /api/insights/stalled-agents returns currently active agents whose last activity exceeds 10 minutes
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Create routes/insights.js with cost-daily and cost-by-agent endpoints
+- [ ] 12-02-PLAN.md — Add activity and tokens-over-time endpoints (per-minute bucketing)
+- [ ] 12-03-PLAN.md — Add error-rate, latency-by-tool (p50/p95), and stalled-agents endpoints
 
 ### Phase 13: Cost and Activity Charts
 **Goal**: Users can see how expensive and busy their agents are over time via four new charts in the Insights panel
@@ -99,6 +104,6 @@ See `.planning/milestones/v2.0-ROADMAP.md` for complete phase details.
 | 9. React Migration | v2.0 | — | Complete | 2026-03-09 |
 | 10. Agent Panel Redesign | v2.0 | — | Complete | 2026-03-09 |
 | 11. Dashboard Overhaul + Filters | v2.0 | — | Complete | 2026-03-09 |
-| 12. Insights API Layer | v2.1 | 0/TBD | Not started | - |
+| 12. Insights API Layer | v2.1 | 0/3 | Not started | - |
 | 13. Cost and Activity Charts | v2.1 | 0/TBD | Not started | - |
 | 14. Health and Latency Charts | v2.1 | 0/TBD | Not started | - |
