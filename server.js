@@ -14,6 +14,16 @@ const fastify = Fastify({ logger: false }); // manual stdout logging; Fastify's 
 const DB_PATH = process.env.OBSERVAGENT_DB_PATH ?? './observagent.db';
 const db = initDb(DB_PATH);
 
+// Startup stale-node cleanup — any agent_nodes row that was 'active' when the server last
+// stopped is now in an unknown state (SubagentStop was never received). Mark them as
+// 'interrupted' so the AgentTree doesn't show stale green dots after a server restart.
+const interruptedCount = db.prepare(
+  `UPDATE agent_nodes SET state = 'interrupted' WHERE state = 'active'`
+).run().changes;
+if (interruptedCount > 0) {
+  console.log(`[server] marked ${interruptedCount} stale active agent(s) as 'interrupted' on startup`);
+}
+
 // Single write queue instance — all writes serialized through one queue
 // Multiple instances would defeat the single-writer pattern and produce BUSY errors
 const writeQueue = new WriteQueue(db);

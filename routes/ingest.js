@@ -10,6 +10,9 @@ const pendingInitialPrompts = new Map();
 
 // 5-minute TTL cleanup — scans every 60 seconds for stale entries
 // Prevents unbounded growth if PostToolUse is never received (e.g., tool crash)
+// Also marks agent_nodes as 'stale' when last_activity_ts is older than 10 minutes
+// (handles sessions where SubagentStop was never received — e.g., Claude Code killed mid-run)
+let _dbRef = null; // set during route registration so interval can access it
 setInterval(() => {
   const cutoff = Date.now() - 5 * 60 * 1000; // 5 minutes
   for (const [id, entry] of pendingCalls) {
@@ -19,10 +22,29 @@ setInterval(() => {
   for (const [sessionId, entry] of pendingInitialPrompts) {
     if (entry.ts < cutoff) pendingInitialPrompts.delete(sessionId);
   }
+  // Mark active agent_nodes as 'stale' after 10 minutes of inactivity
+  if (_dbRef) {
+    const staleCutoff = Date.now() - 10 * 60 * 1000; // 10 minutes
+    const staleNodes = _dbRef.prepare(
+      `SELECT agent_id FROM agent_nodes WHERE state = 'active' AND last_activity_ts < ?`
+    ).all(staleCutoff);
+    if (staleNodes.length > 0) {
+      const markStale = _dbRef.prepare(
+        `UPDATE agent_nodes SET state = 'stale' WHERE agent_id = ?`
+      );
+      for (const { agent_id } of staleNodes) {
+        markStale.run(agent_id);
+        broadcast({ type: 'agent_update', agentId: agent_id, state: 'stale', ts: Date.now() });
+      }
+    }
+  }
 }, 60_000); // scan every 60 seconds
 
 export async function ingestRoutes(fastify, options) {
   const { writeQueue, db } = options;
+
+  // Expose db to the module-level interval for staleness detection
+  _dbRef = db;
 
   // Prepared statements for agent_nodes — called at registration time
   const upsertAgentNode = db.prepare(`
@@ -38,6 +60,19 @@ export async function ingestRoutes(fastify, options) {
   );
   const updateAgentInitialPrompt = db.prepare(
     `UPDATE agent_nodes SET initial_prompt = @initial_prompt WHERE agent_id = @agent_id`
+  );
+
+  // Session-root node support — creates a root agent_nodes row for a solo session (no subagents)
+  // Keyed by session_id: agent_id = session_id, parent_session_id = session_id, agent_type = 'session'
+  const getSessionRootNode = db.prepare(
+    `SELECT agent_id FROM agent_nodes WHERE agent_id = ?`
+  );
+  const insertSessionRootNode = db.prepare(`
+    INSERT OR IGNORE INTO agent_nodes (agent_id, parent_session_id, agent_type, state, spawned_at, last_activity_ts)
+    VALUES (@agent_id, @parent_session_id, @agent_type, @state, @spawned_at, @last_activity_ts)
+  `);
+  const touchSessionRootNode = db.prepare(
+    `UPDATE agent_nodes SET last_activity_ts = @last_activity_ts WHERE agent_id = @agent_id AND state = 'active'`
   );
 
   fastify.post('/ingest', async (request, reply) => {
@@ -126,6 +161,28 @@ export async function ingestRoutes(fastify, options) {
           broadcast({ type: 'agent_update', agentId, state: 'completed', ts: event.timestamp });
         }
         return; // SubagentStop is not a tool call — do not insert into events table
+      }
+
+      // PreToolUse — ensure a session-root node exists for solo sessions (no subagents)
+      // For top-level session events, agent_id is null (relay.py returns "" for non-subagent events).
+      // If no agent_nodes row exists yet for this session_id, insert a root node so the session
+      // appears in the AgentTree even if no subagents are ever spawned.
+      if (event.hook_type === 'PreToolUse' && !event.agent_id) {
+        const existing = getSessionRootNode.get(event.session_id);
+        if (!existing) {
+          insertSessionRootNode.run({
+            agent_id:          event.session_id,
+            parent_session_id: event.session_id,
+            agent_type:        'session',
+            state:             'active',
+            spawned_at:        event.timestamp,
+            last_activity_ts:  event.timestamp,
+          });
+          broadcast({ type: 'agent_spawn', agentId: event.session_id, agentType: 'session', parentSessionId: event.session_id, ts: event.timestamp });
+        } else {
+          // Update last_activity_ts on every PreToolUse so staleness detection works correctly
+          touchSessionRootNode.run({ last_activity_ts: event.timestamp, agent_id: event.session_id });
+        }
       }
 
       // PreToolUse / PostToolUse — existing behavior unchanged
