@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Insights Expansion
 status: completed
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-10T09:22:51.913Z"
+stopped_at: Completed 14-01-PLAN.md (Health tab stalled agents widget)
+last_updated: "2026-03-10T09:39:45.551Z"
 last_activity: 2026-03-10 — Completed 13-03-PLAN.md (Activity tab area charts)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
   percent: 98
 ---
 
@@ -49,6 +49,7 @@ Progress: [██████████] 98% (53/54 plans complete, Phase 13 c
 | Phase 12-insights-api-layer P03 | 8 | 2 tasks | 1 files |
 | Phase 13 P03 | 2min | 1 tasks | 1 files |
 | Phase 13-cost-and-activity-charts P02 | 5 | 1 tasks | 1 files |
+| Phase 14-health-and-latency-charts P01 | 2 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Progress: [██████████] 98% (53/54 plans complete, Phase 13 c
 - [Phase 13]: AreaChart/Area/Legend imported directly; parallel plan 13-02 imports not yet landed when 13-03 executed
 - [Phase 13-02]: hasFetchedCost ref triggers fetch once on Cost tab first open — no polling needed for historical data
 - [Phase 13-02]: Skeleton shown for both idle and loading states to prevent flash of empty content on initial render
+- [Phase 14-health-and-latency-charts]: stalledCount derived from array length only when stalledStatus === 'ok' to prevent badge flicker during loading
+- [Phase 14-health-and-latency-charts]: Always-on poll (empty-deps useEffect) for stalled-agents keeps badge accurate across tab switches
 
 ### Blockers
 
@@ -74,6 +77,6 @@ Progress: [██████████] 98% (53/54 plans complete, Phase 13 c
 
 ## Session Continuity
 
-Last session: 2026-03-10T09:22:51.909Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-health-and-latency-charts/14-CONTEXT.md
+Last session: 2026-03-10T09:39:45.546Z
+Stopped at: Completed 14-01-PLAN.md (Health tab stalled agents widget)
+Resume file: None

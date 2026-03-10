@@ -115,4 +115,4 @@ Plans:
 | 11. Dashboard Overhaul + Filters | v2.0 | — | Complete | 2026-03-09 |
 | 12. Insights API Layer | 3/3 | Complete    | 2026-03-10 | - |
 | 13. Cost and Activity Charts | 3/3 | Complete    | 2026-03-10 | - |
-| 14. Health and Latency Charts | v2.1 | 0/TBD | Not started | - |
+| 14. Health and Latency Charts | 1/2 | In Progress|  | - |
