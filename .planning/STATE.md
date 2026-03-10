@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Insights Expansion
 status: completed
 stopped_at: Completed 13-02-PLAN.md (cost-daily area chart + cost-by-agent bar chart)
-last_updated: "2026-03-10T09:06:16.430Z"
+last_updated: "2026-03-10T09:09:22.250Z"
 last_activity: 2026-03-10 — Completed 13-03-PLAN.md (Activity tab area charts)
 progress:
   total_phases: 3
