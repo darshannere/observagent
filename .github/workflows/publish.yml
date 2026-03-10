@@ -21,5 +21,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Publish to npm (Trusted Publisher via OIDC)
-        run: npm publish --provenance --access public
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
