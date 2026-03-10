@@ -567,7 +567,134 @@ export function InsightsPanel() {
               )}
             </div>
 
-            {/* Placeholder for error rate + latency charts (added in plan 02) */}
+            {/* Widget 2: Error Rate Timeline */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Error Rate
+              </h3>
+              {!latestSessionId ? (
+                <p className="text-xs text-muted-foreground">No active session yet.</p>
+              ) : errorRateStatus === 'loading' || errorRateStatus === 'idle' ? (
+                <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+              ) : errorRateStatus === 'error' ? (
+                <p className="text-xs text-muted-foreground">
+                  Failed to load —{/* */}{' '}
+                  <button
+                    className="underline"
+                    onClick={() => {
+                      setErrorRateStatus('loading')
+                      fetch(`/api/insights/error-rate?session_id=${latestSessionId}`)
+                        .then(r => r.json())
+                        .then((raw: { bucket_ms: number; errors: number; total: number }[]) => {
+                          const transformed = raw.map(d => ({
+                            bucket_ms: d.bucket_ms,
+                            error_rate: d.total > 0 ? (d.errors / d.total) * 100 : 0,
+                          }))
+                          setErrorRateData(transformed)
+                          setErrorRateStatus('ok')
+                        })
+                        .catch(() => setErrorRateStatus('error'))
+                    }}
+                  >
+                    retry?
+                  </button>
+                </p>
+              ) : errorRateData.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No error data yet</p>
+              ) : (
+                <div style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={errorRateData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      <XAxis
+                        dataKey="bucket_ms"
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tickFormatter={(v: number) =>
+                          new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        }
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tickFormatter={(v: number) => `${v.toFixed(1)}%`}
+                        domain={[0, 'auto']}
+                      />
+                      <Tooltip
+                        formatter={(v) => [`${Number(v).toFixed(2)}%`, 'Error Rate']}
+                        contentStyle={TOOLTIP_STYLE}
+                      />
+                      <Area
+                        dataKey="error_rate"
+                        fill="#ef4444"
+                        stroke="#dc2626"
+                        fillOpacity={0.15}
+                        type="monotone"
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props
+                          if (!payload || payload.error_rate <= 0) return null
+                          return <circle key={`spike-${payload.bucket_ms}`} cx={cx} cy={cy} r={4} fill="#ef4444" />
+                        }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Widget 3: Latency by Tool */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Latency by Tool
+              </h3>
+              {!latestSessionId ? (
+                <p className="text-xs text-muted-foreground">No active session yet.</p>
+              ) : latencyStatus === 'loading' || latencyStatus === 'idle' ? (
+                <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+              ) : latencyStatus === 'error' ? (
+                <p className="text-xs text-muted-foreground">
+                  Failed to load —{/* */}{' '}
+                  <button
+                    className="underline"
+                    onClick={() => {
+                      setLatencyStatus('loading')
+                      fetch(`/api/insights/latency-by-tool?session_id=${latestSessionId}`)
+                        .then(r => r.json())
+                        .then((data: { tool_name: string; p50_ms: number; p95_ms: number; sample_count: number }[]) => {
+                          setLatencyData(data)
+                          setLatencyStatus('ok')
+                        })
+                        .catch(() => setLatencyStatus('error'))
+                    }}
+                  >
+                    retry?
+                  </button>
+                </p>
+              ) : latencyData.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No latency data yet (need 2+ tool calls per type)</p>
+              ) : (
+                <div style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={latencyData} margin={{ top: 4, right: 8, bottom: 28, left: 0 }}>
+                      <XAxis
+                        dataKey="tool_name"
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        angle={-20}
+                        textAnchor="end"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tickFormatter={(v: number) => `${v}ms`}
+                      />
+                      <Tooltip
+                        formatter={(v) => [`${v}ms`]}
+                        contentStyle={TOOLTIP_STYLE}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 9 }} />
+                      <Bar dataKey="p50_ms" fill="#4ade80" name="p50" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="p95_ms" fill="#facc15" name="p95" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
