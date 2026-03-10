@@ -13,6 +13,7 @@ export type TimeFilter = '5m' | '15m' | '1h' | 'all'
 
 type SessionCostInput = Partial<CostStateEntry> & {
   session_id?: string
+  project_name?: string
   cache_write_5m?: number
   cache_write_1h?: number
 }
@@ -32,6 +33,7 @@ function normalizeSessionCostEntry(entry: SessionCostInput): CostStateEntry {
 
   return {
     session_id: entry.session_id ?? '',
+    project_name: entry.project_name,
     total_cost_usd: asNumber(entry.total_cost_usd),
     total_tokens:
       typeof entry.total_tokens === 'number'
@@ -82,6 +84,7 @@ interface ObservStore {
       cost?: number
       tokens?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number }
       contextFillPct?: number
+      projectName?: string
     },
   ): void
   setConfig(config: Config): void
@@ -253,6 +256,7 @@ export const useObservStore = create<ObservStore>()((set) => ({
       const updated: CostStateEntry = {
         ...existing,
         session_id: sessionId,
+        project_name: costUpdate.projectName ?? existing.project_name,
         total_cost_usd: costUpdate.cost ?? existing.total_cost_usd,
         input_tokens: inputTokens,
         output_tokens: outputTokens,

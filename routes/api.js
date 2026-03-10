@@ -43,7 +43,7 @@ export async function apiRoutes(fastify, options) {
   );
 
   const stmtSessionCost = db.prepare(`
-    SELECT session_id, model, input_tokens, output_tokens,
+    SELECT session_id, project_name, model, input_tokens, output_tokens,
            cache_read_tokens, (cache_write_5m + cache_write_1h) AS cache_write_tokens,
            total_cost_usd, last_event_ts
     FROM session_cost

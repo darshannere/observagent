@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useObservStore } from '@/store/useObservStore'
 import { useSessionFilter } from '@/hooks/useSessionFilter'
 import { formatAgentCost } from '@/utils/format'
@@ -43,12 +43,23 @@ function StuckBadge({ agent }: { agent: Agent }) {
 export function AgentTree() {
   const agents = useObservStore((s) => s.agents)
   const sessions = useObservStore((s) => s.sessions)
+  const sessionCosts = useObservStore((s) => s.sessionCosts)
   const activeSessionFilter = useObservStore((s) => s.activeSessionFilter)
   const activeAgentFilter = useObservStore((s) => s.activeAgentFilter)
   const collapsedSessions = useObservStore((s) => s.collapsedSessions)
   const toggleSessionCollapse = useObservStore((s) => s.toggleSessionCollapse)
   const setSelectedAgent = useObservStore((s) => s.setSelectedAgent)
   const { setSessionFilter, setAgentFilter } = useSessionFilter()
+
+  const sessionProjectNames = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const entry of sessionCosts) {
+      if (entry.project_name) {
+        map.set(entry.session_id, entry.project_name)
+      }
+    }
+    return map
+  }, [sessionCosts])
 
   const [inactiveCollapsed, setInactiveCollapsed] = useState<boolean>(() => {
     try {
@@ -111,6 +122,8 @@ export function AgentTree() {
         .map(({ session, sessionAgents }) => {
         const isSessionSelected = activeSessionFilter === session.sessionId
         const isCollapsed = collapsedSessions.has(session.sessionId)
+        const projectName = sessionProjectNames.get(session.sessionId)
+        const projectLabel = projectName || 'unknown'
 
         return (
           <details key={session.sessionId} open={!isCollapsed} className="group">
@@ -133,6 +146,12 @@ export function AgentTree() {
             >
               <span className="font-mono font-semibold text-foreground">
                 {session.sessionId.slice(-8)}
+              </span>
+              <span
+                className="flex-1 min-w-0 text-[10px] text-muted-foreground truncate"
+                title={projectLabel}
+              >
+                {projectLabel}
               </span>
               <span className="ml-auto text-[10px]">
                 {sessionAgents.length} agent{sessionAgents.length !== 1 ? 's' : ''}

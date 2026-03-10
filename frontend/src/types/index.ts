@@ -33,6 +33,7 @@ export interface Session {
 
 export interface CostStateEntry {
   session_id: string
+  project_name?: string
   total_cost_usd: number
   total_tokens: number
   input_tokens: number

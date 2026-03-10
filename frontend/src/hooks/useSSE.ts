@@ -19,6 +19,8 @@ interface SSEMessage {
   state?: 'active' | 'idle' | 'errored' | 'completed'
   cost?: number
   contextFillPct?: number
+  projectName?: string
+  project_name?: string
   tokens?: {
     input: number
     output: number
@@ -141,6 +143,7 @@ export function useSSE(isReplay = false): void {
       if (msg.type === 'cost_update') {
         const agentId = firstString(msg.agentId, msg.agent_id)
         const sessionId = firstString(msg.sessionId, msg.session_id)
+        const projectName = firstString(msg.projectName, msg.project_name)
 
         if (msg.contextFillPct != null) {
           store.setContextFillPct(msg.contextFillPct)
@@ -157,6 +160,7 @@ export function useSSE(isReplay = false): void {
             cost: msg.cost,
             tokens: msg.tokens,
             contextFillPct: msg.contextFillPct,
+            projectName: projectName ?? undefined,
           })
         }
         return
