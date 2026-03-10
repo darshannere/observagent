@@ -24,6 +24,13 @@ const TOOLTIP_STYLE: React.CSSProperties = {
   color: 'var(--popover-foreground)',
 }
 
+interface StalledAgent {
+  agent_id: string
+  agent_type: string
+  last_activity_ts: number
+  idle_seconds: number
+}
+
 type Tab = 'Cost' | 'Activity' | 'Health'
 const TABS: Tab[] = ['Cost', 'Activity', 'Health']
 
@@ -86,6 +93,28 @@ export function InsightsPanel() {
   const [tokensData, setTokensData] = useState<{ bucket_ms: number; input_tokens: number; output_tokens: number }[]>([])
   const [tokensStatus, setTokensStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
 
+  // --- Health tab: stalled agents (always-on) ---
+  const [stalledAgents, setStalledAgents] = useState<StalledAgent[]>([])
+  const [stalledStatus, setStalledStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+  const stalledCount = stalledStatus === 'ok' ? stalledAgents.length : 0
+
+  // Always-on poll — not gated on activeTab so badge stays live across tab switches
+  useEffect(() => {
+    const fetchStalled = () => {
+      setStalledStatus('loading')
+      fetch('/api/insights/stalled-agents')
+        .then(r => r.json())
+        .then((data: StalledAgent[]) => {
+          setStalledAgents(data)
+          setStalledStatus('ok')
+        })
+        .catch(() => setStalledStatus('error'))
+    }
+    fetchStalled()
+    const id = setInterval(fetchStalled, 30000)
+    return () => clearInterval(id)
+  }, []) // empty deps — mount/unmount only
+
   useEffect(() => {
     if (activeTab !== 'Activity' || !latestSessionId) return
 
@@ -141,7 +170,7 @@ export function InsightsPanel() {
                 : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
-            {tab}
+            {tab === 'Health' && stalledCount > 0 ? `Health (${stalledCount})` : tab}
           </button>
         ))}
       </div>
