@@ -104,6 +104,6 @@ Plans:
 | 9. React Migration | v2.0 | — | Complete | 2026-03-09 |
 | 10. Agent Panel Redesign | v2.0 | — | Complete | 2026-03-09 |
 | 11. Dashboard Overhaul + Filters | v2.0 | — | Complete | 2026-03-09 |
-| 12. Insights API Layer | 3/3 | Complete   | 2026-03-10 | - |
+| 12. Insights API Layer | 3/3 | Complete    | 2026-03-10 | - |
 | 13. Cost and Activity Charts | v2.1 | 0/TBD | Not started | - |
 | 14. Health and Latency Charts | v2.1 | 0/TBD | Not started | - |
