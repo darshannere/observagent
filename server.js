@@ -6,6 +6,7 @@ import { ingestRoutes } from './routes/ingest.js';
 import { sseRoutes } from './routes/sse.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { apiRoutes } from './routes/api.js';
+import { insightsRoutes } from './routes/insights.js';
 import { startJsonlWatcher } from './lib/jsonlWatcher.js';
 
 const fastify = Fastify({ logger: false }); // manual stdout logging; Fastify's built-in logger is disabled
@@ -37,6 +38,7 @@ fastify.register(sseRoutes);
 fastify.register(dashboardRoutes);
 const SERVER_START_MS = Date.now();
 fastify.register(apiRoutes, { db, serverStartMs: SERVER_START_MS });
+fastify.register(insightsRoutes, { db });
 
 // Start server
 const PORT = parseInt(process.env.PORT ?? '4999', 10);
