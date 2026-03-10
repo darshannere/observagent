@@ -2,7 +2,7 @@
 
 **Defined:** 2026-03-10
 **Milestone:** v2.1 Insights Expansion
-**Core Value:** See exactly which agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
+**Core Value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
 
 ## v2.1 Requirements
 
@@ -38,19 +38,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INSG-01 | — | Pending |
-| INSG-02 | — | Pending |
-| INSG-03 | — | Pending |
-| INSG-04 | — | Pending |
-| INSG-05 | — | Pending |
-| INSG-06 | — | Pending |
-| INSG-07 | — | Pending |
+| INSG-01 | Phase 12, Phase 13 | Pending |
+| INSG-02 | Phase 12, Phase 13 | Pending |
+| INSG-03 | Phase 12, Phase 13 | Pending |
+| INSG-04 | Phase 12, Phase 13 | Pending |
+| INSG-05 | Phase 12, Phase 14 | Pending |
+| INSG-06 | Phase 12, Phase 14 | Pending |
+| INSG-07 | Phase 12, Phase 14 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 7 total
-- Mapped to phases: 0
-- Unmapped: 7 ⚠️
+- Mapped to phases: 7
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after initial definition*
+*Last updated: 2026-03-10 — traceability filled after roadmap creation*
