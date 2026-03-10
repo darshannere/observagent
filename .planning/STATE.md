@@ -1,8 +1,8 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Agent Intelligence
-status: complete
+milestone: v2.1
+milestone_name: Insights Expansion
+status: defining_requirements
 last_updated: "2026-03-10T00:00:00Z"
 progress:
   total_phases: 11
@@ -18,12 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** v2.0 shipped — planning next milestone
+**Current focus:** v2.1 Insights Expansion — defining requirements
 
 ## Current Position
 
-Phase: 11 of 11 (all complete)
-Status: v2.0 milestone archived — ready for /gsd:new-milestone
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-10 — Milestone v2.1 started
 
 ## Accumulated Context
 
