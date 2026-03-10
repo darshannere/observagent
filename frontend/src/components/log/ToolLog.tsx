@@ -26,21 +26,25 @@ export function ToolLog() {
 
   const events = useMemo(() => {
     let filtered = allEvents
-    if (activeAgentFilter) {
-      filtered = filtered.filter((e) => e.agent_id === activeAgentFilter)
-    } else if (activeSessionFilter) {
+    if (activeSessionFilter) {
       filtered = filtered.filter((e) => e.session_id === activeSessionFilter)
+      // If agent_id is tracked in events, further narrow to just that agent
+      if (activeAgentFilter) {
+        const byAgent = filtered.filter((e) => e.agent_id === activeAgentFilter)
+        if (byAgent.length > 0) filtered = byAgent
+      }
+    } else if (activeAgentFilter) {
+      filtered = filtered.filter((e) => e.agent_id === activeAgentFilter)
     }
     const windowMs = WINDOW_MS[timeFilter]
     if (windowMs != null) {
       const cutoffTs = Date.now() - windowMs
       filtered = filtered.filter((e) => e.timestamp >= cutoffTs)
     }
-    return filtered
+    return filtered.slice().reverse()
   }, [allEvents, activeSessionFilter, activeAgentFilter, timeFilter, tick])
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const prevLenRef = useRef(0)
 
   const virtualizer = useVirtualizer({
     count: events.length,
@@ -52,23 +56,6 @@ export function ToolLog() {
         : undefined,
     overscan: 10,
   })
-
-  // Auto-scroll-to-bottom: only scroll if user is near the bottom
-  useEffect(() => {
-    const newLen = events.length
-    if (newLen === prevLenRef.current) return
-    prevLenRef.current = newLen
-
-    if (newLen === 0) return
-
-    const container = containerRef.current
-    if (!container) return
-
-    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-    if (distFromBottom <= 150) {
-      virtualizer.scrollToIndex(newLen - 1, { align: 'end' })
-    }
-  }, [events.length, virtualizer])
 
   const items = virtualizer.getVirtualItems()
 
