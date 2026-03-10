@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Insights Expansion
 status: completed
 stopped_at: Completed 14-02-PLAN.md (Health tab error rate + latency charts)
-last_updated: "2026-03-10"
+last_updated: "2026-03-10T18:45:39.611Z"
 last_activity: 2026-03-10 — Completed 14-02-PLAN.md (Health tab error rate + latency charts)
 progress:
   total_phases: 3
