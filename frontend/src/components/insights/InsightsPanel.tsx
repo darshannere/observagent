@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AreaChart, Area,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -34,7 +34,50 @@ export function InsightsPanel() {
   const sessionCosts = useObservStore((s) => s.sessionCosts)
   const events = useObservStore((s) => s.events)
 
-  // Activity tab: auto-select latest active session
+  // --- Cost tab: historical API charts ---
+  const hasFetchedCost = useRef(false)
+
+  const [costDailyData, setCostDailyData] = useState<{ day: string; cost_usd: number }[]>([])
+  const [costDailyStatus, setCostDailyStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  const [costAgentData, setCostAgentData] = useState<{ agent_type: string; cost_usd: number }[]>([])
+  const [costAgentStatus, setCostAgentStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+
+  useEffect(() => {
+    if (activeTab !== 'Cost' || hasFetchedCost.current) return
+    hasFetchedCost.current = true
+
+    setCostDailyStatus('loading')
+    setCostAgentStatus('loading')
+
+    fetch('/api/insights/cost-daily')
+      .then(r => r.json())
+      .then(data => { setCostDailyData(data); setCostDailyStatus('ok') })
+      .catch(() => setCostDailyStatus('error'))
+
+    fetch('/api/insights/cost-by-agent')
+      .then(r => r.json())
+      .then(data => { setCostAgentData(data); setCostAgentStatus('ok') })
+      .catch(() => setCostAgentStatus('error'))
+  }, [activeTab])
+
+  const retryCostDaily = () => {
+    setCostDailyStatus('loading')
+    fetch('/api/insights/cost-daily')
+      .then(r => r.json())
+      .then(data => { setCostDailyData(data); setCostDailyStatus('ok') })
+      .catch(() => setCostDailyStatus('error'))
+  }
+
+  const retryCostAgent = () => {
+    setCostAgentStatus('loading')
+    fetch('/api/insights/cost-by-agent')
+      .then(r => r.json())
+      .then(data => { setCostAgentData(data); setCostAgentStatus('ok') })
+      .catch(() => setCostAgentStatus('error'))
+  }
+
+  // --- Activity tab ---
   const latestSessionId = sessionCosts[0]?.session_id ?? null
 
   const [activityData, setActivityData] = useState<{ bucket_ms: number; tool_calls: number }[]>([])
@@ -107,6 +150,94 @@ export function InsightsPanel() {
       <div className="flex-1 overflow-auto p-4">
         {activeTab === 'Cost' && (
           <div className="space-y-6">
+            {/* Chart 1: 7-Day Cost Trend (API-backed, historical) */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                7-Day Cost Trend
+              </h3>
+              {costDailyStatus === 'loading' || costDailyStatus === 'idle' ? (
+                <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+              ) : costDailyStatus === 'error' ? (
+                <p className="text-xs text-muted-foreground">
+                  Failed to load —{/* */}{' '}
+                  <button className="underline" onClick={retryCostDaily}>retry?</button>
+                </p>
+              ) : costDailyData.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No data yet</p>
+              ) : (
+                <div style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={costDailyData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tickFormatter={(v: string) =>
+                          new Date(v).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+                        }
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        width={44}
+                        tickFormatter={(v: number) => `$${v.toFixed(3)}`}
+                      />
+                      <Tooltip
+                        formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']}
+                        contentStyle={TOOLTIP_STYLE}
+                      />
+                      <Area
+                        dataKey="cost_usd"
+                        fill="#4ade80"
+                        stroke="#22c55e"
+                        fillOpacity={0.3}
+                        type="monotone"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Chart 2: Cost by Agent Type (API-backed, historical) */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Cost by Agent Type
+              </h3>
+              {costAgentStatus === 'loading' || costAgentStatus === 'idle' ? (
+                <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
+              ) : costAgentStatus === 'error' ? (
+                <p className="text-xs text-muted-foreground">
+                  Failed to load —{/* */}{' '}
+                  <button className="underline" onClick={retryCostAgent}>retry?</button>
+                </p>
+              ) : costAgentData.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No data yet</p>
+              ) : (
+                <div style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={costAgentData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      <XAxis
+                        dataKey="agent_type"
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        angle={-20}
+                        textAnchor="end"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        width={44}
+                        tickFormatter={(v: number) => `$${v.toFixed(3)}`}
+                      />
+                      <Tooltip
+                        formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']}
+                        contentStyle={TOOLTIP_STYLE}
+                      />
+                      <Bar dataKey="cost_usd" fill="#60a5fa" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Chart 3: Cost by Model (live session data) */}
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 Cost by Model
@@ -127,6 +258,7 @@ export function InsightsPanel() {
               )}
             </div>
 
+            {/* Chart 4: Cost by Session (live session data) */}
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 Cost by Session (Top 10)
@@ -196,7 +328,7 @@ export function InsightsPanel() {
                     <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
                   ) : activityStatus === 'error' ? (
                     <p className="text-xs text-muted-foreground">
-                      Failed to load —{' '}
+                      Failed to load —{/* */}{' '}
                       <button
                         className="underline"
                         onClick={() => {
@@ -250,7 +382,7 @@ export function InsightsPanel() {
                     <div style={{ height: 160 }} className="animate-pulse bg-muted rounded" />
                   ) : tokensStatus === 'error' ? (
                     <p className="text-xs text-muted-foreground">
-                      Failed to load —{' '}
+                      Failed to load —{/* */}{' '}
                       <button
                         className="underline"
                         onClick={() => {
@@ -279,7 +411,6 @@ export function InsightsPanel() {
                           />
                           <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} allowDecimals={false} />
                           <Tooltip
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(v: any, name: any) => [`${v}`, name]}
                             contentStyle={TOOLTIP_STYLE}
                           />
