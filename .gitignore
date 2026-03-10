@@ -1,4 +1,5 @@
 node_modules/
+.npm-cache/
 observagent.db
 observagent.db-shm
 observagent.db-wal
@@ -7,3 +8,4 @@ observagent.db-wal
 *.db-wal
 __pycache__/
 *.pyc
+darshannere-observagent-2.0.0-beta.1.tgz
