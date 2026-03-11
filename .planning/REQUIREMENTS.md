@@ -49,25 +49,23 @@ Requirements for v2.5 Developer Experience milestone. Each maps to roadmap phase
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLI-01 | — | Pending |
-| CLI-02 | — | Pending |
-| CLI-03 | — | Pending |
-| VER-01 | — | Pending |
-| VER-02 | — | Pending |
-| VER-03 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
+| CLI-01 | Phase 16 | Pending |
+| CLI-02 | Phase 16 | Pending |
+| CLI-03 | Phase 16 | Pending |
+| VER-01 | Phase 16 | Pending |
+| VER-02 | Phase 16 | Pending |
+| VER-03 | Phase 17 | Pending |
+| DASH-01 | Phase 18 | Pending |
+| DASH-02 | Phase 19 | Pending |
+| DASH-03 | Phase 20 | Pending |
 
 **Coverage:**
 - v2.5 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after initial definition*
+*Last updated: 2026-03-11 — traceability populated after roadmap creation*
