@@ -1,217 +1,199 @@
 # Project Research Summary
 
-**Project:** ObservAgent v2.0 — Agent Intelligence Milestone
-**Domain:** Real-time AI agent observability platform (Claude Code-native, local-first)
-**Researched:** 2026-02-26
+**Project:** ObservAgent v2.5 — Developer Experience
+**Domain:** CLI + React dashboard DX — onboarding, version management, in-app guidance
+**Researched:** 2026-03-11
 **Confidence:** HIGH
 
 ## Executive Summary
 
-ObservAgent v2.0 is a feature expansion of a working local observability platform for Claude Code. The system already captures tool call events via Python hook relay and displays them live in a Fastify/SQLite/vanilla-JS dashboard. The five v2.0 additions — cost/token tracking, multi-agent tree visualization, session history, zero-config CLI setup, and Gantt timeline — are additive in nature but introduce two entirely new data paths: JSONL file watching from `~/.claude/projects/` and subagent lifecycle detection via `SubagentStop` hooks. The recommended approach is minimal new dependencies (only chokidar, commander, and open via npm; d3-hierarchy via CDN) with all business logic in plain ESM modules. The no-build-step, no-framework philosophy that makes v1.0 easy to contribute to must be preserved.
+ObservAgent v2.5 adds Developer Experience polish to a production-grade AI agent observability tool. The system already ships a working Fastify backend, SQLite storage, SSE streaming, and a React 19 + Tailwind v4 + Zustand dashboard. This milestone does not redesign anything — it layers guidance, discovery, and version management on top of the existing architecture. The research conclusion is clear: almost every feature in scope has a well-documented industry pattern (update-notifier, shadcn Tooltip, empty state UX, doctor-command checklists) and the existing codebase already contains the primitives needed to implement them with minimal new dependencies.
 
-The most critical architectural finding is the correct subagent identity model. Live JSONL inspection and official Claude Code docs confirm that Claude subagents are NOT separate sessions — they are sidechains within the parent session. The `SubagentStop` hook payload provides `agent_id` and `agent_transcript_path` (not a child session ID). This invalidates the cwd+timing inference approach described in ARCHITECTURE.md and mandates a separate `agents` table keyed by `(session_id, agent_id)`. The ARCHITECTURE.md and PITFALLS.md research files are internally inconsistent on this point: ARCHITECTURE.md proposes cwd+time inference while PITFALLS.md (based on verified hook payload inspection) confirms the explicit `agent_transcript_path` approach is correct and the inference approach is unnecessary. **PITFALLS.md takes precedence** on all points where the two conflict.
+The recommended approach is two new npm packages total — `update-notifier@^7.3.1` for CLI version checking and `driver.js@^1.4.0` for the onboarding walkthrough — plus a new `lib/changelog.json` static file, a `lib/state.js` utility, three new backend endpoints, and six new or modified frontend components. The architecture is additive: no schema migrations, no Zustand additions, no new route files. Every new capability plugs into an existing seam (routes/api.js, bin/cli.js, LiveDashboard.tsx mount effect).
 
-The three highest-priority risks are: (1) JSONL streaming entries have placeholder token counts — only the final entry with a non-null `stop_reason` is authoritative, requiring `INSERT OR REPLACE` not `INSERT OR IGNORE`; (2) the `SubagentStop` hook is not currently registered in `settings.json`, meaning agent tree data is silently dropped until Phase 4 fixes this; and (3) the CLI `init` command must read-merge-write `~/.claude/settings.json` to avoid destroying existing GSD and other hooks already present on this machine. All three are preventable with straightforward patterns and are critical to get right in their respective phases.
+The primary risks are infrastructure-level: a blocking network call during `observagent start` would degrade every user's workflow; an onboarding tour that re-fires on every page load would erode trust in the feature immediately; and generic empty states that don't distinguish "hooks not configured" from "no sessions yet" miss the single most common new-user failure mode. All three risks have concrete preventions identified in research and must be addressed at the implementation stage, not patched afterward.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack (Fastify 5.7.4, better-sqlite3 12.6.2, Node 22.12.0, pure ESM, no build step) remains unchanged. Only three new npm packages are needed: `chokidar@4.0.3` for JSONL file watching (4.x preferred over 5.x for Node compatibility headroom on Node 20.x minor versions), `commander@14.0.3` for CLI subcommand parsing, and `open@11.0.0` for browser launch after `observagent start`. The agent tree is rendered via `d3-hierarchy@3.1.2` loaded from CDN (15 KB) — this provides layout math only, rendering is vanilla SVG. The Gantt timeline uses HTML Canvas with computed pixel positions. Cost calculation lives in an inline `lib/pricingConfig.js` module with a configurable model rate map.
+The existing stack requires no changes beyond two targeted additions. The backend is Node.js with Fastify 5.7.4, better-sqlite3 in WAL mode, and Commander for CLI. The frontend is React 19.2, Vite 7, Zustand 5, Recharts 3, Tailwind v4, and radix-ui 1.4.3. Every v2.5 feature either extends an existing integration point or uses packages already installed.
 
-**Core technologies:**
-- `chokidar@4.0.3`: JSONL file watching — macOS `fs.watch` is unreliable for subdirectory watching; 4.x over 5.x for Node >=14.16.0 compatibility
-- `commander@14.0.3`: CLI parsing — clean subcommand API, pure ESM, no alternatives needed for 3 subcommands
-- `open@11.0.0`: Browser launch after `observagent start` — single-purpose, pure ESM, sindresorhus-maintained
-- `d3-hierarchy@3.1.2` (CDN): Agent tree layout — 15 KB vs 644 KB for vis-network; provides only the layout math, rendering is vanilla SVG
-- `lib/pricingConfig.js` (inline): Cost calculation — configurable rate map; `computeCost(model, usage)` function; unknown model warning and fallback
+**Core new technologies:**
+- `update-notifier@^7.3.1`: CLI version-check banner and `update` command — pure ESM, unref'd child process model, 24-hour cache, respects `NO_UPDATE_NOTIFIER` convention; preferred over `simple-update-notifier` (fewer options) and raw `fetch` (requires reimplementing caching and opt-out)
+- `driver.js@^1.4.0`: In-dashboard onboarding walkthrough — MIT license, framework-agnostic (no React peer dependency), ~15KB gzipped; preferred over `react-joyride` (documented React 18/19 incompatibility, GitHub issues #1122/#1124) and Shepherd.js (AGPL license)
+- `lib/changelog.json` (static asset, no package): Bundled version history served at `/api/changelog`; avoids remote fetch dependency, works offline, version-matches installed package
 
-**Critical version note:** Use `chokidar@4.0.3` not `5.0.0`. The `5.x` peer dependency `readdirp@5` requires Node >= 20.19.0 exactly — a contributor trap on Node 20.18.x. Both versions work on the project's Node 22.12.0, but 4.x is safer for contributors.
+**What requires zero new packages:**
+- Feature tooltips: `radix-ui` + `frontend/src/components/ui/tooltip.tsx` already present and production-ready
+- `npx observagent update` confirmation prompt: Node.js stdlib `readline` (8 lines vs. 50KB `inquirer`)
+- Changelog CLI display: Node.js `fs.readFile` on bundled CHANGELOG.md
+- Onboarding localStorage state: same pattern already in AgentTree.tsx
 
 ### Expected Features
 
-Research confirms a clear competitive gap: ObservAgent is the only tool that observes Claude Code agents without code changes. The features below are scoped exclusively to v2.0 additions on top of the already-working v1.0 system.
+**Must have (table stakes):**
+- Post-init printed guidance with numbered next steps — every major CLI (Vite, Prisma, create-react-app) does this; silent init feels broken
+- Empty states in all dashboard panels — "no data" without context cannot be distinguished from a bug
+- CLI version check banner on `start` — absence implies the tool is unmaintained
+- Dashboard version badge — users need to know what version they are running
+- Doctor command with actionable fixes including exact config blocks to paste — listing failures without fix commands frustrates users
 
-**Must have (table stakes) — v2.0 core:**
-- Token usage display (input/output/cache read/cache write) — every LLM observability tool shows this; absence makes the product feel incomplete
-- Running dollar cost total with real-time updates — developers think in dollars, not tokens; required from first session
-- Cost budget alert (in-dashboard toast/badge) — prevents runaway spend in multi-agent runs
-- Session history list — required for any observability tool used beyond a single day; "how much did Monday's run cost vs today's?"
-- Session filter by date/project/cost/status — unfiltered lists become unusable after 10+ sessions
-- Session data export (JSONL/CSV) — power users need raw data; high trust signal at low implementation cost
-- `npx observagent init` CLI — zero-friction setup is table stakes for adoption; manual config editing loses most users before they see value
-- `observagent doctor` diagnostic command — single command diagnosis reduces support burden; must exit non-zero when any check fails
-- `observagent start` with auto browser-open — removes launch friction; standard developer tool pattern
+**Should have (differentiators):**
+- Hook activation detection with inline fix instructions — ObservAgent's only real failure mode; detecting it proactively removes the #1 setup failure
+- In-dashboard first-run onboarding walkthrough — contextual guidance that self-dismisses as data arrives
+- `npx observagent update` command with inline changelog — no other local dev tool does this; one-step update + context
+- Dashboard "What's New" modal triggered from version badge — keeps power users informed without requiring a GitHub visit
+- Feature tooltips on domain-specific metrics (p50/p95, context fill %, stalled agent, cache hit rate)
 
-**Should have (competitive differentiators) — v2.0 extended:**
-- Agent tree visualization with parent-child hierarchy — the primary differentiator; no competitor visualizes Task tool spawn trees for Claude Code
-- Per-agent cost breakdown — "total cost $2.40" is useless in multi-agent runs without per-agent attribution
-- Context window fill percentage per agent — surfaces impending context limit failures before they cause errors; unique to ObservAgent
-- Stuck agent detection (60s threshold) — no competitor detects this for Claude Code; GSD users frequently encounter stuck states
-
-**Defer to v2.x:**
-- Gantt timeline view — high complexity, depends on all other data being stable; ships as a separate "Timeline" tab after v2.0 core features are validated
-- Cost fill rate ($/min) — add when cost tracking is proven stable and users explicitly request it
-- Webhook/Slack cost alerts — over-engineering for a local-first tool; in-dashboard alert covers v2.0 needs
-- Session comparison/diffing — low frequency use case vs implementation cost
-- Custom dashboard layout — ship opinionated fixed layout first, validate before building customization
-- OpenTelemetry export — enterprise-scale concern, out of scope for single-developer local tool
-- GSD semantic agent role labeling — fragile coupling to GSD prompt format; use first-50-chars task label instead
+**Defer to future milestone:**
+- Full interactive step-by-step blocking modal tour — anti-pattern for dev tools; users dismiss immediately
+- Demo/fake data mode — synthetic data in an observability tool violates the core product value
+- Telemetry for onboarding tracking — permanently out of scope; conflicts with local-first, privacy-preserving architecture
 
 ### Architecture Approach
 
-The v2.0 architecture adds two new data paths to the existing hook relay pipeline without modifying the core event flow. The first new path is JSONL file watching: `lib/jsonlWatcher.js` uses chokidar to tail `~/.claude/projects/**/*.jsonl` (including the `subagents/` subdirectory) by byte offset, parses `assistant` entries with non-null `stop_reason`, computes cost via `lib/pricingConfig.js`, and writes to a new `token_snapshots` table via the existing single-writer `WriteQueue`. The second new path is subagent lifecycle detection: `SubagentStop` hook events carry `agent_id` and `agent_transcript_path`; the ingest route writes to a new `agents` table and dynamically adds the subagent JSONL path to the chokidar watcher. Both paths broadcast typed SSE events (`cost_update`, `session_new`, `agent_stuck`) to the dashboard, which gains three new panels plus a separate Gantt Timeline tab (deferred from core).
+The v2.5 architecture is purely additive integration into an existing production system. The existing data flow (relay.py → POST /ingest → WriteQueue → SSE broadcast → useSSE → Zustand) is untouched. First-run state lives in `~/.local/share/observagent/state.json` (same directory as the DB), read/written via a new `lib/state.js` module. Changelog data is bundled as `lib/changelog.json` and served statically. All three new backend endpoints (`/api/changelog`, `GET /api/meta`, `POST /api/meta`) are added to the existing `routes/api.js`. No schema migrations. No Zustand store additions — local `useState` in `LiveDashboard` suffices for `firstRun` and `changelog`.
 
 **Major components:**
-1. `lib/jsonlWatcher.js` (NEW) — chokidar-based byte-offset JSONL tailing; skips null-stop_reason entries; token/cost parsing; SSE broadcast after 200ms debounce
-2. `lib/pricingConfig.js` (NEW) — configurable model rate map with cost rates and context window maxima; `computeCost(model, usage)` function; unknown model warning and fallback to sonnet rates
-3. `lib/hierarchy.js` (NEW) — SubagentStop payload processing; `agents` table upserts via `(session_id, agent_id)` composite key; dynamic watcher path registration from `agent_transcript_path`
-4. `bin/cli.js` (NEW) — `init` / `start` / `doctor` subcommands using commander; idempotent settings.json merge including SubagentStop registration
-5. `db/schema.js` (MODIFIED) — add `sessions`, `token_snapshots`, `agents` tables; ALTER events table for new columns; full index set; `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` migration pattern
-6. `routes/ingest.js` (MODIFIED) — sessions upsert on every event; Task PreToolUse detection; SubagentStop handling with `agent_id` linkage (not cross-session hierarchy)
-7. `routes/api.js` (MODIFIED) — add `/api/sessions` (filter params), `/api/agents` (recursive CTE on agents table), `/api/export` (stripped of tool_input content)
-8. `public/index.html` (MODIFIED) — Agent Tree panel (d3-hierarchy SVG), Cost Meters panel, Session History panel; new SSE event type handlers; existing Tool Call Log panel unchanged
-
-**Correct schema note — PITFALLS supersedes ARCHITECTURE on this point:**
-```
-agents table: PRIMARY KEY (session_id, agent_id)
-  session_id -> parent session (not a separate child session)
-  agent_id   -> short hash from SubagentStop payload (e.g., "aaef527")
-  agent_transcript_path -> direct path to subagent JSONL file
-```
-Do NOT use a self-referential `sessions.parent_session_id` — subagents share the parent's `sessionId` and are not separate sessions.
+1. `lib/state.js` — foundation utility: `readState()` / `writeState(patch)` with platform-aware path resolution; everything that tracks "has the user been here" depends on this
+2. `lib/changelog.json` + `/api/changelog` route — static data layer: version history bundled with package, served locally, works offline
+3. `lib/cmd-update.js` + `bin/cli.js` registration — new CLI command: fetches registry version, displays changelog diff, spawns npm install
+4. `components/onboarding/OnboardingOverlay.tsx` — first-run walkthrough: gate on `firstRun` prop from `/api/meta`, dismiss via `POST /api/meta`
+5. `components/layout/TopBar.tsx` — version badge + "What's New" trigger; connects `/api/meta` version to changelog modal
+6. Modified panels (InsightsPanel, HealthPanel, CostPanel, AgentTree) — tooltip additions using existing shadcn `Tooltip`
 
 ### Critical Pitfalls
 
-1. **JSONL streaming entries have placeholder token counts — use `INSERT OR REPLACE`, skip null `stop_reason`** — Claude Code writes multiple entries per message during streaming; entries with `stop_reason: null` contain exactly 8 output tokens regardless of actual output (verified: 32 of 42 null entries showed exactly 8 tokens; true final counts ranged 127-964). Use `INSERT OR REPLACE` (never `INSERT OR IGNORE`) and skip all entries where `stop_reason IS NULL`. Failure produces cost totals at 1-5% of actual Anthropic billing.
+1. **Version check blocks CLI startup** — `await fetch(registry)` before `runStart()` adds 200–800ms on good connections, hangs on registry outages (npm outage January 29, 2026 documented). Use `update-notifier` unref'd child process model; version banner appears on next invocation from cache, never the current one.
 
-2. **SubagentStop `session_id` is the parent, not the child — use `agents` table, not sessions with `parent_session_id`** — Subagents are sidechains within the parent session sharing the parent's `sessionId`. The SubagentStop payload provides `agent_id` (a short hash like `"aaef527"`) and `agent_transcript_path` (exact path to subagent JSONL). Build an `agents` table keyed by `(session_id, agent_id)`, not a self-referential sessions hierarchy. The cwd+timing inference approach described in ARCHITECTURE.md is superseded by this verified finding from PITFALLS.md.
+2. **Onboarding walkthrough re-fires on every dashboard load** — storing `onboardingCompleted` in Zustand (in-memory only, resets on page load) or `sessionStorage` causes the tour to fire every session. Persist `{ status: not_started|skipped|completed, version: "2.5" }` in `localStorage`; version-key allows re-showing on major upgrades.
 
-3. **SubagentStop hook is not currently registered — agent tree data is silently dropped** — `~/.claude/settings.json` only has PreToolUse/PostToolUse hooks. SubagentStop events are never sent to the server. Register SubagentStop in Phase 4; the CLI `init` command must install all required hooks including SubagentStop; `doctor` must verify SubagentStop registration specifically (not just that any hook exists).
+3. **Tour targets DOM elements that don't exist yet** — LiveDashboard fetches data on mount and conditionally renders panels; tour library steps targeting class or ID selectors find nothing during onboarding (the exact state a new user is in). Add stable `data-tour="..."` attributes; gate tour start until hydration `useEffect` resolves; test specifically against empty-DB state.
 
-4. **`observagent init` must read-merge-write settings.json — never overwrite** — A naive write would destroy GSD hooks, context monitor, statusline, and other tools already in `~/.claude/settings.json` on this machine. Always read -> parse -> deduplicate-merge -> write back. Running `init` twice must not add duplicate hook entries.
+4. **Empty states are generic and miss the setup path** — "No data yet" with no CTA cannot tell a misconfigured user from a user waiting for data. Use `/api/config` (already exists, returns hook state) to branch: hooks absent → show init instructions with exact commands; hooks present → show "waiting for first session."
 
-5. **Subagent JSONL files are nested in a `subagents/` subdirectory — glob must be `**/*.jsonl`** — Files live at `~/.claude/projects/<project>/<parent-session-id>/subagents/<agent-id>.jsonl`, three levels deep (verified real path: `~/.claude/projects/-Users-darshannere-DarshanWeb/5ee79270-.../subagents/agent-aprompt_suggestion-33a4cf.jsonl`). Use `agent_transcript_path` from SubagentStop as the primary watch path; the recursive glob is backup discovery only.
+5. **npx cache serves stale version after update** — documented unresolved npm/cli bug (issues #2329, #6179). `npx observagent update` must not silently run `npm install -g`; instead output explicit instructions for both global and npx-only users; include `npx --yes @darshannere/observagent@latest` as the npx path.
+
+---
 
 ## Implications for Roadmap
 
-The dependency graph is clear and strict: schema first, write queue extension second, JSONL watcher and cost tracking third, agent hierarchy fourth, session history fifth, CLI sixth, dashboard panels seventh. The Gantt timeline is the only feature that should slip to v2.x — everything else belongs in v2.0 core.
+The dependency graph is the primary driver of phase ordering. `lib/state.js` and the changelog data layer are blocking foundations; everything UI-visible depends on them. CLI improvements are independent of frontend work. Tooltip additions are mechanical and low-risk, appropriate for late-phase. The onboarding overlay is the highest-visibility feature and should build last when all dependencies are verified.
 
-### Phase 1: Schema Foundation
-**Rationale:** Every subsequent phase writes to the database. Schema must be finalized before any feature code is written. The `agents` table structure (not a self-referential sessions table) must be correct from the start based on the verified SubagentStop payload findings. Getting this wrong requires a table rebuild mid-development.
-**Delivers:** `sessions`, `token_snapshots`, and `agents` tables; `ALTER TABLE events` for `agent_id` and `tool_input_summary` columns; full index set (`idx_events_session`, `idx_sessions_parent`, `idx_snapshots_session`, etc.); migration infrastructure in `initDb()` using `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
-**Addresses:** Foundation for HIST-01, COST-01, AGENT-01
-**Avoids:** Silent `SQLITE_ERROR: no such table` runtime crashes; schema redesign mid-project; wrong hierarchy table structure
-**Research flag:** SKIP — SQLite migration patterns are well-documented; schema is fully specified across ARCHITECTURE.md and PITFALLS.md.
+### Phase 1: Foundation + Static Data Layer
 
-### Phase 2: WriteQueue Extension
-**Rationale:** The single-writer guarantee is the core reliability mechanism. All new tables (token_snapshots, agents, sessions update) must route through one queue. Extending before any new writes are introduced prevents the most common anti-pattern — multiple concurrent writers causing BUSY errors under GSD's 4+ parallel agent load.
-**Delivers:** Multi-statement WriteQueue with type discriminator (`event`, `session_upsert`, `token_snapshot`, `session_cost`, `agent_upsert`); updated `enqueue(type, data)` API; all existing call sites updated; verified no regressions to existing event logging
-**Avoids:** Multiple write queues causing SQLite BUSY errors under parallel agent load
-**Research flag:** SKIP — Pattern is fully specified with code samples in ARCHITECTURE.md; refactor of existing code.
+**Rationale:** `lib/state.js` and `/api/meta` are blocking dependencies for the onboarding overlay, "What's New" auto-show, and version badge. `lib/changelog.json` + `/api/changelog` unblocks the dashboard "What's New" page and the CLI `update` command. Both have zero risk and no external dependencies.
+**Delivers:** `lib/state.js` (readState/writeState with XDG-aware path), `lib/changelog.json`, three new routes in `routes/api.js` (`/api/changelog`, `GET /api/meta`, `POST /api/meta`)
+**Addresses:** Foundation for all features that track first-run state or display changelog data
+**Avoids:** Building UI features on unstable or absent state primitives; circular dependency where CLI update command needs changelog before it exists
 
-### Phase 3: Cost and Token Tracking
-**Rationale:** Highest user-pain feature and the data foundation for everything downstream — per-agent cost badges, context fill, and budget alerts all depend on `token_snapshots` being populated correctly. The JSONL watcher is also the required mechanism for discovering subagent JSONL files in Phase 4. Validating byte-offset tailing here de-risks Phase 4 before it depends on it.
-**Delivers:** `lib/jsonlWatcher.js` with byte-offset tailing on `**/*.jsonl` (including subagent subdirectory); `lib/pricingConfig.js` with configurable rates for all observed model variants (sonnet-4-6, opus-4-6, haiku-4-5, plus default fallback); real-time cost SSE updates debounced at 200ms; context fill percentage computed from cumulative token totals / model context max; cost budget alert threshold check; `token_snapshots` and `sessions.total_cost_usd` populated
-**Addresses:** COST-01 through COST-04, context fill indicator
-**Avoids:** Pitfall 1 (INSERT OR REPLACE + skip null stop_reason), Pitfall 4 (deep glob covers subagent JSONL at 3 directory levels), Pitfall 5 (context fill is computed from token totals, not read from JSONL), SSE cost flooding (200ms debounce aggregates per-session totals)
-**Research flag:** VERIFY stop_reason edge cases — confirm that `"tool_use"` stop_reason (in addition to `"end_turn"`) also contains true final token counts and not placeholder values. Inspect one real multi-turn session with tool calls in the JSONL before writing the filter condition.
+### Phase 2: CLI Improvements
 
-### Phase 4: Multi-Agent Observability
-**Rationale:** Requires Phase 3's JSONL watcher (to dynamically add `agent_transcript_path` to the watcher) and Phase 1's agents table. The critical prerequisite is registering SubagentStop in settings.json and observing a real payload live before writing any hierarchy code. One real test eliminates the single most consequential unknown remaining in the project.
-**Delivers:** SubagentStop registration in settings.json; `lib/hierarchy.js` with `agents` table upserts from SubagentStop payload; dynamic JSONL watcher registration from `agent_transcript_path`; `GET /api/agents` using recursive CTE on agents table; stuck agent detection via `setInterval` (30s check, 60s threshold); agent hierarchy SSE events (`session_new`, `session_end`, `agent_stuck`)
-**Addresses:** AGENT-01, AGENT-02, AGENT-03
-**Avoids:** Pitfall 2 (agents table uses `(session_id, agent_id)` — not cross-session parent_session_id), Pitfall 3 (SubagentStop registered and doctor checks it specifically), Pitfall 4 (dynamic watcher from agent_transcript_path as primary path)
-**Research flag: VERIFY BEFORE CODING** — Register SubagentStop in settings.json, trigger a real Task tool spawn (e.g., a short GSD run), and log the raw SubagentStop JSON payload before writing a single line of hierarchy code. Confirm `agent_id` format and `agent_transcript_path` field are present and stable. This is the most consequential open question remaining in the entire milestone.
+**Rationale:** CLI features (version check, `update` command, improved init/doctor output) are fully independent of frontend work and can proceed in parallel with frontend phases. The version check uses Node 18 built-in `fetch` + chalk (already a dependency) — no new packages for that feature alone. The `update` command needs `update-notifier` and `lib/changelog.json` from Phase 1.
+**Delivers:** Version check banner in `cmd-start.js` (fire-and-forget, 3s timeout, scoped to `start` only), `npx observagent update` command (`lib/cmd-update.js` + `bin/cli.js` registration), improved post-init guidance in `cmd-init.js`, overhauled `cmd-doctor.js` with hook detection and actionable fixes
+**Addresses:** Table-stakes version check and doctor overhaul; differentiator `update` command
+**Avoids:** Blocking startup on network call; version check on `--help`/`doctor` commands; silent `npm install -g` in update command; npx stale cache trap
 
-### Phase 5: Session History and Export
-**Rationale:** Pure read-path feature that depends on sessions and token_snapshots being populated (Phases 3-4) but adds no new writes. Building after Phase 4 ensures history includes complete agent tree data from the start. Can be built incrementally — session list first, then filters, then export.
-**Delivers:** `GET /api/sessions` with filter query params (date range, project path substring, cost range, status, has-errors); `GET /api/export` with JSONL/CSV response (tool_input and tool_response content stripped); Session History panel in dashboard with filter controls and export button; 50-per-page pagination
-**Addresses:** HIST-01, HIST-02, HIST-03
-**Avoids:** Security pitfall — export strips sensitive tool_input/tool_response content before serving; pagination prevents unbounded SELECT on large session histories
-**Research flag:** SKIP — SQL filtering and REST export are standard patterns; schema is fully defined.
+### Phase 3: Dashboard Version Badge + "What's New"
 
-### Phase 6: CLI and Zero-Config Setup
-**Rationale:** CLI is the adoption gateway, but it must be built after the features it installs are proven stable. A broken `init` that installs partial features creates more confusion than no CLI. Building last ensures `npx observagent init` installs a complete, tested system including SubagentStop hook registration (determined in Phase 4).
-**Delivers:** `bin/cli.js` with `init`, `start`, `doctor` subcommands via commander; `package.json` bin field with `#!/usr/bin/env node` shebang; `init` idempotent read-merge-write of settings.json (registers PreToolUse, PostToolUse, SubagentStop); `doctor` checking server alive + all three hook types + JSONL files present + relay.py executable, with non-zero exit on any failure; `start` with `open` package auto-browser-launch
-**Addresses:** SETUP-01 through SETUP-04
-**Avoids:** Pitfall 6 (ESM shebang and correct bin field in package.json), Pitfall 7 (settings.json read-merge-write with idempotency), doctor exit non-zero behavior
-**Research flag:** SKIP — Node CLI packaging with commander is well-documented; settings.json merge is straightforward JSON read-modify-write.
+**Rationale:** Depends on `/api/changelog` and `/api/meta` from Phase 1. The version badge in `TopBar.tsx` is the entry point for "What's New" — build the badge first, then the modal. `TooltipProvider` added here unblocks Phase 5 tooltip additions.
+**Delivers:** `components/layout/TopBar.tsx` (version badge), `pages/WhatsNewPage.tsx`, `TooltipProvider` wrapper in `App.tsx`, localStorage version tracking for auto-show on update
+**Addresses:** Dashboard version badge (table stakes), "What's New" modal (differentiator)
+**Avoids:** Version badge flash of "unknown" by defaulting to `VITE_APP_VERSION` build-time variable; stale changelog by serving bundled local file, never remote as primary source
 
-### Phase 7: Dashboard Panels
-**Rationale:** Dashboard panels are the user-facing expression of all backend work in Phases 3-6. Building them after APIs are stable means panels hydrate from complete, correct data. The three new panels (Cost Meters, Agent Tree, Session History) can be built in any order once Phase 6 is done.
-**Delivers:** Cost Meters panel with live token counters, per-model cost display, and context fill percentage bars; Agent Tree panel with `d3-hierarchy` layout rendered to SVG, cost badges per node, and stuck agent warning badges; Session History panel with filter controls and export button; new SSE event type handlers (`cost_update`, `session_new`, `session_end`, `agent_stuck`); existing Tool Call Log panel and SSE event handling unchanged
-**Addresses:** Dashboard rendering for all v2.0 features
-**Avoids:** Gantt concurrent-bar rendering pitfall (canvas absolute pixel positioning required, not CSS flow) — Gantt deferred to v2.x keeps this pitfall out of scope for this phase
-**Research flag:** SKIP — vanilla JS + existing dashboard patterns are established; d3-hierarchy CDN integration is straightforward.
+### Phase 4: Empty States
+
+**Rationale:** One shared `EmptyState` component with conditional renders in each panel. No dependencies on Phase 3 frontend work — only requires the existing Zustand store and the already-present `/api/config` endpoint. Low complexity, high impact for new users.
+**Delivers:** `components/shared/EmptyState.tsx`, conditional renders in AgentTree, ToolLog, Cost/Activity/Health charts, Session History; hook-absent vs. hook-present branching logic
+**Addresses:** Table-stakes empty states; hook-not-configured detection (the #1 new-user failure mode)
+**Avoids:** Generic "no data" with no CTA; indistinguishable "misconfigured" from "waiting"
+
+### Phase 5: Feature Tooltips
+
+**Rationale:** Mechanical additions using the existing `tooltip.tsx` shadcn component. Requires `TooltipProvider` to be in place (added in Phase 3). Low risk; do component by component. Recharts conflict pitfall is avoided by placing all tooltip triggers in chart title rows, outside `<ResponsiveContainer>`.
+**Delivers:** Tooltips on p50/p95 latency, context fill %, stalled agent, cache hit rate, hook status across InsightsPanel, HealthPanel, CostPanel, AgentTree
+**Addresses:** Feature tooltips differentiator
+**Avoids:** Tooltip z-index issues (use `z-[9999]` not Tailwind `z-50`); Recharts conflict (triggers placed outside ResponsiveContainer); hover-only inaccessibility (focusable triggers with `tabIndex={0}`)
+
+### Phase 6: Onboarding Walkthrough
+
+**Rationale:** Highest-visibility feature; build last when all dependencies are verified. Depends on `/api/meta` (Phase 1), `TooltipProvider` (Phase 3), empty states (Phase 4, so new users see correct panel content during tour). Uses `driver.js` (MIT, React 19 safe, ~15KB). Must test specifically against empty-DB state with no hooks configured — the exact state every new user is in.
+**Delivers:** `components/onboarding/OnboardingOverlay.tsx`, LiveDashboard integration, `data-tour` attributes on key elements, localStorage `{ status: not_started|skipped|completed, version }` persistence, "Show tour again" link in TopBar
+**Addresses:** First-run walkthrough differentiator
+**Avoids:** Re-fire on page load (localStorage, not Zustand); missing DOM targets (`data-tour` attributes + hydration gate); skip vs. complete ambiguity (three-state status)
 
 ### Phase Ordering Rationale
 
-- **Schema-first:** No runtime `no such table` errors at any phase transition; `agents` table structure must be right before data is written to it
-- **WriteQueue before writes:** Single-writer invariant preserved before any new table writes are introduced; parallel GSD agents will hit this under load
-- **JSONL watcher before agent hierarchy:** The watcher is the file discovery mechanism for `agent_transcript_path`; Phase 4 depends on Phase 3's watcher infrastructure
-- **Session history after agent hierarchy:** Historical sessions include complete tree data from the start, not just later sessions
-- **CLI last:** `npx observagent init` installs SubagentStop hook (determined in Phase 4); building last means it installs a complete, tested system
-- **Gantt deferred to v2.x:** High complexity canvas rendering; retrospective value (post-session analysis) not the live value that defines v2.0; depends on all other data being stable
+- Phase 1 is prerequisite because CLI `update` command and dashboard onboarding both depend on the same state primitives — building them first eliminates integration risk across two independent surfaces
+- Phases 2 and 3 can proceed in parallel once Phase 1 is complete; CLI work does not depend on frontend work
+- Phase 4 (empty states) is independent of tooltip and walkthrough phases; only requires existing Zustand store and `/api/config`
+- Phase 5 (tooltips) is gated solely on `TooltipProvider` being in App.tsx (Phase 3); otherwise fully mechanical
+- Phase 6 (onboarding) is last because it depends on Phase 1 (state), Phase 3 (TooltipProvider confirmed), and benefits from Phase 4 (empty states in place for the panels the tour highlights)
 
 ### Research Flags
 
-Phases needing live verification before implementation begins:
-- **Phase 3:** Inspect a fresh `~/.claude/projects/` session JSONL to confirm that `stop_reason: "tool_use"` entries (not just `"end_turn"`) also contain true final token counts. One multi-turn session with tool calls is sufficient.
-- **Phase 4 (CRITICAL):** Register SubagentStop in settings.json, trigger a real GSD multi-agent run, and log the raw SubagentStop JSON payload before writing any hierarchy code. Confirm `agent_id` and `agent_transcript_path` fields match the documented schema and are present in all SubagentStop events.
+Phases with standard, well-documented patterns that do not need deeper research during planning:
+- **Phase 1 (Foundation):** Static JSON file + Fastify one-liner route; XDG state directory already established by existing codebase
+- **Phase 2 (CLI):** `update-notifier` 3-line integration; Commander subcommand registration already in use; doctor checklist pattern directly from React Native CLI / npm doctor
+- **Phase 3 (Version badge):** `VITE_APP_VERSION` define in vite.config.ts; localStorage version tracking has multiple documented implementations
+- **Phase 4 (Empty states):** IBM Carbon Design System pattern; one shared component, conditional renders
 
-Phases with well-documented patterns (skip research-phase):
-- **Phase 1:** SQLite migration — `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` is standard; schema fully specified
-- **Phase 2:** WriteQueue extension — refactor of existing code; full code sample in ARCHITECTURE.md
-- **Phase 5:** SQL filtering with REST export — standard CRUD, no novel patterns
-- **Phase 6:** Node CLI packaging with commander — well-documented; settings.json merge is idiomatic JSON read-modify-write
-- **Phase 7:** Dashboard vanilla JS panel additions — follows existing patterns in `public/index.html`
+Phases that benefit from a research spike during planning:
+- **Phase 6 (Onboarding):** driver.js React integration is imperative (not declarative); the hydration-gate pattern and `data-tour` attribute management across a complex multi-panel layout warrants a brief spike before task breakdown. Confidence is MEDIUM on React 19 runtime behavior with imperative driver.js.
+- **Phase 2 (Update command, npx detection):** npx install method detection (global vs. npx cache path heuristic) has MEDIUM confidence; needs testing on real systems before implementation. Default to showing both instructions if detection is ambiguous.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Verified against npm registry, live Node 22.12.0 runtime, live JSONL files, Anthropic pricing docs (2026-02-26); CDN sizes verified; all three new npm packages confirmed as pure ESM, compatible with "type": "module" project |
-| Features | HIGH | JSONL schema and SubagentStop payload confirmed via live inspection and official Claude Code docs; competitor table-stakes analysis is training knowledge (MEDIUM) but feature requirements are grounded in verified runtime data |
-| Architecture | HIGH | Direct codebase inspection of all source files; live JSONL inspection (Claude Code 2.1.59); hook payload schemas confirmed against official docs and Claude Code minified source; PITFALLS corrects ARCHITECTURE on agents table model |
-| Pitfalls | HIGH | All critical pitfalls (streaming token placeholder counts, SubagentStop payload schema, subagent file directory structure) verified against live files, official Claude Code documentation, and minified source |
+| Stack | HIGH | All existing packages verified from actual `frontend/package.json` and root `package.json`; `tooltip.tsx` read directly; `update-notifier` and `driver.js` version/license confirmed via multiple sources |
+| Features | HIGH | Industry patterns (Vite, Prisma, React Native CLI, npm doctor, IBM Carbon) directly applicable; anti-features have clear rationale grounded in UX research |
+| Architecture | HIGH | All integration points derived from direct codebase reads; npm registry endpoint verified live; ESM JSON import confirmed for Node 18+; existing `getDbPath()` directory pattern confirmed for state file placement |
+| Pitfalls | HIGH | Six critical pitfalls derived from direct code inspection (z-50 confirmed in tooltip.tsx, Zustand non-persistence confirmed, hydration pattern confirmed in LiveDashboard.tsx); npx caching bugs sourced from open GitHub issues |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **ARCHITECTURE.md vs PITFALLS.md inconsistency on hierarchy approach:** ARCHITECTURE.md documents cwd+timing inference for parent-child linking; PITFALLS.md (verified against official docs and Claude Code source) confirms the correct approach uses `agent_id` + `agent_transcript_path` from SubagentStop payload. **PITFALLS.md takes precedence.** The `agents` table schema (not a self-referential sessions table) reflects this. Verify once more at the start of Phase 4 with a live SubagentStop payload log before any schema alterations.
+- **npx install method detection:** The heuristic for detecting whether a user runs via global install vs. npx one-shot (checking if binary path contains `/.npm/_npx/`) has MEDIUM confidence. Default to showing both instructions if detection is ambiguous rather than guessing wrong.
+- **driver.js hydration gate:** The exact sequence for gating driver.js tour start until LiveDashboard's `useEffect` fetches resolve needs validation in practice. Research confirms the pattern is correct in principle; timing depends on React 19's concurrent rendering behavior.
+- **changelog.json ESM JSON import syntax:** `import ... assert { type: 'json' }` is Node 18.3+ and may require explicit flag in some environments. Confirm during Phase 1; fallback is `JSON.parse(fs.readFileSync(...))` which is always safe.
 
-- **`stop_reason` completeness:** Live data confirms `null` = streaming placeholder and `"end_turn"` = final entry. It is unclear whether `"tool_use"` stop reason (which appears when the assistant makes a tool call) always contains true token counts. Verify during Phase 3 implementation with a multi-turn session that includes tool calls in the JSONL.
-
-- **Context window size per model:** All current Claude models (sonnet-4-6, opus-4-6, haiku-4-5) have 200K context windows. Build `pricingConfig.js` to include both pricing rates and context window maxima as configurable values with sensible defaults — do not hardcode. Update when Anthropic releases new models.
-
-- **`observagent doctor` exit code scheme:** PITFALLS.md specifies `doctor` must exit non-zero when any check fails, but the specific exit code per failed check type is unspecified. Define the exit code mapping before Phase 6 implementation.
-
-- **Startup JSONL hydration on server restart:** Byte-offset state is lost on restart, causing all JSONL files to be re-read from offset 0. The `UNIQUE(session_id, id)` deduplication constraint prevents double-counting, but startup time grows linearly with session history size. Acceptable for v2.0 — flag for offset persistence to a JSON file in v2.x backlog.
-
-- **`settings.json` hook schema version stability:** The hook entry format (keys, structure) in `~/.claude/settings.json` is assumed from live file inspection. Verify the format has not changed across Claude Code versions before the CLI `init` command writes it. An incorrect format installs silently broken hooks.
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Live `~/.claude/projects/` JSONL inspection on this machine — JSONL schema, streaming entry behavior (42 null-stop_reason entries verified, 32 showed exactly 8 tokens, true counts ranged 127-964), subagent file path structure confirmed
-- Official Claude Code hooks documentation — SubagentStop payload schema: `session_id` (parent), `agent_id`, `agent_transcript_path`, `agent_type`, `last_assistant_message`, `stop_hook_active`
-- Claude Code minified source — SubagentStop payload construction confirmed: `{...bG(T), hook_event_name:"SubagentStop", stop_hook_active:_, agent_id:B, agent_transcript_path:Wk(B), agent_type:H??"", last_assistant_message:O}`
-- Current `~/.claude/settings.json` — confirmed SubagentStop not currently registered; existing hooks: PreToolUse, PostToolUse, SessionStart only
-- Existing codebase (`server.js`, `db/schema.js`, `lib/writeQueue.js`, `routes/ingest.js`, `hooks/relay.py`, `public/index.html`) — component boundaries, write queue pattern, Fastify v5, ESM module type confirmed
-- npm registry — `chokidar@4.0.3`, `commander@14.0.3`, `open@11.0.0` version requirements, engine constraints, module type compatibility
-- Anthropic pricing docs — model rates for Opus ($15/$75), Sonnet ($3/$15), Haiku ($0.80/$4) input/output per MTok (fetched 2026-02-26)
+- Direct codebase: `frontend/package.json`, `frontend/src/components/ui/tooltip.tsx`, `frontend/src/components/agents/AgentTree.tsx`, `bin/cli.js`, `lib/cmd-start.js`, `routes/api.js`, `db/schema.js`, `frontend/src/pages/LiveDashboard.tsx`, `frontend/src/App.tsx` — all read directly
+- npm registry live endpoint: `GET https://registry.npmjs.org/@darshannere/observagent/latest` — verified returns `{ version: "2.4.0" }`
+- react-joyride GitHub issues #1122, #1124 — React 18/19 incompatibility confirmed
+- driver.js MIT license: `github.com/kamranahmedse/driver.js/blob/master/license` — confirmed
+- radix-ui unified package v1.4.3 — matches installed version in `frontend/package.json`
+- npm/cli GitHub issues #2329, #6179, #6804, #7838 — npx stale cache bug confirmed unresolved as of 2026
+- npm outage January 29, 2026 — getautonoma.com status, confirms version checks must be offline-resilient
 
 ### Secondary (MEDIUM confidence)
-- Competitor analysis (LangSmith, Helicone, AgentOps, Langfuse, Braintrust) — feature table-stakes identification; training knowledge, no live access
-- CDN size verification — d3-hierarchy 15 KB vs vis-network 644 KB vs frappe-gantt 48 KB (curl-verified 2026-02-26)
-- GSD hook ecosystem (`gsd-statusline.js`, `gsd-context-monitor.js`) — statusLine payload schema, context_window.remaining_percentage location confirmed
+- update-notifier npm page — version 7.3.1, ESM-only, 249k weekly downloads, unref'd child process model
+- driver.js npm and docs (driverjs.com) — version 1.4.0, React integration pattern
+- XDG Base Directory Specification — state file path convention
+- Radix UI tooltip accessibility docs — `onFocus` activation requires focusable trigger; portal rendering behavior
+- Flowjam 2025 onboarding best practices — anti-patterns for blocking modal tours
+- onboardjs.com 2026 library comparison — download counts, license status per library
+- Barcelona Code School — localStorage popup-once pattern
+- npm registry internals / dist-tags — edoardoscibona.com
 
-### Tertiary (LOW confidence — validate during implementation)
-- Arize Phoenix patterns — local-first OSS observability; training knowledge, least verified of competitor set
-- Context window size per model (200K assumed for all current Claude models) — should be made configurable; verify against Anthropic docs when building `pricingConfig.js`
+### Tertiary (foundational, no validation needed)
+- Command Line Interface Guidelines (clig.dev) — post-init output pattern, feedback principles
+- IBM Carbon Design System — empty state categories (informational, action-oriented, celebratory)
+- shadcn/ui Charts Tooltip docs — existing stack tooltip documentation
+- Vercel Changelog — in-product changelog modal reference pattern
+- Recharts + Radix tooltip conflict — community-known interaction pattern; prevention is placement outside `ResponsiveContainer`
 
 ---
-*Research completed: 2026-02-26*
+*Research completed: 2026-03-11*
 *Ready for roadmap: yes*

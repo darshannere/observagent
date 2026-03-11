@@ -1,392 +1,413 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** AI Agent Observability — Adding v2.0 Agent Intelligence features to existing ObservAgent platform
-**Researched:** 2026-03-02
-**Confidence:** HIGH — All pitfalls derived from direct codebase inspection (relay.py, costEngine.js, ingest.js, sseClients.js, index.html) and verified against the actual running system.
+**Domain:** Developer Experience — Adding onboarding, version checks, update mechanisms, and in-app guidance to an existing local CLI + React dashboard (ObservAgent v2.5)
+**Researched:** 2026-03-11
+**Confidence:** HIGH — Pitfalls derived from direct codebase inspection (bin/cli.js, lib/cmd-start.js, frontend/src/App.tsx, frontend/src/components/ui/tooltip.tsx), verified npm/npx bug tracker research, and web source cross-referencing.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: relay.py Selective tool_input Capture Leaks Sensitive Data into the Event Stream
-
-**What goes wrong:**
-The v2.0 tool log enrichment feature requires relay.py to forward selective fields from `tool_input` — specifically `command` for Bash, `file_path` for Read/Write/Edit, `pattern` for Glob/Grep, and `description` for Task. The current design correctly strips all of `tool_input` as a security boundary (documented in `[01-02]` decisions). If the v2.0 relay change naively forwards `payload.get("tool_input", {})` without allowlisting specific fields per tool type, the full `tool_input` object will flow through — which for Write/Edit tools contains the complete file content being written, and for Bash contains the full command string (which may include API keys, passwords, or other secrets passed as arguments).
-
-**Why it happens:**
-The simplest implementation of "forward the command field" is `event["command"] = payload.get("tool_input", {}).get("command", "")`. This is safe for Bash since `command` is just the shell string. But a developer adding file enrichment might write `event["content"] = payload.get("tool_input", {}).get("content", "")` — and `content` is the full file body being written, potentially megabytes of source code or config files containing secrets.
-
-**How to avoid:**
-- Define an explicit per-tool allowlist in relay.py: a dict mapping `tool_name` to a list of safe `tool_input` key names to forward
-- The allowlist must be reviewed and approved for each tool type before adding new entries
-- Fields allowed: `Bash → ["command"]`, `Read → ["file_path"]`, `Write → ["file_path"]` (NOT `content`), `Edit → ["file_path"]` (NOT `old_str`, `new_str`), `Glob → ["pattern"]`, `Grep → ["pattern"]`, `Task → ["description"]`
-- Never add `content`, `old_str`, `new_str`, `new_content`, or any field that carries file body content
-- Add a comment in relay.py explicitly listing forbidden fields and why
-
-**Warning signs:**
-- relay.py event payload size increases dramatically (safe fields are short strings; file content fields are kilobytes)
-- Server logs show events with multi-kilobyte JSON bodies
-- Any field name in the forwarded event that matches known Anthropic API write fields: `content`, `new_str`, `new_content`
-
-**Phase to address:** Phase that adds tool log enrichment (relay.py changes)
+These mistakes cause broken features, poor first impressions, or rewrites.
 
 ---
 
-### Pitfall 2: relay.py JSON Parsing Failure on Malformed tool_input Crashes the Relay
+### Pitfall 1: Version Check Blocks or Slows CLI Startup
 
 **What goes wrong:**
-The current relay.py never touches `tool_input` so it cannot fail on malformed tool_input JSON. Once v2.0 adds selective `tool_input` field extraction, any tool_input value that is not a dict (e.g., a string, None, or a nested structure where the expected key holds a non-string type) will either raise a `TypeError` on `.get()` or produce a wrong type that breaks JSON serialization downstream.
-
-The existing `except Exception: pass` catch handles this correctly — but only if the error is raised inside the `try` block. If selective extraction is added after the `try` block (e.g., as a post-processing step), the silent fail guarantee is broken and relay.py will crash with output to stderr, violating the "NEVER write to stdout or stderr" constraint.
+The version check for `npx observagent start` fetches the latest version from `https://registry.npmjs.org/@darshannere/observagent` synchronously or in a way that adds perceptible latency to startup. If the registry is unreachable (offline developer, VPN, corporate proxy, or the npm outage that occurred January 29, 2026), the CLI either hangs waiting for the network call to time out or crashes with an unhandled fetch rejection, blocking the user from starting their session.
 
 **Why it happens:**
-Developers see the `except Exception: pass` at the bottom and assume the entire relay is protected. In practice, code placed after the try/except is not protected. The relay's structure requires all logic to be inside the single try block.
+The simplest version check implementation is `await fetch('https://registry.npmjs.org/...')` placed before `runStart()` in the start command handler. This feels natural but makes the critical startup path dependent on an external network call with unpredictable latency (typically 200–800ms on a good connection, 3000ms+ on timeout).
 
-**How to avoid:**
-- All `tool_input` field extraction must be inside the existing `try` block, not after it
-- Use defensive extraction: `tool_input = payload.get("tool_input") or {}` (not `payload.get("tool_input", {})` alone — the payload field could be `None` explicitly, which would make `.get()` on `None` raise `AttributeError`)
-- Add isinstance guard: `if not isinstance(tool_input, dict): tool_input = {}`
-- Test with edge cases: tool_input=None, tool_input="string", tool_input=[], tool_input={"command": None}
+**Consequences:**
+- Users on slow connections see 3–5 second delay before server starts
+- Offline users get an error or hang instead of the app launching
+- Corporate proxy users get silent failures if the proxy blocks registry access
+- Trust erodes: "ObservAgent made my workflow slower"
 
-**Warning signs:**
-- Relay crashes visible as Python tracebacks appearing in Claude Code terminal output (violates the silent-fail contract)
-- Tool calls in Claude Code appear to pause or behave unexpectedly (non-zero exit from relay)
-- Missing events in ObservAgent dashboard despite active Claude Code session
+**Prevention:**
+- Use the `update-notifier` npm package, which spawns the registry check in an **unref'd child process** — it explicitly does not block the event loop or delay startup
+- The check result is written to a cache file (`~/.config/configstore/<package-name>.json` by default) and read on the *next* invocation, never the current one — users always see the banner one run after the update is available, which is the correct trade-off
+- Set `updateCheckInterval` to 1000 * 60 * 60 * 24 (24 hours) — checking on every run would still add network calls, even if async
+- Never `await` the version check inline; it must fire-and-forget
 
-**Phase to address:** Phase that modifies relay.py for tool log enrichment
+**Detection (warning signs):**
+- `time npx observagent start` shows >500ms before "ObservAgent already running" or server startup message
+- Ctrl+C during startup hangs for 3+ seconds (network timeout accumulating)
+- Any error output mentioning `registry.npmjs.org` before the server port line
+
+**Phase to address:** CLI Version Check Banner phase
 
 ---
 
-### Pitfall 3: relay.py Performance Degrades Below 500ms Budget with Selective Extraction
+### Pitfall 2: npx Caching Serves Stale Version After `npx observagent update`
 
 **What goes wrong:**
-The relay.py has a hard 500ms timeout budget for the entire HTTP POST. Currently it does: read stdin, parse JSON (small payload), build small event dict, POST. Adding selective `tool_input` extraction adds JSON key lookups — negligible. But if the implementation adds any logic that involves string operations on large values (e.g., truncating a long command with `[:200]` using Python string slicing on a 50KB tool_input), or any conditional branching on tool names with isinstance checks, the overhead accumulates per hook invocation.
-
-The danger is not the logic itself but the tool_input payload size. Claude Code's Write tool passes complete file content in `tool_input.content`. Even if the relay only reads `tool_input.file_path`, Python's `json.loads()` still parses the entire payload including the file content. A 500KB file write generates a ~500KB JSON payload that `json.loads()` must process on every PostToolUse hook.
+`npx observagent update` is meant to install the latest version. But `npx` aggressively caches packages. After running the update command, users who subsequently run `npx observagent start` may still invoke the old cached version because npx re-uses the cached binary rather than fetching the newly installed one. This is a documented, long-standing npx bug (open since 2020, unresolved as of 2026 per GitHub issue #2329 and #6179 on npm/cli).
 
 **Why it happens:**
-`json.loads()` is called unconditionally on all of stdin. The existing relay already parses the full payload — it just discards everything except 4 fields. This is safe today because the extracted fields are short. The risk is unchanged for the new feature, but developers may not realize that `json.loads()` cost scales with payload size.
+npx caches executables in `~/.npm/_npx/`. Once cached, it uses the cached version unless forced. The cache key is based on the package specifier, not the resolved version. Running `npm install -g @darshannere/observagent@latest` updates the global install, but subsequent `npx` invocations may still resolve to the cached npx version.
 
-**How to avoid:**
-- The existing `json.loads(raw)` approach is acceptable — no change needed to parsing
-- Do NOT add any string operations that iterate over large field values (e.g., regex search on `tool_input.command` for secret detection — this belongs server-side, not in the relay)
-- Truncate at extraction time: cap forwarded string values at 500 characters maximum to keep the POST body small
-- The 500ms budget is for the full round-trip including network; keep relay processing to under 5ms
+**Consequences:**
+- User runs `npx observagent update`, sees success message, but `npx observagent --version` still shows old version
+- User loses trust in the update command
+- Version mismatch between what dashboard reports and what is actually running
 
-**Warning signs:**
-- Claude Code sessions feel slower after relay.py is updated (tool calls take noticeably longer)
-- Server logs show relay POST timing approaching 400ms+ (server receives request very late in the budget)
-- `observagent doctor` timeout check fires
+**Prevention:**
+- The `update` command should instruct users to run `npm install -g @darshannere/observagent@latest` rather than attempting to self-update via npx — this is the authoritative path when globally installed
+- If the package is not globally installed (pure npx usage), the update command should output: `Run: npx --yes @darshannere/observagent@latest start` (the `--yes` / `-y` flag forces npx to skip the cache and re-fetch)
+- Include a clear post-update verification step: `After updating, run: npx observagent --version to confirm`
+- Do NOT silently run `npm install -g` as part of the update command — this modifies global state the user did not authorize and will fail without appropriate permissions
 
-**Phase to address:** Phase that modifies relay.py
+**Detection (warning signs):**
+- `npx observagent --version` output doesn't change after running the update command
+- Dashboard version badge shows a different version than CLI `--version` output
+- Users report "update said it worked but nothing changed"
+
+**Phase to address:** `npx observagent update` command phase
 
 ---
 
-### Pitfall 4: Context Window % Calculation Uses Only input_tokens — Misses System Prompt and Cache Contributions
+### Pitfall 3: Onboarding Walkthrough Re-Fires on Every Dashboard Load
 
 **What goes wrong:**
-The current `getContextFillPercent()` in costEngine.js computes:
-```js
-const totalInput = lastUsage.inputTokens + lastUsage.cacheReadTokens + lastUsage.cacheWrite5m + lastUsage.cacheWrite1h;
-```
-This uses the *last* usage record's token counts — NOT cumulative totals across the session. This is actually the correct approach for context fill (context window fills based on the current request's total input, not historical totals). However, the ~10% discrepancy noted in STATE.md suggests the calculation is missing a component.
-
-The Anthropic API returns `input_tokens` as the non-cached portion of input. The total context consumed by a request is `input_tokens + cache_read_input_tokens`. Cache write tokens (`cache_creation_input_tokens`) represent newly cached content that is also in the context. Correctly, total context = `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (all cache write tiers). The current code includes `cacheWrite5m + cacheWrite1h` — which is correct per the Anthropic token field mapping. The 10% gap is more likely from Claude Code's display including output tokens as "context used" (since output tokens from prior turns become input in the next turn via conversation history).
+The first-time onboarding walkthrough (step-by-step tour of the Live Dashboard) shows again on every page load because the "has completed onboarding" state is stored in React component state (lost on unmount), stored in a session-only store (Zustand without persistence), or stored in `sessionStorage` (cleared when the tab closes). Since ObservAgent is a local dev tool that users open and close frequently, the walkthrough fires every single session.
 
 **Why it happens:**
-The Anthropic usage fields (`input_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`) represent the *current request's* usage. Claude Code's context fill percentage shown in the statusline includes the accumulated conversation context — which means each turn's output tokens roll forward into the next turn's input tokens. Calculating context fill from a single `lastRecord` misses this accumulation.
+Developers test the onboarding during development by resetting state manually, so the re-fire behavior is never noticed during development. The natural storage layer — the existing Zustand store (`useObservStore`) — has no persistence plugin configured. Writing to it feels complete but the data evaporates on every reload.
 
-**How to avoid:**
-- The correct model: context fill = last request's `input_tokens + cache_read + cache_creation` (all cache tiers), which is what the code already does
-- The ~10% gap is most likely because Claude Code counts system prompt tokens separately and shows them as context used; ObservAgent only sees API-reported tokens
-- Do NOT switch to cumulative sum across messages — that would severely overcount (each message's input already includes all prior context)
-- To fix the discrepancy: add output tokens from the last record to the denominator check, since the model's response tokens also occupy context window during the response generation phase — but this is speculative without confirming the source of the gap
-- Flag the gap with a tooltip on the UI: "ObservAgent context % may differ slightly from Claude Code display — see known limitation"
-- Log the raw `lastRecord` values vs Claude Code display value during a controlled test session to isolate the source
+**Consequences:**
+- Power users are interrupted by a tour they've already dismissed 10 times
+- Users click "dismiss" reflexively and never see the actual content
+- The onboarding tour becomes associated with frustration, not help
 
-**Warning signs:**
-- Context fill bar consistently shows 10-15% less than Claude Code's own statusline percentage
-- Context fill jumps above 100% (indicates the formula counts tokens that shouldn't be counted together)
-- Context fill shows 0% during active session (indicates `lastRecord` is not being passed correctly or is undefined)
+**Prevention:**
+- Store the `onboardingCompleted` flag in `localStorage` keyed to the package version: `observagent_onboarding_v2.5` — this way the tour re-fires on major version upgrades but not on every reload
+- Read the flag in a `useEffect` on mount before rendering the tour; default to `false` (show tour) only if the key is absent
+- The version key must match `package.json` version to allow re-showing on major updates (users benefit from seeing what changed)
+- Provide a persistent "Show tour again" link in the dashboard header for users who want to replay it
 
-**Phase to address:** Phase that implements per-agent detail panel with context fill %
+**Detection (warning signs):**
+- Opening the dashboard in a new browser tab shows the tour (correct behavior only on first-ever use)
+- Tour re-appears after refreshing the page
+- `localStorage` inspection shows no `observagent_onboarding_*` key after completing the tour
+
+**Phase to address:** First-time onboarding walkthrough phase
 
 ---
 
-### Pitfall 5: getContextFillPercent Uses lastRecord Directly — Passes the Per-Record Values Not the Aggregated Cumulative
+### Pitfall 4: Onboarding Tour Targets DOM Elements That May Not Exist Yet
 
 **What goes wrong:**
-In `aggregateSessionCost()`, the final `contextFillPct` is computed from `lastRecord` (the last usage record in the array). `lastRecord` contains per-message token counts for that single API call — not the cumulative session totals. This is correct for context fill (context window is about the current request, not total session tokens). However, when v2.0 builds a per-agent detail panel showing *current* context fill, the code must fetch the last record for *that agent's* JSONL, not for the parent session. Mixing agent records will produce wrong context fill percentages for subagents.
+The onboarding tour (using a library like React Joyride or driver.js) tries to highlight specific DOM elements — the AgentTree panel, the Insights tab button, the ToolLog container — but these elements are conditionally rendered or not yet visible when the tour starts. The tour either shows a highlight around an empty/wrong area or crashes with "target element not found," breaking the entire tour flow.
 
 **Why it happens:**
-`aggregateSessionCost()` operates on all records for a session (parent + subagent combined if not filtered). When per-agent context fill is needed, the call site must pass only that agent's usage records, not the full session's records. The API currently does not distinguish this.
+The Live Dashboard fetches data on mount and conditionally renders panels (agents panel only renders if agents exist, Insights tab is behind a tab switcher). The tour library's step configuration uses CSS selectors (`.agent-tree`, `#insights-tab`) that are not guaranteed to be in the DOM when the tour step triggers.
 
-**How to avoid:**
-- Ensure the per-agent detail panel fetches context fill from `session_cost WHERE session_id = X AND agent_id = Y` — which already has the correct per-agent aggregation from `processFile()`
-- The `cost_update` SSE event already includes `agentId` and `contextFillPct` per-agent — use this path for live updates
-- Never compute context fill by mixing parent session records with subagent records
+**Consequences:**
+- Tour steps appear in wrong positions or with no visible highlight
+- Tour crashes mid-flow and leaves user stranded
+- First impression of the onboarding feature is "broken"
 
-**Warning signs:**
-- Subagent detail panel shows identical context fill % to parent session
-- Context fill for a fresh subagent shows 60%+ immediately (inheriting parent's tokens)
+**Prevention:**
+- Add stable `data-tour="agent-tree"`, `data-tour="insights-tab"` etc. attributes to key dashboard elements — never use class or ID selectors for tour targeting (those can change during refactors)
+- Delay tour start until after the initial data fetch resolves: check that the hydration fetch calls in `LiveDashboard.tsx` have completed before initializing the tour
+- For steps that target conditionally-rendered elements: either always render the element (even if empty) when onboarding is active, or skip steps whose target is not in the DOM with a graceful fallback
+- Test the tour specifically against the empty-state dashboard (no hooks configured, no data yet) since that is exactly the state a new user is in
 
-**Phase to address:** Phase that builds per-agent detail panel
+**Detection (warning signs):**
+- Tour step highlights an empty area of the page
+- Console errors: "Target element not found" or highlight positioned at (0, 0)
+- Tour works in dev environment (seeded data) but breaks for new users (empty DB)
+
+**Phase to address:** First-time onboarding walkthrough phase
 
 ---
 
-### Pitfall 6: DOM Thrash from renderAgentTree() Called on Every SSE Event
+### Pitfall 5: Empty States Are Generic and Miss the Setup Path
 
 **What goes wrong:**
-The current `renderAgentTree()` function completely rebuilds the `#agent-tree-body` container innerHTML on every call. It is called 12 times across SSE event handlers and UI interaction paths (grep confirmed 12 call sites). During an active multi-agent GSD run with 4+ parallel agents, tool call events arrive at several per second. Each event triggers `renderAgentTree()`, which clears and rebuilds the entire DOM subtree for the agent panel. This causes:
-1. Visual flicker on every tool call event
-2. Loss of scroll position in the agent tree panel
-3. Collapsed/expanded state of any accordion nodes gets reset
-4. CSS transition animations restart on every render
+The empty state when no agents or events exist shows a generic "No data yet" message with no actionable guidance. New users stare at a blank dashboard with no indication of why it's empty or what to do next. Since ObservAgent requires hook configuration in `~/.claude/settings.json`, users who haven't run `npx observagent init` will always see the empty state — and the empty state gives them no path forward.
 
 **Why it happens:**
-Full-replace innerHTML rendering is the simplest pattern and works fine at low event rates. At high event rates (GSD multi-agent runs), it becomes a source of flicker and UX regression. This is especially acute for v2.0 which adds collapsible tree nodes — a re-render on every SSE event will collapse any node the user just expanded.
+Empty states are added last as an afterthought. The developer assumes users have read the README. In practice, many users open the dashboard first (from the GitHub page or a link), see nothing, and assume the tool is broken.
 
-**How to avoid:**
-- Decouple data updates from rendering: update the in-memory `agentTree` state on every SSE event, but debounce `renderAgentTree()` calls at 150-200ms
-- OR: switch from full-replace to targeted DOM updates — only update the specific agent row that changed (by `agentId` key), leaving all other rows untouched
-- Preserve expanded/collapsed state in a separate `Set<agentId>` that is not reset on re-render; restore state after each render
-- For v2.0 collapsible tree nodes specifically: the collapsed state MUST survive re-renders — if it doesn't, the feature is broken in practice for any active session
+**Consequences:**
+- New users abandon before running a single agent session
+- Support burden: users ask "why is my dashboard empty?" when the answer is "run init first"
+- Dashboard feels broken, not "waiting for data"
 
-**Warning signs:**
-- Collapsible tree nodes snap closed every few seconds during active agent runs
-- Scroll position in the agent panel jumps to top during active runs
-- Browser Performance profiler shows DOM recalculation spikes on each SSE message
+**Prevention:**
+- The empty state must distinguish two cases: (a) hooks not configured (detectable via `GET /api/config` — no hooks registered) and (b) hooks configured but no sessions yet
+- Case (a): Show "Hooks not configured" with inline steps: `1. Run: npx observagent init  2. Restart Claude Code  3. Start a session` — never leave users without a CTA
+- Case (b): Show "Waiting for your first session" with a brief reminder of what triggers data ("start any Claude Code session")
+- The `/api/config` endpoint already exists and returns hook state — use it to detect which empty state to show
+- Empty state guidance should be context-specific per panel: ToolLog empty ≠ AgentTree empty ≠ Insights empty
 
-**Phase to address:** Phase that adds collapsible agent tree / live updates
+**Detection (warning signs):**
+- New user with unconfigured hooks sees the exact same empty state as a user whose session hasn't started yet
+- Empty state has no button, link, or CLI command
+- Product walkthrough screenshots show a blank panel with no explanation
+
+**Phase to address:** Empty state guidance phase
 
 ---
 
-### Pitfall 7: Two EventSource Connections to /events Create Double-Processing Risk
+### Pitfall 6: Version Check Runs on Every CLI Invocation Including `--help` and `doctor`
 
 **What goes wrong:**
-The current index.html opens two separate `EventSource('/events')` connections: one in `subscribeSSE()` (handles tool log events) and one as `agentEs` (handles agent_spawn, agent_update, cost_update events). Both connections receive every SSE broadcast. The existing code carefully routes by event type — `agentEs.onmessage` only acts on `agent_spawn`, `agent_update`, and cost_update for agents; the other EventSource handles tool log events.
-
-When v2.0 adds new event types (e.g., `tool_detail` for enriched tool data), both EventSource handlers will receive the new events. If the new event type is handled in `subscribeSSE()` but `agentEs.onmessage` also fires and does not guard against the new type, it may cause silent double-processing or incorrect state mutations.
+The version check banner fires on every CLI command, including `npx observagent --help`, `npx observagent doctor`, and `npx observagent init`. For `--help`, users expect instant output; a 500ms pause before help text is jarring. For `doctor`, a version check failure (network error) pollutes the diagnostic output with an unrelated error, making the actual doctor output harder to read.
 
 **Why it happens:**
-The two-EventSource pattern was an expedient solution in Phase 4 to avoid refactoring the existing subscribeSSE handler. It is now technical debt that creates a growing surface for event routing bugs as new event types are added.
+The natural place to add the version check is at the top of `bin/cli.js`, before `program.parse()`. This runs it for all commands. The developer tests against `start` and doesn't notice the impact on `--help` or `doctor`.
 
-**How to avoid:**
-- Before adding any new SSE event types, audit which EventSource handler will process them
-- Add an explicit `if (msg.type === 'X') return;` guard in `agentEs.onmessage` for any event type already handled by the primary EventSource
-- The correct long-term fix is to consolidate into a single EventSource with a dispatch table, but this is a refactor — evaluate whether v2.0 timing allows it
-- If consolidating, do it as a dedicated refactor step before adding new event types — not mid-feature
+**Consequences:**
+- `--help` output feels slow, breaks the expectation of instant CLI help
+- `doctor` output is polluted with version check noise, making diagnosis harder
+- Version check errors on `doctor` create false positives in diagnostic output
 
-**Warning signs:**
-- New SSE event types trigger both EventSource handlers (check by adding `console.log` temporarily)
-- Agent tree state is updated twice per event (flicker appears even with debouncing)
-- Tool log rows appear duplicated when new event types fire
+**Prevention:**
+- Scope the version check to the `start` command only — it is the long-running command where a one-time async notification fits naturally
+- The `update-notifier` check-on-next-run model handles this correctly: the notification prints at the start of `observagent start`, but the network call happens in the background and is not shown until the next invocation
+- Never print the version banner before `--help` output
 
-**Phase to address:** Dashboard refactor / SSE consolidation phase
+**Detection (warning signs):**
+- `time npx observagent --help` shows >300ms elapsed time
+- `npx observagent doctor` output includes version-check errors at the top
+- Any network error message appears before the primary command output
+
+**Phase to address:** CLI Version Check Banner phase
 
 ---
 
-### Pitfall 8: Time Filters on Live Dashboard Filter Out Active Events Before They Appear
+## Moderate Pitfalls
 
-**What goes wrong:**
-Adding time filters (e.g., "last 15 minutes", "last hour") to the live dashboard event log creates a correctness trap: if the filter applies to the in-memory event array used for display, and the filter boundary is evaluated at render time rather than at event-append time, very recent events may transiently fall outside the filter window due to clock skew between client and server.
-
-More critically: if a time filter is applied to the SSE event stream itself (by filtering received events before appending to the DOM), events that arrive slightly after their `timestamp` field (due to processing delay) may be dropped if the filter uses `event.timestamp < Date.now() - windowMs`.
-
-**Why it happens:**
-"Show last 15 minutes" seems simple: filter `events where event.timestamp >= now - 15*60*1000`. But `event.timestamp` is the server's time of ingest, and the SSE delivery adds a few milliseconds. Events at the exact boundary of the window get dropped intermittently. This creates a "sometimes shows, sometimes doesn't" bug that is difficult to reproduce.
-
-**How to avoid:**
-- Apply time filters only to the initial hydration REST call (`GET /api/events?since=...`), not to live SSE events
-- Live SSE events should always be appended to the DOM regardless of time filter — they are by definition current
-- "Last N minutes" filter should control how much history to load on connect, not whether to display events as they arrive
-- Add a clear visual indicator when a time filter is active so users know they are seeing a limited history window
-
-**Warning signs:**
-- Events appear in the log briefly then disappear (filter evaluation timing issue)
-- "Last 15 minutes" filter shows no events even during active session (off-by-one on time boundary)
-- Event count in filtered view is inconsistent between page loads
-
-**Phase to address:** Phase that adds time filters to live dashboard
+Mistakes that degrade the feature but don't break it entirely.
 
 ---
 
-### Pitfall 9: Dashboard Layout Overhaul Breaks the SSE Connection on Panel Re-initialization
+### Pitfall 7: Tooltip z-index Collides With Dashboard Fixed Panels
 
 **What goes wrong:**
-The v2.0 dashboard reorganization (agent hierarchy as primary view, new panel layout) requires changing the grid structure in CSS and moving/replacing panel DOM elements. If the JavaScript init sequence is modified during this refactor, the SSE subscription may be re-initialized after `DOMContentLoaded` has already fired, causing events to be dropped during the initialization window. More dangerously: if the layout overhaul removes or renames the element IDs that SSE event handlers write to (e.g., renames `#agent-tree-body` or removes `#panel-log`), those handlers will silently fail — `document.getElementById()` returns null, and `.appendChild()` on null throws, which is caught by the SSE error handler but drops all subsequent events.
+ObservAgent's dashboard uses fixed-position panels (the sticky header, the agent detail side panel, and the modal-style AgentDetailPanel). The existing `tooltip.tsx` wraps content in a Radix `TooltipPrimitive.Portal` — which renders into `document.body` and sidesteps z-index stacking contexts. However, the chart containers inside the Insights panel and ToolLog panel may have their own stacking contexts (`transform`, `will-change`, `filter` CSS properties create new stacking contexts), causing portal-rendered tooltips to appear behind panel content.
 
 **Why it happens:**
-HTML/CSS changes and JavaScript changes are edited in the same file (index.html). A developer working on the layout can rename an element ID without noticing the JavaScript event handler references it. The error is silent because SSE `onerror` reconnects rather than crashing.
+`portal` rendering into `document.body` generally solves z-index issues, but if the tooltip trigger is inside an element with `transform: translateZ(0)` or `will-change: transform` (common in animated chart libraries like Recharts), a new stacking context is created and the portal output may still appear behind it depending on document order.
 
-**How to avoid:**
-- Before touching any element ID in the HTML, grep the JavaScript section for all usages of that ID
-- The high-risk IDs in index.html: `#agent-tree-body`, `#panel-log`, `#panel-cost`, `#panel-health`, `#cost-bar`, `#ctx-bar`
-- Make layout changes in a dedicated CSS-only step first; verify all JavaScript still works; then add new JS for new features
-- Add element existence assertions in the init function: `const el = document.getElementById('X'); if (!el) throw new Error('Missing #X');` — this causes a visible init failure instead of silent event dropping
-- Run a "regression smoke test" after layout changes: trigger a tool call in Claude Code and verify it appears in the dashboard
+**Prevention:**
+- Test tooltips specifically inside Recharts components (the Insights panel charts already use Recharts): custom tooltip content in Recharts uses a different rendering path than Radix tooltips
+- Use `z-index: 9999` on tooltip content className in `tooltip.tsx` — the current implementation uses `z-50` (Tailwind = z-index: 50) which is likely insufficient inside chart stacking contexts
+- For chart-specific annotations (tooltips on data points), use Recharts' built-in `<Tooltip>` component rather than the Radix tooltip — mixing tooltip systems in the same chart causes event conflicts
 
-**Warning signs:**
-- After layout changes, tool calls in Claude Code do not appear in the dashboard log
-- Console errors: `Cannot read properties of null (reading 'appendChild')`
-- SSE connection shows as open in Network tab but no new rows appear in the log panel
+**Detection (warning signs):**
+- Tooltip appears behind the chart panel when triggered from a chart element
+- Tooltip appears correctly for header icons but not for Insights panel elements
+- Recharts built-in tooltip and a Radix tooltip appear simultaneously for the same hover target
 
-**Phase to address:** Dashboard reorganization phase
+**Phase to address:** Feature tooltips on charts and panels phase
 
 ---
 
-### Pitfall 10: Stale Agent State When Agents Complete During Layout Re-render
+### Pitfall 8: Tooltip Hover-Only Activation Breaks Keyboard Navigation
 
 **What goes wrong:**
-v2.0 adds real-time "current tool" display per agent in the tree. This requires tracking which tool call is in-flight per agent and updating the display on each PreToolUse/PostToolUse event. The risk is a race condition: if an agent completes (SubagentStop fires) between a PreToolUse and its corresponding PostToolUse, the in-progress tool display shows a tool that will never complete. The current stuck-agent detection (60s timeout) partially mitigates this, but a completed agent showing an in-progress tool is immediately confusing to users, not just after 60 seconds.
+Feature tooltips that only activate on `mouseenter` are inaccessible to keyboard users and invisible on touch devices. The current `tooltip.tsx` delegates to Radix's `TooltipPrimitive`, which does support keyboard focus activation — but only if the trigger element is a natively focusable element (`<button>`, `<a>`) or has `tabIndex={0}`. Wrapping a non-interactive element like a `<div>` or an SVG icon in the tooltip trigger without adding `tabIndex` produces a hover-only tooltip.
 
-**Why it happens:**
-The `pendingCalls` Map in ingest.js only tracks at the server level for duration calculation. The frontend's agent tree state tracks tool activity via `agent.lastTool` and `agent.lastActivityTs` but has no concept of "this agent has completed, so any in-progress tool display should be cleared." When `agent_update` with `state: 'completed'` arrives, the frontend updates the agent state but does not clear the current-tool display if a PreToolUse was already rendered.
+**Prevention:**
+- Every tooltip trigger wrapping a non-interactive element must include `tabIndex={0}` and `role="button"` (or use a `<button>` as the trigger)
+- For chart annotation tooltips (e.g., a "?" icon next to a chart title), use `<button className="...">` not `<span>` or `<div>`
+- The existing Radix `TooltipPrimitive` already handles `onFocus` → show and `onBlur` → hide if the trigger is focusable — this is free behavior, not extra work, but requires the trigger to be focusable
 
-**How to avoid:**
-- When processing `agent_update` with `state: 'completed'`, also clear the in-progress tool state for that agent
-- The `agent_update` handler must: `agent.state = 'completed'; agent.currentTool = null; agent.inProgress = false;`
-- The real-time current-tool display should check `agent.state === 'active'` before showing a current tool — if state is 'completed', show nothing or "done"
-- Test specifically: run a subagent task, complete it, verify the agent shows "completed" and no lingering tool name
+**Detection (warning signs):**
+- Tab-navigating through the dashboard skips tooltip triggers
+- Tooltip icon has no visible focus ring
+- Screen reader announces element with no description
 
-**Warning signs:**
-- Completed agents show a tool name in the current-tool display indefinitely
-- Agent tree shows a spinner/in-progress indicator on a completed agent row
-- 60-second stuck-agent warning fires immediately after agent completion (spurious alarm)
-
-**Phase to address:** Phase that adds live current-tool display to agent tree
+**Phase to address:** Feature tooltips phase
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 9: Dashboard "What's New" Page Displays Stale Changelog
 
-Shortcuts that seem reasonable but create long-term problems.
+**What goes wrong:**
+The "What's New" page hardcodes changelog content as JSX or a static string in the frontend bundle. When users install an older version of ObservAgent (e.g., v2.3 while v2.5 is current), they see the v2.3 changelog — correct. But if the page fetches changelog content from a remote URL (GitHub releases API, a CDN-hosted JSON file) to show "what's new in the latest version," and the fetch fails or returns cached data, users see changelog entries for a version they don't have installed yet, or see entries from a previous version.
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Full innerHTML replace in renderAgentTree() | Simple to implement | DOM thrash + lost collapsed state at SSE event rates during active runs | Never for v2.0 collapsible tree — collapsed state must survive re-renders |
-| Two EventSource connections to /events | Avoided Phase 4 refactor | Growing event routing complexity with each new SSE type; risk of double-processing | Acceptable if no new event types added; must consolidate before adding event types |
-| Forwarding full tool_input object from relay.py | Trivially simple extraction | File content, secrets, multi-KB payloads in every event; security violation of established boundary | Never — per-field allowlist is mandatory |
-| Context fill from lastRecord without investigating the 10% gap | Simpler than root-cause analysis | Users compare ObservAgent % to Claude Code % and conclude the tool is broken | Acceptable with a UI tooltip explaining the known discrepancy; not acceptable without the tooltip |
-| Applying time filters to SSE stream (not just initial load) | "Obvious" implementation | Drops boundary events that arrive slightly late | Never — filters apply to history load only, not live stream |
-| Global full-page re-render on layout overhaul | Faster to ship new layout | Breaks SSE wiring on element ID changes; silent failure | Never — make layout changes in CSS-only first pass, verify JS before adding new elements |
+**Why it happens:**
+"What's New" pages often try to be clever by showing the current remote changelog rather than the installed version's changelog. This creates a version mismatch: the page says "new in v2.5" but the user is running v2.4. The opposite failure — fetching remote changelog and showing an error state — leaves the page blank with no changelog at all.
+
+**Prevention:**
+- The safest approach: bundle the changelog as a static asset in the npm package (a `CHANGELOG.json` file included in `package.json` files array), served by the local Fastify server at `/api/changelog`
+- This guarantees: (a) the displayed changelog always matches the installed version, (b) works fully offline, (c) no remote dependency
+- The version badge can still compare `current_installed_version` (from `/api/config`) with `latest_npm_version` (from the background version check cache) without the changelog page needing to be dynamic
+- If showing a remote "latest changes" section is desired, gate it behind a "requires network" warning and show the local changelog as the primary content
+
+**Detection (warning signs):**
+- "What's New" page shows changelog entries for a version higher than `npx observagent --version` output
+- Page is blank when the user is offline
+- Changelog shows v2.4 content when the user is running v2.5
+
+**Phase to address:** Dashboard "What's New" page phase
+
+---
+
+### Pitfall 10: Onboarding Walkthrough Skipped-State Ambiguity
+
+**What goes wrong:**
+Users click "skip" or press Escape to dismiss the tour early. The skip is stored as `completed: true` in localStorage, identical to finishing the full tour. When a future version wants to show "here's what's new" only to users who completed the original tour (to avoid re-triggering for skippers), there is no way to distinguish "skipped at step 2 of 6" from "completed all steps."
+
+**Why it happens:**
+Storing a boolean `completed` flag is the simplest implementation. The distinction between "dismissed" and "completed" is not obvious until you need it.
+
+**Prevention:**
+- Store three states: `{ status: 'not_started' | 'skipped' | 'completed', version: '2.5' }`
+- "Skip" sets `status: 'skipped'`; finishing all steps sets `status: 'completed'`
+- Version upgrades can target only `status: 'completed'` users for delta tours ("here's what changed in v2.6")
+- The localStorage key schema: `observagent_onboarding` = JSON object with `status` and `version` fields
+
+**Detection (warning signs):**
+- After skipping the tour, there is no "Show tour again" path because the dismissed flag looks identical to completed
+- New version tours re-show for users who never wanted them (because skippers look like completers)
+
+**Phase to address:** First-time onboarding walkthrough phase
+
+---
+
+### Pitfall 11: Init Output Guidance Is Immediately Scrolled Off Screen
+
+**What goes wrong:**
+The improved `npx observagent init` output provides detailed post-install steps (restart Claude Code, start a session, etc.), but the guidance is printed at the end of the `init` output after potentially many lines of hook configuration status. On small terminals or terminals with limited scrollback, users miss the guidance entirely because they only see the last few lines.
+
+**Why it happens:**
+The natural structure is: "do things, then summarize." The summary at the bottom gets buried if the earlier output is verbose. Users close the terminal after the first "success" indication and never scroll up to see the guidance.
+
+**Prevention:**
+- Print the "next steps" guidance with a clear visual separator (`\n─────────────────\n`) immediately after the success indicator
+- Consider printing it as the *first* block of output (before the detailed hook configuration log), not last — "here's what will happen, then here's what we did"
+- The most important single line ("Restart Claude Code to activate hooks") must appear in the last 5 lines of output, guaranteed, even if the rest of the log is verbose
+- Use chalk coloring to make the next-steps block visually distinct from the diagnostic output
+
+**Detection (warning signs):**
+- The post-init guidance is more than 15 terminal lines away from the final output line
+- User needs to scroll up after `init` completes to find the "what to do next" instructions
+- Users ask "how do I activate the hooks" after running init (they missed the guidance)
+
+**Phase to address:** Improved `npx observagent init` output phase
+
+---
+
+## Minor Pitfalls
+
+---
+
+### Pitfall 12: Version Badge in Dashboard Shows "unknown" During First Load
+
+**What goes wrong:**
+The dashboard version badge fetches current version from `/api/config` on mount. There is a brief window (typically 200–500ms) while the fetch is in flight where the badge shows "unknown", "...", or `undefined`. If the fetch fails (server not ready), the badge is permanently stuck showing "unknown" with no retry.
+
+**Prevention:**
+- Default the badge to the version string embedded at build time (Vite exposes `import.meta.env.VITE_APP_VERSION` — set this at build time from `package.json`)
+- The `/api/config` response is the authoritative source; use it to update the badge, but the build-time default prevents the flash
+- Add a one-time retry on fetch failure (500ms delay); if it fails twice, show the build-time version with a tooltip "Could not verify server version"
+
+**Phase to address:** Dashboard version badge phase
+
+---
+
+### Pitfall 13: `doctor` Command Overhaul Outputs False Positive When Port Is In Use by Another Process
+
+**What goes wrong:**
+The overhauled `doctor` command checks if the ObservAgent server is running by probing port 4999 (same logic as `cmd-start.js`). If a different process occupies port 4999, `doctor` reports "server running" when ObservAgent is not actually running. The user gets a false "all green" result.
+
+**Prevention:**
+- Port probe should be followed by an HTTP health check: `GET http://localhost:4999/api/config` — only a valid JSON response from ObservAgent's own endpoint confirms it is the actual running server
+- `doctor` must not conflate "port in use" with "ObservAgent is running"
+- The HTTP health check path is already used in the existing `cmd-start.js` indirectly; make it an explicit exported utility function
+
+**Phase to address:** `doctor` command overhaul phase
+
+---
+
+### Pitfall 14: Tooltip Content for Charts Conflicts with Recharts' Built-In Tooltip
+
+**What goes wrong:**
+Adding Radix-based feature tooltips (the "?" explanation popovers) to chart titles or chart container headers while the Recharts `<Tooltip>` component is active inside the same chart creates two tooltip systems competing for the same mouse events. Hovering over a chart data point activates Recharts' built-in tooltip; hovering slightly outside but still within the chart container activates the Radix tooltip. The result is both tooltips visible simultaneously or one suppressing the other unpredictably.
+
+**Prevention:**
+- Feature explanation tooltips must be placed on elements **outside** the Recharts `<ResponsiveContainer>` — on the chart title `<h3>`, a `<button>` next to the title, or in the panel header row
+- Never place a Radix tooltip trigger inside a Recharts chart component
+- The Insights panel's current structure (title row above the `<ResponsiveContainer>`) already provides the correct placement zone
+
+**Phase to address:** Feature tooltips on charts and panels phase
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|----------------|------------|
+| CLI version check banner | Blocking startup on network call | Use `update-notifier` fire-and-forget child process; never `await` version fetch |
+| CLI version check banner | Banner fires on `--help` and `doctor` | Scope to `start` command only |
+| `npx observagent update` command | npx cache serves old version after update | Instruct `npm install -g` or `npx --yes` with `@latest` tag; include verification step |
+| `npx observagent init` output | Next-steps guidance scrolls off screen | Print critical next step in last 5 lines; use visual separator |
+| `doctor` command overhaul | Port probe false positive for non-ObservAgent process on 4999 | Follow port probe with HTTP health check to `/api/config` |
+| Empty state guidance | Generic "no data" message with no CTA | Distinguish hooks-not-configured vs. hooks-configured-but-no-sessions; use `/api/config` hook state |
+| First-time onboarding walkthrough | Re-fires on every page load | Persist `{ status, version }` in `localStorage`; never in Zustand-only state |
+| First-time onboarding walkthrough | Tour targets missing DOM elements | Add stable `data-tour="..."` attributes; delay tour start until hydration completes |
+| First-time onboarding walkthrough | Skip vs. complete ambiguity | Store three-state `{ status: not_started/skipped/completed }` |
+| Feature tooltips on charts | Tooltip behind chart stacking context | Use `z-[9999]` not `z-50`; place triggers outside Recharts container |
+| Feature tooltips on charts | Hover-only, inaccessible to keyboard | Ensure all tooltip triggers are focusable elements or have `tabIndex={0}` |
+| Feature tooltips on charts | Radix + Recharts tooltip conflict | Never place Radix trigger inside `<ResponsiveContainer>`; use chart title row |
+| Dashboard version badge | Flash of "unknown" on first load | Embed build-time version via `VITE_APP_VERSION`; use as default before API responds |
+| Dashboard "What's New" page | Stale or mismatched changelog | Bundle changelog as static asset served by local Fastify; never fetch remote changelog as primary source |
 
 ---
 
 ## Integration Gotchas
 
-Common mistakes when connecting v2.0 features to the existing system.
+Common mistakes when wiring the v2.5 DX features into the existing ObservAgent codebase.
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| relay.py tool_input extraction + existing security boundary | Adding `event["content"] = payload["tool_input"]["content"]` for Write enrichment | Allowlist only: `["command"]` for Bash, `["file_path"]` for Read/Write/Edit, `["pattern"]` for Glob/Grep, `["description"]` for Task — never content fields |
-| relay.py new fields + ingest.js validation | ingest.js naively passes new relay fields directly to SQLite insert | ingest.js must explicitly extract and validate new relay fields; never pass raw relay body to DB without field-level gating |
-| renderAgentTree() + new collapsible state | Calling renderAgentTree() directly from SSE handler | Always debounce at 150ms; read collapsed state from a separate Set before render; restore after render |
-| Two EventSource + new SSE event types | New event type fires in both EventSource handlers | Audit both handlers; add explicit guard in agentEs for any event type owned by subscribeSSE(), and vice versa |
-| Time filter + SSE live stream | Filter received SSE events by timestamp | Filter only the initial history load via REST query params; live SSE events are always displayed |
-| Layout overhaul + existing JS event handlers | Renaming element IDs in HTML | Grep all JS for old ID before renaming; add existence assertions in init |
-| contextFillPct per-agent + aggregateSessionCost | Passing combined parent+subagent records to aggregateSessionCost for per-agent display | Per-agent context fill comes from `session_cost WHERE agent_id = Y` — already computed correctly by processFile() per agent |
-
----
-
-## Performance Traps
-
-Patterns that work at small scale but fail as usage grows.
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| renderAgentTree() on every SSE event | Tree flickers, collapsed nodes snap open, scroll resets | Debounce at 150ms; track collapsed state externally | GSD runs with 4+ parallel agents (~5 events/sec) |
-| relay.py parsing 500KB+ JSON on file Write events | Tool calls slow during large file writes | Already unavoidable with json.loads() — cap forwarded field values at 500 chars | Write tool calls with files >100KB |
-| Full DOM rebuild of agent tree for "current tool" updates | Flickering current-tool label during rapid Bash/Read sequences | Targeted DOM update: only change the tool label cell for the affected agentId | Any agent running more than 1 tool call per second |
-| un-debounced context fill re-calculation on every cost_update SSE | CPU spike on every JSONL file change during active session | costEngine already debounces at 300ms at JSONL layer; ensure frontend renders contextFillPct only on state change | Sessions where JSONL updates faster than 5 changes/sec |
-| Loading all events for time filter calculation client-side | Large history loads for "last 15 min" filter on sessions with 1000+ events | Push time filtering to SQL query: `WHERE timestamp >= ?`; never load full history then filter in JS | Sessions > 200 tool calls |
+| Integration Point | Common Mistake | Correct Approach |
+|-------------------|----------------|------------------|
+| Version check + `cmd-start.js` | Adding `await fetch(registry)` before `runStart()` | Use `update-notifier` package — checks in child process, prints cached result from *previous* run |
+| Onboarding + Zustand store (`useObservStore`) | Storing `onboardingCompleted` in Zustand without persistence | Use `localStorage` directly; Zustand store is in-memory only and resets on page load |
+| Onboarding + LiveDashboard hydration | Starting tour before `fetch('/api/events')` and `fetch('/api/agents')` resolve | Gate tour start on hydration completion; use a `hydrated` boolean state flag |
+| Tooltip + Recharts | Placing Radix `<TooltipTrigger>` inside `<AreaChart>` or `<BarChart>` | Place triggers in the chart header row, above the `<ResponsiveContainer>` |
+| Tooltip + Tailwind z-index | Using `z-50` (Tailwind default) for tooltip content | Use `z-[9999]` for tooltip content to clear dashboard stacking contexts |
+| Empty state + `/api/config` | Generic "no data" message regardless of hook status | Fetch `/api/config` and branch: hooks absent → show init instructions; hooks present → show "waiting for session" |
+| Version badge + Vite build | Hardcoding version string in React component | Read from `import.meta.env.VITE_APP_VERSION` (set via `define` in `vite.config.ts`) |
+| `update` command + npx cache | Running `npm install -g` silently as part of update | Print explicit instructions; do not silently mutate global npm state |
+| `doctor` + port check | Treating port occupied = server running | Follow TCP port check with HTTP `GET /api/config` response validation |
+| Init output + terminal scrollback | Verbose hook config log buries next-steps guidance | Print next-steps guidance in the last 5 lines; use `chalk` visual separator |
 
 ---
 
-## Security Mistakes
-
-Domain-specific security issues beyond general web security.
+## Security Mistakes Specific to v2.5
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Forwarding file content fields from tool_input (content, new_str, old_str) | Complete source code and config file contents stored in ObservAgent DB and served via /api/events | Per-tool allowlist in relay.py: only field names that are metadata (file_path, command summary, task description), never body content |
-| Truncating command strings without sanitizing | Truncated command may still contain partial API keys or passwords | Cap at 500 chars AND apply a simple redaction pattern for common secret patterns (AWS_ACCESS_KEY, ANTHROPIC_API_KEY env var assignments) — or simply omit command entirely from the forwarded payload if security is uncertain |
-| Expanding SSE broadcast to include tool detail | tool_detail events now contain command strings; if server is accidentally bound to 0.0.0.0, commands are broadcast externally | Server already binds to 127.0.0.1 only; verify this is not changed during v2.0 work; add `observagent doctor` check |
-| Time filter query with user-controlled date parameters | SQL injection via date_from/date_to parameters in /api/sessions or /api/events | Use parameterized queries (already the pattern in api.js); never interpolate date strings into SQL; validate format is ISO date before passing to query |
-
----
-
-## UX Pitfalls
-
-Common user experience mistakes in this domain.
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Context fill bar changes value visibly while filter is active | User sees context at 45%, applies "last hour" filter, bar jumps to different % — confusing | Context fill should always show current session's live value regardless of time filter state; filter controls history log, not the health indicators |
-| Collapsible agent tree collapses all nodes on page reconnect (SSE reconnect after disconnect) | User had tree expanded to see a specific subagent; network hiccup collapses everything | Store expanded-node state in localStorage keyed by agentId; restore on SSE reconnect |
-| "Active agents only" filter hides agents that just completed but whose cost data user needs | User runs GSD, all agents complete, switches to "active only" view — cost panel goes blank | "Active only" filter applies to agent tree display only; cost and context metrics always show the most recent session totals |
-| Time filter label "last 15 min" is ambiguous on a live dashboard | Is it "last 15 minutes of history" or "hide events older than 15 min"? | Label clearly: "Show history: last 15m | 1h | today | all" — makes clear this is a history window, not a live filter |
-| Agent hierarchy shows only tool events — no indication of what each agent was asked to do | "Task agent abc123" tells the user nothing about what the agent is working on | Show the Task `description` field (forwarded from relay.py per the allowlist) as the agent's subtitle in the tree |
-
----
-
-## "Looks Done But Isn't" Checklist
-
-Things that appear complete but are missing critical pieces.
-
-- [ ] **relay.py tool_input extraction:** Verify the event POST body does NOT contain `content`, `new_str`, `new_content`, `old_str` fields — check with a Write tool call and inspect the server-received body in logs
-- [ ] **Collapsible agent tree:** Verify that triggering 5 rapid tool call events does NOT collapse a manually-expanded node — test during an active GSD run
-- [ ] **Context fill % per-agent:** Verify that a fresh subagent shows a context fill based on its own JSONL (not the parent's) — create a subagent, compare its reported % to what the parent session shows
-- [ ] **Time filter on live dashboard:** Verify that events arriving during an active session are displayed regardless of the selected time filter — apply "last 5 min" filter, then trigger tool calls and confirm they appear
-- [ ] **Layout overhaul:** Verify all working v1.0 features still function after grid/panel changes — run checklist: cost updates visible, tool log populates, agent tree updates, health panel refreshes
-- [ ] **SSE event routing with new event types:** Verify new event types are processed exactly once — add `console.log` temporarily and confirm each new event type logs exactly one line per SSE message received
-- [ ] **Stale agent current-tool display:** Verify that a completed agent shows no in-progress tool indicator — run a subagent to completion and confirm the tree row shows "completed" state with no tool label
-
----
-
-## Recovery Strategies
-
-When pitfalls occur despite prevention, how to recover.
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| relay.py forwards file content accidentally | HIGH — data in DB and SSE history | Immediately: revert relay.py to exclude the field; the DB events table has no GDPR delete path today — add a `DELETE FROM events WHERE ...` admin endpoint if this occurs |
-| DOM thrash breaks collapsed state | LOW | Add debounce + external state tracking in a single JS change; no data loss |
-| Context fill calculation incorrect | LOW | Fix formula in costEngine.js + clear and re-process JSONL files; no data loss |
-| Time filter drops live events | LOW-MEDIUM | Move filter application from SSE handler to history load query; live events never filtered again |
-| Layout overhaul breaks SSE wiring | MEDIUM | Revert HTML ID rename; re-grep all JS usages before retrying; 30-60min debug time |
-| Double EventSource processing new event type | LOW | Add guard clause in the non-owning handler; test with console.log; 15min fix |
-
----
-
-## Pitfall-to-Phase Mapping
-
-How roadmap phases should address these pitfalls.
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| relay.py sensitive field leakage | Tool log enrichment phase (relay.py changes) | Inspect POST body for Write tool call — confirm no `content` field present |
-| relay.py crash on malformed tool_input | Tool log enrichment phase (relay.py changes) | Test relay.py directly with `echo '{"tool_input": null}' \| python3 relay.py` — confirm exits 0 silently |
-| relay.py 500ms budget impact | Tool log enrichment phase | Time relay execution with large payload: `time echo '<500KB JSON>' \| python3 relay.py` |
-| Context fill % discrepancy | Per-agent detail panel phase | Side-by-side comparison: ObservAgent % vs Claude Code statusline during same session |
-| getContextFillPercent uses per-agent records | Per-agent detail panel phase | Subagent shows different context fill than parent session |
-| DOM thrash on renderAgentTree | Agent tree redesign phase | Stress test: 5 events/sec for 30 seconds; confirm collapsed nodes stay collapsed |
-| Two EventSource double-processing | SSE consolidation / new event type addition | console.log each event type; confirm each type fires exactly once per SSE message |
-| Time filter drops live events | Time filter implementation phase | Apply filter; trigger tool call; confirm it appears in live log |
-| Layout overhaul breaks SSE wiring | Dashboard reorganization phase | After CSS changes: trigger tool call, verify log row appears without page reload |
-| Stale current-tool on agent completion | Agent tree live-update phase | Complete a subagent; verify tree row shows 'completed' state, no tool label |
+| Fetching latest version from npm registry on every CLI invocation | Leaks user's IP address and tool usage frequency to npm/CDN logs on every command | Use `update-notifier`'s 24-hour cache; one network call per day maximum |
+| Changelog page fetching from a remote URL | Establishes unexpected network call from local tool; could leak installed version info in User-Agent headers | Bundle changelog as local static file; only make remote calls for the already-accepted version-check notification |
+| `npx observagent update` downloading and executing arbitrary npm packages | Standard supply chain risk amplified by the "update" framing | Instruct to use `npm install -g @darshannere/observagent@latest` directly so the user sees exactly what is being installed; no silent install |
 
 ---
 
 ## Sources
 
-- **Direct codebase inspection — relay.py** (HIGH confidence): Confirmed current security boundary (no tool_input forwarded), all logic inside try block, 500ms timeout constant, silent fail guarantee
-- **Direct codebase inspection — costEngine.js** (HIGH confidence): Confirmed getContextFillPercent uses lastRecord (per-call, not cumulative), formula includes inputTokens + cacheReadTokens + cacheWrite5m + cacheWrite1h but NOT outputTokens; output_tokens tracked separately for cost but not context fill
-- **Direct codebase inspection — index.html** (HIGH confidence): Confirmed 12 renderAgentTree() call sites (grep count), two EventSource connections, IS_REPLAY guard pattern, no current time filter implementation
-- **Direct codebase inspection — ingest.js** (HIGH confidence): Confirmed pendingCalls Map at module scope, SubagentStop handler clears agent state, setImmediate 202-before-write guarantee
-- **Direct codebase inspection — sseClients.js** (HIGH confidence): Confirmed broadcast() iterates all clients synchronously, no per-event filtering
-- **STATE.md accumulated decisions** (HIGH confidence): [01-02] confirms metadata-only relay security boundary; [v2.0] decision confirms selective tool_input fields planned; note confirms ~10% context discrepancy is an open issue
+- **Direct codebase inspection — bin/cli.js** (HIGH confidence): Commander setup; all commands defined; no current version check or update command
+- **Direct codebase inspection — lib/cmd-start.js** (HIGH confidence): Port probe logic confirmed; startup flow is synchronous before server launch; network call here would block
+- **Direct codebase inspection — frontend/src/App.tsx** (HIGH confidence): Two routes (`/live`, `/history`); no onboarding route or version badge component exists yet; confirms v2.5 features are net-new
+- **Direct codebase inspection — frontend/src/components/ui/tooltip.tsx** (HIGH confidence): Radix `TooltipPrimitive.Portal` confirmed; `z-50` class on content; `sideOffset=0` default — confirmed z-index risk with chart stacking contexts
+- **Direct codebase inspection — frontend/src/pages/LiveDashboard.tsx** (HIGH confidence): Async fetch hydration pattern confirmed; tour must gate on hydration; no `data-tour` attributes present yet
+- **npm/cli GitHub issues — npx caching** (HIGH confidence — multiple open issues): Issue #2329, #6179, #6804, #7838 confirm npx cache-serving-stale-version is a persistent unresolved problem; `--yes` flag workaround confirmed
+- **update-notifier npm package** (HIGH confidence): Unref'd child process model confirmed; 24-hour interval default; cache-on-next-run model confirmed — correct pattern for non-blocking version checks
+- **npm rate limiting** (MEDIUM confidence — official npm blog): HTTP 429 documented; anonymous requests rate-limited at lower threshold; relevant for users on shared CI/NAT IPs
+- **Radix UI tooltip accessibility docs** (HIGH confidence via web): `onFocus` activation requires focusable trigger; portal rendering confirmed to sidestep most z-index stacking contexts but not all (transform/will-change boundaries)
+- **Recharts + Radix tooltip conflict** (MEDIUM confidence — community pattern): Known interaction issue; prevention is placement outside `ResponsiveContainer`, not z-index
+- **onboardjs.com comparison 2026, userguiding.com** (MEDIUM confidence): localStorage persistence as standard for first-time user detection; version-keyed storage pattern is community best practice
+- **npm outage January 29, 2026** (HIGH confidence — getautonoma.com status): Real outage documented; confirms version checks must be resilient to registry unavailability
 
 ---
-*Pitfalls research for: ObservAgent v2.0 Agent Intelligence — adding enriched tool logs, context calculation, agent tree redesign, dashboard reorganization, time filters to existing system*
-*Researched: 2026-03-02*
+
+*Pitfalls research for: ObservAgent v2.5 Developer Experience — adding version checks, update command, onboarding walkthrough, empty states, feature tooltips, and changelog display to existing local CLI + React dashboard*
+*Researched: 2026-03-11*
