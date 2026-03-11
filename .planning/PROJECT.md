@@ -10,6 +10,25 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 
 ---
 
+## Current Milestone: v2.5 Developer Experience
+
+**Goal:** Make ObservAgent dramatically easier to install, understand, and stay up-to-date with — reducing friction from first install to first insight.
+
+**Target features:**
+- Improved `npx observagent init` output with clear post-install guidance
+- `doctor` command overhaul — diagnose and explain hook failures
+- Hook activation detection with actionable fix instructions
+- README / docs full first-run walkthrough
+- Empty state guidance in the dashboard (no data yet screens)
+- Feature tooltips on charts and panels
+- First-time onboarding walkthrough in the dashboard
+- CLI startup version-check banner
+- Dashboard version badge with changelog link
+- `npx observagent update` command with inline changelog
+- Dashboard "What's New" page
+
+---
+
 ## v2.1 Shipped ✅
 
 **Shipped:** 2026-03-10
@@ -99,9 +118,19 @@ See exactly which agent is doing what, how much it costs, and whether it's healt
 - ✓ INSG-06 — per-tool latency chart (p50/p95 bars) — v2.1
 - ✓ INSG-07 — stalled agents indicator with live badge — v2.1
 
-### Active (v2.2+)
+### Active (v2.5)
 
-_(Start next milestone with `/gsd:new-milestone` to define requirements)_
+- [ ] Improved `npx observagent init` output with clear post-install guidance
+- [ ] `doctor` command overhaul — diagnose and explain hook failures with actionable fixes
+- [ ] Hook activation detection and guidance
+- [ ] README / docs full first-run walkthrough
+- [ ] Empty state guidance in the dashboard
+- [ ] Feature tooltips on charts and panels
+- [ ] First-time onboarding walkthrough in the dashboard
+- [ ] CLI startup version-check banner
+- [ ] Dashboard version badge with changelog link
+- [ ] `npx observagent update` command with inline changelog
+- [ ] Dashboard "What's New" page
 
 ### Out of Scope
 
@@ -153,4 +182,4 @@ _(Start next milestone with `/gsd:new-milestone` to define requirements)_
 
 ---
 
-*Last updated: 2026-03-10 after v2.1 milestone completion*
+*Last updated: 2026-03-11 after v2.5 milestone start*
