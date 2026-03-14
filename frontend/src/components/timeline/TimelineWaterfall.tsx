@@ -4,13 +4,13 @@ import type { ToolEvent } from '@/types'
 
 function getToolColor(toolName: string): string {
   const name = toolName.toLowerCase()
-  if (name === 'read') return '#3b82f6'       // blue
-  if (name === 'write') return '#a855f7'      // purple
-  if (name === 'bash') return '#f97316'       // orange
-  if (name === 'edit' || name === 'multiedit') return '#14b8a6' // teal
-  if (name === 'glob' || name === 'grep') return '#06b6d4'      // cyan
-  if (name === 'task') return '#eab308'       // yellow
-  return '#6b7280'                            // gray default
+  if (name === 'read') return '#00d4ff'
+  if (name === 'write') return '#00ffb2'
+  if (name === 'bash') return '#ff7b2b'
+  if (name === 'edit' || name === 'multiedit') return '#00e887'
+  if (name === 'glob' || name === 'grep') return '#00d4ff'
+  if (name === 'task') return '#ff7b2b'
+  return '#1e3a5a'
 }
 
 interface SwimlaneEvent {
@@ -59,7 +59,7 @@ export function TimelineWaterfall() {
         {xLabels.map(({ pct, label }) => (
           <span
             key={pct}
-            className="absolute text-[10px] text-muted-foreground -translate-x-1/2"
+            className="absolute text-[10px] text-[#3d5a7a] font-mono -translate-x-1/2"
             style={{ left: `${pct}%` }}
           >
             {label}
@@ -77,10 +77,10 @@ export function TimelineWaterfall() {
 
         return (
           <div key={sessionId} className="flex items-center gap-2 mb-1 group">
-            <div className="w-20 shrink-0 text-muted-foreground truncate font-mono text-[10px] text-right">
+            <div className="w-20 shrink-0 text-[#3d5a7a] truncate font-mono text-[10px] text-right">
               {sessionId.slice(-8)}
             </div>
-            <div className="relative flex-1 h-5 bg-muted/30 rounded">
+            <div className="relative flex-1 h-5 bg-[rgba(0,212,255,0.04)] rounded border border-[rgba(0,212,255,0.08)]">
               {bars.map(({ event, leftPct, widthPct }) => (
                 <div
                   key={event.id}
