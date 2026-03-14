@@ -38,32 +38,47 @@
   --color-green: var(--green);
   --color-yellow: var(--yellow);
   --color-red: var(--red);
+  --color-cyan: var(--cyan);
+  --color-lime: var(--lime);
+  --color-amber: var(--amber);
+  --color-dim: var(--dim);
+  --color-card-bg: var(--card-bg);
+  --color-glow-c: var(--glow-c);
+  --color-glow-l: var(--glow-l);
 }
 
 @layer base {
   :root {
     --radius: 0.375rem;
-    --background: oklch(0.12 0.01 230);
-    --foreground: oklch(0.88 0.01 215);
-    --card: oklch(0.14 0.01 230);
-    --card-foreground: oklch(0.88 0.01 215);
-    --popover: oklch(0.14 0.01 230);
-    --popover-foreground: oklch(0.88 0.01 215);
-    --primary: oklch(0.88 0.01 215);
-    --primary-foreground: oklch(0.14 0.01 230);
-    --secondary: oklch(0.22 0.01 220);
-    --secondary-foreground: oklch(0.88 0.01 215);
-    --muted: oklch(0.28 0.01 220);
-    --muted-foreground: oklch(0.58 0.01 215);
-    --accent: oklch(0.22 0.01 220);
-    --accent-foreground: oklch(0.88 0.01 215);
-    --destructive: oklch(0.65 0.2 22);
-    --border: oklch(0.28 0.01 220);
-    --input: oklch(0.28 0.01 220);
-    --ring: oklch(0.58 0.01 215);
-    --green: oklch(0.72 0.15 145);
-    --yellow: oklch(0.68 0.18 60);
-    --red: oklch(0.65 0.2 22);
+    --background: #030811;
+    --foreground: #c8dae8;
+    --card: #06101e;
+    --card-foreground: #c8dae8;
+    --popover: #06101e;
+    --popover-foreground: #c8dae8;
+    --primary: #00ffb2;
+    --primary-foreground: #030811;
+    --secondary: rgba(0,212,255,0.08);
+    --secondary-foreground: #00d4ff;
+    --muted: #0a1828;
+    --muted-foreground: #3d5a7a;
+    --accent: rgba(0,212,255,0.06);
+    --accent-foreground: #00d4ff;
+    --destructive: #ff4d4d;
+    --border: rgba(0,212,255,0.12);
+    --input: rgba(0,212,255,0.12);
+    --ring: #00d4ff;
+    --green: #00e887;
+    --yellow: #ff7b2b;
+    --red: #ff4d4d;
+    /* New accent tokens */
+    --cyan:    #00d4ff;
+    --lime:    #00ffb2;
+    --amber:   #ff7b2b;
+    --dim:     #1e3a5a;
+    --card-bg: rgba(3,12,28,0.75);
+    --glow-c:  rgba(0,212,255,0.4);
+    --glow-l:  rgba(0,255,178,0.4);
   }
 
   * {
@@ -73,8 +88,32 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: 'Inter', sans-serif;
     margin: 0;
     min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: 'Syne', sans-serif; }
+  .font-mono    { font-family: 'JetBrains Mono', monospace; }
+}
+
+@layer components {
+  .panel {
+    background: rgba(3,12,28,0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,212,255,0.12);
+    box-shadow: inset 0 1px 0 rgba(0,212,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 9px 14px;
+    background: rgba(0,212,255,0.05);
+    border-bottom: 1px solid rgba(0,212,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 }
