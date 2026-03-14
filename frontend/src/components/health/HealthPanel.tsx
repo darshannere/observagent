@@ -40,9 +40,9 @@ export function HealthPanel() {
       {/* SSE connection */}
       <div className="flex items-center gap-2">
         <span
-          className={['h-2 w-2 rounded-full shrink-0', sseConnected ? 'bg-green-400' : 'bg-red-500'].join(' ')}
+          className={['h-2 w-2 rounded-full shrink-0', sseConnected ? 'bg-[#00e887]' : 'bg-[#ff4d4d]'].join(' ')}
         />
-        <span className={sseConnected ? 'text-green-400' : 'text-red-400'}>
+        <span className={sseConnected ? 'text-[#00e887]' : 'text-[#ff4d4d]'}>
           {sseConnected ? 'Connected' : 'Disconnected'}
         </span>
       </div>
@@ -51,31 +51,31 @@ export function HealthPanel() {
       <div className="flex flex-col gap-0.5">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Last event</span>
-          <span className="tabular-nums">{lastEventAgo}</span>
+          <span className="tabular-nums text-[#00d4ff]">{lastEventAgo}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total calls</span>
-          <span className="tabular-nums">{health?.totalCalls ?? 0}</span>
+          <span className="tabular-nums text-[#00d4ff]">{health?.totalCalls ?? 0}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Errors</span>
-          <span className="tabular-nums">{health?.errorCount ?? 0}</span>
+          <span className={`tabular-nums ${(health?.errorCount ?? 0) > 0 ? 'text-[#ff7b2b]' : 'text-[#00d4ff]'}`}>{health?.errorCount ?? 0}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Error rate</span>
-          <span className="tabular-nums">
+          <span className="tabular-nums text-[#00d4ff]">
             {((health?.errorRate ?? 0) * 100).toFixed(1)}%
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Uptime</span>
-          <span className="tabular-nums">
+          <span className="tabular-nums text-[#00d4ff]">
             {uptime !== null ? formatUptime(uptime) : '—'}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Hook status</span>
-          <span className="text-green-400">Installed</span>
+          <span className="text-[#00e887]">Installed</span>
         </div>
       </div>
     </div>
