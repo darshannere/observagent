@@ -245,7 +245,7 @@ export function HistoryPage() {
 
       {/* Error state */}
       {error && (
-        <div className="text-red-400 text-sm font-mono">Error: {error}</div>
+        <div className="text-[#ff4d4d] text-sm font-mono">Error: {error}</div>
       )}
 
       {/* Empty state */}

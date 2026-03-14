@@ -172,7 +172,7 @@ export function LiveDashboard() {
                   className={[
                     'px-2 py-0.5 rounded text-[10px] font-medium transition-colors border',
                     timeFilter === value
-                      ? 'bg-primary text-primary-foreground border-primary'
+                      ? 'bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2]'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
                   ].join(' ')}
                 >
