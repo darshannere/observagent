@@ -30,7 +30,9 @@ export function PromptTab({ data }: { data: AgentDetail }) {
   const totalInput = data.tokenBreakdown.reduce((sum, r) => sum + r.input_tokens, 0)
   const contextPct = Math.min(100, Math.round((totalInput / CONTEXT_WINDOW) * 100))
   const barColor =
-    contextPct > 80 ? 'bg-red-500' : contextPct > 60 ? 'bg-yellow-500' : 'bg-green-500'
+    contextPct > 80
+      ? 'bg-red-500'
+      : 'bg-gradient-to-r from-[#00d4ff] to-[#00ffb2]'
 
   return (
     <div className="p-3 flex flex-col gap-3">
@@ -91,7 +93,7 @@ function truncate(text: string, max = 500): { text: string; truncated: boolean }
 function ToolUseBlock({ block }: { block: ContentBlock }) {
   const inputStr = block.input ? JSON.stringify(block.input).slice(0, 100) : ''
   return (
-    <div className="text-[10px] font-mono bg-blue-950/40 text-blue-300 rounded px-1.5 py-0.5 truncate">
+    <div className="text-[10px] font-mono bg-[rgba(0,212,255,0.06)] text-[#00d4ff] rounded px-1.5 py-0.5 truncate">
       [{block.name}] {inputStr}
     </div>
   )
@@ -125,7 +127,7 @@ function TurnRow({ turn }: { turn: ConversationTurn }) {
       <div
         className={[
           'max-w-[95%] rounded px-2 py-1.5 flex flex-col gap-1',
-          isUser ? 'bg-primary/10 text-foreground' : 'bg-muted/30 text-foreground',
+          isUser ? 'bg-[rgba(0,255,178,0.06)] text-foreground' : 'bg-[rgba(0,212,255,0.04)] text-foreground',
         ].join(' ')}
       >
         {turn.content.map((block, i) => {
