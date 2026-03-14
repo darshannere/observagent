@@ -44,12 +44,12 @@ export function AgentDetailPanel() {
   return (
     <div
       className={[
-        'fixed top-0 right-0 h-screen w-80 bg-background border-l border-border flex flex-col z-50 transition-transform duration-200',
+        'fixed top-0 right-0 h-screen w-80 bg-[rgba(3,12,28,0.9)] border-l border-[rgba(0,212,255,0.18)] flex flex-col z-50 transition-transform duration-200',
         selectedAgent ? 'translate-x-0' : 'translate-x-full',
       ].join(' ')}
     >
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
+      <div className="panel-header shrink-0 flex items-center justify-between">
         <span className="font-mono text-sm font-semibold truncate">{agentLabel}</span>
         <button
           onClick={() => setSelectedAgent(null)}
@@ -69,8 +69,8 @@ export function AgentDetailPanel() {
             className={[
               'flex-1 px-2 py-1.5 text-xs font-medium border-b-2 transition-colors',
               activeTab === tab.id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
+                ? 'border-[#00ffb2] text-[#00ffb2]'
+                : 'border-transparent text-[#3d5a7a] hover:text-foreground',
             ].join(' ')}
           >
             {tab.label}
