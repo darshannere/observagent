@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useSearchParams, Link } from 'react-router'
 import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
 import type { TimeFilter } from '@/store/useObservStore'
@@ -111,6 +111,33 @@ export function LiveDashboard() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+      {/* TopBar */}
+      <div className="shrink-0 flex items-center gap-3 px-3 py-2 bg-[rgba(3,8,17,0.9)] backdrop-blur-xl border-b border-[rgba(0,212,255,0.15)]">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#00ffb2] shadow-[0_0_8px_#00ffb2] animate-pulse shrink-0" />
+          <span className="font-display font-extrabold text-sm text-white">
+            Observ<span className="text-[#00ffb2]">Agent</span>
+          </span>
+        </div>
+        {/* LIVE badge */}
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[rgba(0,255,178,0.08)] border border-[rgba(0,255,178,0.25)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00ffb2] animate-pulse" />
+          <span className="font-mono text-[10px] text-[#00ffb2] uppercase tracking-widest">Live</span>
+        </div>
+        {/* Nav tabs */}
+        <div className="ml-auto flex items-center gap-1">
+          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-[#00d4ff] bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.18)]">
+            Live
+          </span>
+          <Link
+            to="/history"
+            className="font-mono text-[10px] px-2.5 py-1 rounded text-[#3d5a7a] hover:text-[#00d4ff] transition-colors"
+          >
+            History
+          </Link>
+        </div>
+      </div>
       {/* Replay banner */}
       {isReplay && (
         <div className="shrink-0 bg-yellow-900/50 border-b border-yellow-700 px-4 py-1.5 text-yellow-300 text-sm font-medium">
@@ -125,10 +152,10 @@ export function LiveDashboard() {
           className="shrink-0 border-r border-border flex flex-col overflow-y-auto"
           style={{ flexBasis: '35%', minWidth: '200px', maxWidth: '400px' }}
         >
-          <div className="px-2 py-1.5 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
+          <div className="px-2 py-1.5 border-b border-border text-[9px] uppercase tracking-widest text-[#1e3a5a] font-mono flex items-center gap-1.5">
             Agents
             {activeAgentCount > 0 && (
-              <span className="ml-auto rounded-full bg-green-600 px-1.5 py-0.5 text-[9px] font-bold text-white leading-none">
+              <span className="ml-auto rounded-full bg-[rgba(0,255,178,0.12)] border border-[rgba(0,255,178,0.30)] px-1.5 py-0.5 text-[9px] font-mono text-[#00ffb2] leading-none">
                 {activeAgentCount} active
               </span>
             )}
@@ -168,8 +195,8 @@ export function LiveDashboard() {
                 className={[
                   'px-4 py-1.5 text-xs font-medium capitalize border-b-2 transition-colors',
                   activeTab === tab
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                    ? 'border-[#00d4ff] text-[#00d4ff]'
+                    : 'border-transparent text-[#3d5a7a] hover:text-foreground',
                 ].join(' ')}
               >
                 {tab === 'log' ? 'Log' : tab === 'timeline' ? 'Timeline' : 'Insights'}
