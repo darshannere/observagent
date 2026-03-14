@@ -75,7 +75,7 @@ export function CostPanel() {
         <div className="text-muted-foreground mb-0.5 uppercase tracking-wide text-[10px]">
           Session Cost
         </div>
-        <div className="text-2xl font-bold text-foreground tabular-nums">
+        <div className="font-display font-bold text-[#ff7b2b] text-2xl tabular-nums">
           {activeSession ? formatCost(activeSession.total_cost_usd) : '$0.000'}
         </div>
         <div className="text-muted-foreground text-[10px] mt-0.5">
@@ -95,21 +95,21 @@ export function CostPanel() {
           <div className="flex flex-col gap-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Input</span>
-              <span className="tabular-nums">{formatTokens(activeSession.input_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-[#00d4ff]">{formatTokens(activeSession.input_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Output</span>
-              <span className="tabular-nums">{formatTokens(activeSession.output_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-[#00d4ff]">{formatTokens(activeSession.output_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache read</span>
-              <span className="tabular-nums">
+              <span className="tabular-nums font-display font-bold text-[#00d4ff]">
                 {formatTokens(activeSession.cache_read_tokens)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache write</span>
-              <span className="tabular-nums">
+              <span className="tabular-nums font-display font-bold text-[#00d4ff]">
                 {formatTokens(activeSession.cache_write_tokens)}
               </span>
             </div>
@@ -128,7 +128,12 @@ export function CostPanel() {
         </div>
         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
           <div
-            className={['h-full rounded-full transition-all', fillRed ? 'bg-red-500' : 'bg-primary'].join(' ')}
+            className={[
+            'h-full rounded-full transition-all',
+            fillRed
+              ? 'bg-red-500'
+              : 'bg-gradient-to-r from-[#00d4ff] to-[#00ffb2] shadow-[0_0_8px_rgba(0,255,178,0.3)]',
+          ].join(' ')}
             style={{ width: `${Math.min(contextFillPct, 100)}%` }}
           />
         </div>
