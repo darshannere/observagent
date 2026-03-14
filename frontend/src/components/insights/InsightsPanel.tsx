@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AreaChart, Area,
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
 } from 'recharts'
 import { useObservStore } from '@/store/useObservStore'
 import type { ToolEvent } from '@/types'
@@ -18,11 +18,15 @@ function computeLatencyPercentiles(events: ToolEvent[]) {
 }
 
 const TOOLTIP_STYLE: React.CSSProperties = {
-  fontSize: 10,
-  background: 'var(--popover)',
-  border: '1px solid var(--border)',
-  color: 'var(--popover-foreground)',
+  backgroundColor: '#06101e',
+  border: '1px solid rgba(0,212,255,0.25)',
+  borderRadius: '8px',
+  color: '#c8dae8',
+  fontSize: '11px',
+  fontFamily: "'JetBrains Mono', monospace",
 }
+const TICK_STYLE = { fill: '#3d5a7a', fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }
+const GRID = <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,255,0.06)" vertical={false} />
 
 interface StalledAgent {
   agent_id: string
@@ -207,8 +211,8 @@ export function InsightsPanel() {
             className={[
               'px-4 py-2 text-xs font-medium transition-colors',
               activeTab === tab
-                ? 'border-b-2 border-green-400 text-foreground'
-                : 'text-muted-foreground hover:text-foreground',
+                ? 'border-b-2 border-[#00d4ff] text-[#00d4ff]'
+                : 'text-[#3d5a7a] hover:text-foreground',
             ].join(' ')}
           >
             {tab === 'Health' && stalledCount > 0 ? `Health (${stalledCount})` : tab}
@@ -238,15 +242,16 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={costDailyData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      {GRID}
                       <XAxis
                         dataKey="day"
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         tickFormatter={(v: string) =>
                           new Date(v).toLocaleDateString('en', { month: 'short', day: 'numeric' })
                         }
                       />
                       <YAxis
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         width={44}
                         tickFormatter={(v: number) => `$${v.toFixed(3)}`}
                       />
@@ -256,9 +261,9 @@ export function InsightsPanel() {
                       />
                       <Area
                         dataKey="cost_usd"
-                        fill="#4ade80"
-                        stroke="#22c55e"
-                        fillOpacity={0.3}
+                        fill="#00ffb2"
+                        stroke="#00ffb2"
+                        fillOpacity={0.20}
                         type="monotone"
                       />
                     </AreaChart>
@@ -285,14 +290,15 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={costAgentData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      {GRID}
                       <XAxis
                         dataKey="agent_type"
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         angle={-20}
                         textAnchor="end"
                       />
                       <YAxis
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         width={44}
                         tickFormatter={(v: number) => `$${v.toFixed(3)}`}
                       />
@@ -300,7 +306,7 @@ export function InsightsPanel() {
                         formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']}
                         contentStyle={TOOLTIP_STYLE}
                       />
-                      <Bar dataKey="cost_usd" fill="#60a5fa" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost_usd" fill="#00d4ff" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -318,10 +324,11 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={modelChartData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#6b7280' }} angle={-20} textAnchor="end" />
-                      <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
+                      {GRID}
+                      <XAxis dataKey="name" tick={TICK_STYLE} angle={-20} textAnchor="end" />
+                      <YAxis tick={TICK_STYLE} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
                       <Tooltip formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="cost" fill="#4ade80" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost" fill="#00d4ff" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -339,10 +346,11 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={sessionChartData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#6b7280' }} />
-                      <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
+                      {GRID}
+                      <XAxis dataKey="name" tick={TICK_STYLE} />
+                      <YAxis tick={TICK_STYLE} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
                       <Tooltip formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="cost" fill="#60a5fa" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost" fill="#00d4ff" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -418,23 +426,24 @@ export function InsightsPanel() {
                     <div style={{ height: 160 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={activityData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                          {GRID}
                           <XAxis
                             dataKey="bucket_ms"
-                            tick={{ fontSize: 9, fill: '#6b7280' }}
+                            tick={TICK_STYLE}
                             tickFormatter={(v: number) =>
                               new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
                             }
                           />
-                          <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} allowDecimals={false} />
+                          <YAxis tick={TICK_STYLE} allowDecimals={false} />
                           <Tooltip
                             formatter={(v) => [`${v} calls`, 'Tool Calls']}
                             contentStyle={TOOLTIP_STYLE}
                           />
                           <Area
                             dataKey="tool_calls"
-                            fill="#4ade80"
-                            stroke="#22c55e"
-                            fillOpacity={0.3}
+                            fill="#00d4ff"
+                            stroke="#00d4ff"
+                            fillOpacity={0.20}
                             type="monotone"
                           />
                         </AreaChart>
@@ -472,14 +481,15 @@ export function InsightsPanel() {
                     <div style={{ height: 160 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                          {GRID}
                           <XAxis
                             dataKey="bucket_ms"
-                            tick={{ fontSize: 9, fill: '#6b7280' }}
+                            tick={TICK_STYLE}
                             tickFormatter={(v: number) =>
                               new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
                             }
                           />
-                          <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} allowDecimals={false} />
+                          <YAxis tick={TICK_STYLE} allowDecimals={false} />
                           <Tooltip
                             formatter={(v: any, name: any) => [`${v}`, name]}
                             contentStyle={TOOLTIP_STYLE}
@@ -487,17 +497,17 @@ export function InsightsPanel() {
                           <Legend wrapperStyle={{ fontSize: 9 }} />
                           <Area
                             dataKey="input_tokens"
-                            fill="#60a5fa"
-                            stroke="#3b82f6"
-                            fillOpacity={0.2}
+                            fill="#00d4ff"
+                            stroke="#00d4ff"
+                            fillOpacity={0.20}
                             type="monotone"
                             name="Input"
                           />
                           <Area
                             dataKey="output_tokens"
-                            fill="#a78bfa"
-                            stroke="#8b5cf6"
-                            fillOpacity={0.2}
+                            fill="#00ffb2"
+                            stroke="#00ffb2"
+                            fillOpacity={0.15}
                             type="monotone"
                             name="Output"
                           />
@@ -605,15 +615,16 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={errorRateData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                      {GRID}
                       <XAxis
                         dataKey="bucket_ms"
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         tickFormatter={(v: number) =>
                           new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
                         }
                       />
                       <YAxis
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         tickFormatter={(v: number) => `${v.toFixed(1)}%`}
                         domain={[0, 'auto']}
                       />
@@ -623,8 +634,8 @@ export function InsightsPanel() {
                       />
                       <Area
                         dataKey="error_rate"
-                        fill="#ef4444"
-                        stroke="#dc2626"
+                        fill="#ff4d4d"
+                        stroke="#ff4d4d"
                         fillOpacity={0.15}
                         type="monotone"
                         dot={(props: any) => {
@@ -673,14 +684,15 @@ export function InsightsPanel() {
                 <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={latencyData} margin={{ top: 4, right: 8, bottom: 28, left: 0 }}>
+                      {GRID}
                       <XAxis
                         dataKey="tool_name"
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         angle={-20}
                         textAnchor="end"
                       />
                       <YAxis
-                        tick={{ fontSize: 9, fill: '#6b7280' }}
+                        tick={TICK_STYLE}
                         tickFormatter={(v: number) => `${v}ms`}
                       />
                       <Tooltip
@@ -688,8 +700,8 @@ export function InsightsPanel() {
                         contentStyle={TOOLTIP_STYLE}
                       />
                       <Legend wrapperStyle={{ fontSize: 9 }} />
-                      <Bar dataKey="p50_ms" fill="#4ade80" name="p50" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="p95_ms" fill="#facc15" name="p95" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="p50_ms" fill="#00d4ff" name="p50" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="p95_ms" fill="#ff7b2b" name="p95" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
