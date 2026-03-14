@@ -61,11 +61,11 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
     <div className="border-b border-border last:border-b-0">
       {/* Main row — click to expand */}
       <div
-        className="px-2 py-1 font-mono text-xs flex items-center gap-2 cursor-pointer hover:bg-accent/10 min-w-0"
+        className="px-2 py-1 font-mono text-xs flex items-center gap-2 cursor-pointer hover:bg-[rgba(0,212,255,0.04)] min-w-0"
         onClick={onToggle}
       >
         {/* Session ID */}
-        <span className="text-foreground font-semibold shrink-0 w-20 truncate">
+        <span className="text-[#00d4ff] font-mono font-semibold shrink-0 w-20 truncate">
           {s.session_id.slice(-8)}
         </span>
 
@@ -75,7 +75,7 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
         </span>
 
         {/* Cost */}
-        <span className="text-green-400 shrink-0">{formatCost(s.total_cost_usd)}</span>
+        <span className="text-[#ff7b2b] font-display font-bold shrink-0">{formatCost(s.total_cost_usd)}</span>
 
         {/* Model */}
         <span className="text-muted-foreground shrink-0 max-w-[120px] truncate" title={s.model ?? undefined}>
@@ -84,12 +84,12 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
 
         {/* Error badge */}
         {s.has_errors > 0 && (
-          <span className="text-red-400 shrink-0">err</span>
+          <span className="text-[#ff4d4d] shrink-0">err</span>
         )}
 
         {/* Active badge */}
         {s.is_live > 0 && (
-          <span className="text-green-400 shrink-0 text-[10px]">● active</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2] shrink-0">LIVE</span>
         )}
 
         {/* Spacer */}
@@ -217,15 +217,25 @@ export function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-semibold">Session History</h1>
-        <Link
-          to="/live"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Live Dashboard →
-        </Link>
+      {/* TopBar */}
+      <div className="flex items-center gap-3 px-3 py-2 -mx-4 -mt-4 mb-4 bg-[rgba(3,8,17,0.9)] backdrop-blur-xl border-b border-[rgba(0,212,255,0.15)]">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#00ffb2] shadow-[0_0_8px_#00ffb2] animate-pulse shrink-0" />
+          <span className="font-display font-extrabold text-sm text-white">
+            Observ<span className="text-[#00ffb2]">Agent</span>
+          </span>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Link
+            to="/live"
+            className="font-mono text-[10px] px-2.5 py-1 rounded text-[#3d5a7a] hover:text-[#00d4ff] transition-colors"
+          >
+            Live
+          </Link>
+          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-[#00d4ff] bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.18)]">
+            History
+          </span>
+        </div>
       </div>
 
       {/* Loading state */}
@@ -261,8 +271,8 @@ export function HistoryPage() {
               className={[
                 'px-2.5 py-1 rounded text-xs font-medium border transition-colors',
                 historyTimeFilter === value && !dateFrom && !dateTo
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
+                  ? 'bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2]'
+                  : 'border border-[rgba(255,255,255,0.07)] text-[#1e3a5a] hover:text-foreground',
               ].join(' ')}
             >
               {label}
