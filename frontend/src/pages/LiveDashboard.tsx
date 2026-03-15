@@ -4,7 +4,6 @@ import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
 import type { TimeFilter } from '@/store/useObservStore'
 import { AgentTree } from '@/components/agents/AgentTree'
-import { AgentDetailPanel } from '@/components/agents/AgentDetailPanel'
 import { ToolLog } from '@/components/log/ToolLog'
 import { TimelineWaterfall } from '@/components/timeline/TimelineWaterfall'
 import { InsightsPanel } from '@/components/insights/InsightsPanel'
@@ -231,8 +230,8 @@ export function LiveDashboard() {
           </div>
         </div>
 
-        {/* Agent detail panel — fixed overlay, slides in from right */}
-        <AgentDetailPanel />
+        {/* Agent detail panel — disabled */}
+        {/* <AgentDetailPanel /> */}
 
         {/* Col 3: Cost + Health */}
         <div className="w-56 shrink-0 border-l border-border flex flex-col overflow-y-auto">

@@ -50,8 +50,9 @@ See `.planning/milestones/v2.1-ROADMAP.md` for complete phase details.
 
 </details>
 
-### v2.5 Developer Experience (Phases 15-20)
+### v2.5 Developer Experience (Phases 14.1, 15-20)
 
+- [ ] **Phase 14.1: Create Landing Page** (INSERTED) - Public-facing landing page for ObservAgent
 - [ ] **Phase 15: Foundation + Static Data Layer** - State persistence utility and changelog data layer that all DX features depend on
 - [ ] **Phase 16: CLI Improvements** - Version check banner, `update` command, improved init output, overhauled doctor diagnostics
 - [ ] **Phase 17: Dashboard Version + What's New** - Version badge in TopBar and navigable What's New page with auto-show on upgrade
@@ -60,6 +61,18 @@ See `.planning/milestones/v2.1-ROADMAP.md` for complete phase details.
 - [ ] **Phase 20: Onboarding Walkthrough** - First-run step-by-step dashboard tour with localStorage persistence and replay option
 
 ## Phase Details
+
+### Phase 14.1: Create Landing Page (INSERTED)
+**Goal**: A public-facing landing page for ObservAgent exists that communicates the product's value and helps users get started
+**Depends on**: Nothing (independent of v2.5 DX phases)
+**Requirements**: (none mapped — urgent insertion)
+**Success Criteria** (what must be TRUE):
+  1. Landing page is live and accessible
+  2. Page communicates core value proposition clearly
+  3. Includes installation/getting-started instructions
+  4. Links to GitHub repository
+
+---
 
 ### Phase 15: Foundation + Static Data Layer
 **Goal**: The state persistence utility and changelog data layer are available so every downstream DX feature can read/write first-run state and display version history
