@@ -77,6 +77,7 @@ interface ObservStore {
   appendEvent(event: ToolEvent): void
   updateEventDuration(tool_call_id: string, duration_ms: number, exit_status: number): void
   hydrateEvents(events: ToolEvent[]): void
+  mergeEvents(events: ToolEvent[]): void
   setCostData(sessions: CostStateEntry[], todayTotal: number, models: ModelCost[]): void
   updateSessionCost(
     sessionId: string,
@@ -230,6 +231,15 @@ export const useObservStore = create<ObservStore>()((set) => ({
 
   hydrateEvents(events) {
     set({ events })
+  },
+
+  mergeEvents(newEvents) {
+    set((s) => {
+      const existingIds = new Set(s.events.map((e) => e.id))
+      const toAdd = newEvents.filter((e) => !existingIds.has(e.id))
+      if (toAdd.length === 0) return {}
+      return { events: [...s.events, ...toAdd] }
+    })
   },
 
   setCostData(sessions, todayTotal, models) {

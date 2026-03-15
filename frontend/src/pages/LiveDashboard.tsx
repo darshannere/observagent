@@ -21,6 +21,7 @@ export function LiveDashboard() {
   useSSE(isReplay)
 
   const activeAgentCount = useObservStore(selectActiveAgentCount)
+  const activeSessionFilter = useObservStore((s) => s.activeSessionFilter)
   const timeFilter = useObservStore((s) => s.timeFilter)
   const setTimeFilter = useObservStore((s) => s.setTimeFilter)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
@@ -114,6 +115,22 @@ export function LiveDashboard() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReplay, replayId])
+
+  // Fetch events for old sessions on demand — the initial load only fetches the
+  // 200 most-recent events globally, so older sessions may have no events in memory.
+  useEffect(() => {
+    if (!activeSessionFilter || isReplay) return
+    const store = useObservStore.getState()
+    const hasEvents = store.events.some((e) => e.session_id === activeSessionFilter)
+    if (hasEvents) return
+    fetch(`/api/events?session_id=${activeSessionFilter}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const events = Array.isArray(data) ? data : Array.isArray(data?.events) ? data.events : []
+        store.mergeEvents(events)
+      })
+      .catch(() => {})
+  }, [activeSessionFilter, isReplay])
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
