@@ -37,6 +37,12 @@ export function LiveDashboard() {
     const store = useObservStore.getState()
     let cancelled = false
 
+    // Clear any stale session/agent filter when entering replay mode
+    if (isReplay) {
+      store.setSessionFilter(null)
+      store.setAgentFilter(null)
+    }
+
     // 1. Events
     const eventsUrl = isReplay ? `/api/events?session_id=${replayId}` : '/api/events'
     fetch(eventsUrl)
