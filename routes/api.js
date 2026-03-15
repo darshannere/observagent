@@ -1,4 +1,7 @@
 import fs from 'fs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 export async function apiRoutes(fastify, options) {
   const { db } = options;
@@ -140,6 +143,8 @@ export async function apiRoutes(fastify, options) {
     WHERE session_id = ? AND hook_type = 'PostToolUse'
     ORDER BY timestamp ASC
   `);
+
+  fastify.get('/api/meta', async () => ({ version }));
 
   fastify.get('/api/health', (request, reply) => {
     const lastTs  = stmtLastEventTs.get()?.ts ?? null;

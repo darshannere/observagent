@@ -25,6 +25,7 @@ export function LiveDashboard() {
   const timeFilter = useObservStore((s) => s.timeFilter)
   const setTimeFilter = useObservStore((s) => s.setTimeFilter)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
+  const [version, setVersion] = useState<string | null>(null)
 
   // Capture initial URL params once — used to restore filter on mount only.
   // Do NOT put searchParams in the effect deps: every agent/session click calls
@@ -103,6 +104,12 @@ export function LiveDashboard() {
       store.setSessionFilter(sessionId)
     }
 
+    // 5. App version
+    fetch('/api/meta')
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setVersion(data.version ?? null) })
+      .catch(() => {})
+
     return () => {
       cancelled = true
     }
@@ -125,6 +132,10 @@ export function LiveDashboard() {
           <span className="h-1.5 w-1.5 rounded-full bg-[#00ffb2] animate-pulse" />
           <span className="font-mono text-[10px] text-[#00ffb2] uppercase tracking-widest">Live</span>
         </div>
+        {/* Version badge — sits between LIVE badge and nav tabs */}
+        {version && (
+          <span className="font-mono text-[10px] text-[#3d5a7a]">v{version}</span>
+        )}
         {/* Nav tabs */}
         <div className="ml-auto flex items-center gap-1">
           <span className="font-mono text-[10px] px-2.5 py-1 rounded text-[#00d4ff] bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.18)]">
