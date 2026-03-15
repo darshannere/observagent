@@ -47,6 +47,10 @@ v2.5 Progress: [                    ] 0% (0/6 phases)
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 14.1 inserted after Phase 14: Create Landing Page (URGENT)
+
 ### Decisions
 
 - [v2.0] React/Vite/Zustand stack — TanStack Virtual for ToolLog, Recharts for Insights panel
@@ -68,8 +72,14 @@ v2.5 Progress: [                    ] 0% (0/6 phases)
 
 (none)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Implement CLI version banner and dashboard version badge | 2026-03-15 | b79a292 | [1-implement-cli-version-banner-and-dashboa](./quick/1-implement-cli-version-banner-and-dashboa/) |
+
 ## Session Continuity
 
-Last session: 2026-03-11
-Stopped at: Roadmap created — ready to plan Phase 15
+Last session: 2026-03-15
+Stopped at: Quick task 1 complete — CLI version banner + dashboard version badge implemented
 Resume file: None
