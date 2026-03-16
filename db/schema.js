@@ -1,4 +1,6 @@
 import Database from 'better-sqlite3';
+import { mkdirSync, existsSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 function addColumnIfNotExists(db, table, col, typeDef) {
   const exists = db.prepare(`PRAGMA table_info(${table})`).all().find(c => c.name === col);
@@ -6,6 +8,10 @@ function addColumnIfNotExists(db, table, col, typeDef) {
 }
 
 export function initDb(path = './observagent.db') {
+  const dir = dirname(path);
+  if (dir && dir !== '.' && !existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
   const db = new Database(path);
 
   // WAL mode MUST be set before any DDL — mandatory from day one for concurrent agents
