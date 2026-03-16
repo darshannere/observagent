@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <style>
+      @keyframes pulse-core {
+        0%, 100% { r: 4px; opacity: 1; }
+        50%       { r: 5.5px; opacity: 0.7; }
+      }
+      @keyframes pulse-ring {
+        0%, 100% { r: 10px; opacity: 0.5; }
+        50%       { r: 13px; opacity: 0; }
+      }
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      @keyframes spin-rev {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(-360deg); }
+      }
+      .core      { animation: pulse-core 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .ring-ping { animation: pulse-ring 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .outer-arc { animation: spin-slow 18s linear infinite; transform-box: fill-box; transform-origin: center; }
+      .inner-arc { animation: spin-rev  12s linear infinite; transform-box: fill-box; transform-origin: center; }
+    </style>
+    <filter id="glow-lime">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer segmented ring (rotates CW) -->
+  <g class="outer-arc">
+    <path d="M 50 8 A 42 42 0 0 1 89.6 33.4"
+          fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+    <path d="M 92 50 A 42 42 0 0 1 50 92"
+          fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 50 92 A 42 42 0 0 1 8 50"
+          fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+    <path d="M 8 50 A 42 42 0 0 1 50 8"
+          fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- Inner segmented ring (counter-rotates) -->
+  <g class="inner-arc">
+    <path d="M 50 22 A 28 28 0 0 1 78 50"
+          fill="none" stroke="#00ffb2" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+    <path d="M 78 50 A 28 28 0 0 1 22 50"
+          fill="none" stroke="#00ffb2" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
+    <path d="M 22 50 A 28 28 0 0 1 50 22"
+          fill="none" stroke="#00ffb2" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- Crosshair lines -->
+  <line x1="16" y1="50" x2="36" y2="50" stroke="#00d4ff" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="64" y1="50" x2="84" y2="50" stroke="#00d4ff" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="50" y1="16" x2="50" y2="36" stroke="#00d4ff" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="50" y1="64" x2="50" y2="84" stroke="#00d4ff" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Corner ticks (amber accent) -->
+  <line x1="72" y1="28" x2="67" y2="33" stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="28" y1="28" x2="33" y2="33" stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="72" y1="72" x2="67" y2="67" stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="28" y1="72" x2="33" y2="67" stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Ping ring -->
+  <circle class="ring-ping" cx="50" cy="50" r="10"
+          fill="none" stroke="#00ffb2" stroke-width="1"/>
+
+  <!-- Core glow -->
+  <circle cx="50" cy="50" r="7" fill="#00ffb2" opacity="0.15" filter="url(#glow-lime)"/>
+
+  <!-- Core dot -->
+  <circle class="core" cx="50" cy="50" r="4" fill="#00ffb2"/>
+</svg>

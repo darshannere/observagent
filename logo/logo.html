@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ObservAgent Logo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #030811;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 60px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .label {
+    color: #3d5a7a;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+  }
+
+  .item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Wordmark */
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .wordmark-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    color: #c8dae8;
+  }
+  .wordmark-text span { color: #00ffb2; }
+
+  /* Light bg variant */
+  .on-light {
+    background: #f0f4f8;
+    padding: 24px;
+    border-radius: 12px;
+  }
+  .on-light .wordmark-text { color: #0a1828; }
+
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=JetBrains+Mono:wght@400&display=swap');
+</style>
+</head>
+<body>
+
+<!-- SVG logo defined once, reused via <use> -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <style>
+      @keyframes pulse-core {
+        0%, 100% { r: 4; opacity: 1; }
+        50%       { r: 5.5; opacity: 0.7; }
+      }
+      @keyframes pulse-ring {
+        0%, 100% { r: 10; opacity: 0.5; }
+        50%       { r: 13; opacity: 0; }
+      }
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      @keyframes spin-rev {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(-360deg); }
+      }
+      .core      { animation: pulse-core 2.4s ease-in-out infinite; transform-origin: 50px 50px; }
+      .ring-ping { animation: pulse-ring 2.4s ease-in-out infinite; transform-origin: 50px 50px; }
+      .outer-arc { animation: spin-slow 18s linear infinite; transform-origin: 50px 50px; }
+      .inner-arc { animation: spin-rev  12s linear infinite; transform-origin: 50px 50px; }
+    </style>
+
+    <!-- ── MAIN ICON (100x100 viewBox) ── -->
+    <g id="oa-icon">
+      <!-- Outer segmented ring: 4 arcs with gaps -->
+      <g class="outer-arc">
+        <!-- arc: 0–80deg -->
+        <path d="M 50 8
+                 A 42 42 0 0 1 89.6 33.4"
+              fill="none" stroke="#00d4ff" stroke-width="2.5"
+              stroke-linecap="round" opacity="0.9"/>
+        <!-- arc: 100–180deg -->
+        <path d="M 92 50
+                 A 42 42 0 0 1 50 92"
+              fill="none" stroke="#00d4ff" stroke-width="2.5"
+              stroke-linecap="round" opacity="0.5"/>
+        <!-- arc: 200–280deg -->
+        <path d="M 50 92
+                 A 42 42 0 0 1 8 50"
+              fill="none" stroke="#00d4ff" stroke-width="2.5"
+              stroke-linecap="round" opacity="0.3"/>
+        <!-- arc: 300–350deg -->
+        <path d="M 8 50
+                 A 42 42 0 0 1 50 8"
+              fill="none" stroke="#00d4ff" stroke-width="2.5"
+              stroke-linecap="round" opacity="0.6"/>
+      </g>
+
+      <!-- Inner segmented ring (counter-rotates) -->
+      <g class="inner-arc">
+        <!-- top arc -->
+        <path d="M 50 22
+                 A 28 28 0 0 1 78 50"
+              fill="none" stroke="#00ffb2" stroke-width="1.8"
+              stroke-linecap="round" opacity="0.8"/>
+        <!-- bottom arc -->
+        <path d="M 78 50
+                 A 28 28 0 0 1 22 50"
+              fill="none" stroke="#00ffb2" stroke-width="1.8"
+              stroke-linecap="round" opacity="0.4"/>
+        <!-- left arc -->
+        <path d="M 22 50
+                 A 28 28 0 0 1 50 22"
+              fill="none" stroke="#00ffb2" stroke-width="1.8"
+              stroke-linecap="round" opacity="0.6"/>
+      </g>
+
+      <!-- Crosshair lines -->
+      <!-- horizontal -->
+      <line x1="16" y1="50" x2="36" y2="50"
+            stroke="#00d4ff" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+      <line x1="64" y1="50" x2="84" y2="50"
+            stroke="#00d4ff" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+      <!-- vertical -->
+      <line x1="50" y1="16" x2="50" y2="36"
+            stroke="#00d4ff" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+      <line x1="50" y1="64" x2="50" y2="84"
+            stroke="#00d4ff" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+
+      <!-- Corner tick marks at 45° diagonals -->
+      <line x1="72" y1="28" x2="67" y2="33"
+            stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="28" y1="28" x2="33" y2="33"
+            stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="72" y1="72" x2="67" y2="67"
+            stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+      <line x1="28" y1="72" x2="33" y2="67"
+            stroke="#ff7b2b" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+
+      <!-- Ping ring (radiates out from core) -->
+      <circle class="ring-ping" cx="50" cy="50" r="10"
+              fill="none" stroke="#00ffb2" stroke-width="1"/>
+
+      <!-- Core dot -->
+      <circle class="core" cx="50" cy="50" r="4"
+              fill="#00ffb2" />
+      <!-- Core glow -->
+      <circle cx="50" cy="50" r="4"
+              fill="#00ffb2" opacity="0.3" filter="url(#glow-lime)"/>
+
+      <!-- Outer ring glow filter -->
+      <defs>
+        <filter id="glow-lime" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+    </g>
+  </defs>
+</svg>
+
+<!-- ─── SIZE SHOWCASE ─── -->
+
+<div class="row">
+  <!-- 256px -->
+  <div class="item">
+    <svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="label">256 × 256</div>
+  </div>
+
+  <!-- 128px -->
+  <div class="item">
+    <svg width="128" height="128" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="label">128 × 128</div>
+  </div>
+
+  <!-- 64px -->
+  <div class="item">
+    <svg width="64" height="64" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="label">64 × 64</div>
+  </div>
+
+  <!-- 32px -->
+  <div class="item">
+    <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="label">32 × 32</div>
+  </div>
+
+  <!-- 16px -->
+  <div class="item">
+    <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="label">16 × 16</div>
+  </div>
+</div>
+
+<!-- ─── WORDMARK ─── -->
+<div class="item">
+  <div class="wordmark">
+    <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <use href="#oa-icon"/>
+    </svg>
+    <div class="wordmark-text">Observ<span>Agent</span></div>
+  </div>
+  <div class="label">Wordmark</div>
+</div>
+
+<!-- ─── ON LIGHT ─── -->
+<div class="item">
+  <div class="on-light">
+    <div class="wordmark">
+      <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Light bg version: swap colors to stay readable -->
+        <g class="outer-arc">
+          <path d="M 50 8 A 42 42 0 0 1 89.6 33.4" fill="none" stroke="#0070a8" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+          <path d="M 92 50 A 42 42 0 0 1 50 92"   fill="none" stroke="#0070a8" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+          <path d="M 50 92 A 42 42 0 0 1 8 50"    fill="none" stroke="#0070a8" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+          <path d="M 8 50  A 42 42 0 0 1 50 8"    fill="none" stroke="#0070a8" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+        </g>
+        <g class="inner-arc">
+          <path d="M 50 22 A 28 28 0 0 1 78 50" fill="none" stroke="#007a56" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+          <path d="M 78 50 A 28 28 0 0 1 22 50" fill="none" stroke="#007a56" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
+          <path d="M 22 50 A 28 28 0 0 1 50 22" fill="none" stroke="#007a56" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
+        </g>
+        <line x1="16" y1="50" x2="36" y2="50" stroke="#0070a8" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+        <line x1="64" y1="50" x2="84" y2="50" stroke="#0070a8" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+        <line x1="50" y1="16" x2="50" y2="36" stroke="#0070a8" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+        <line x1="50" y1="64" x2="50" y2="84" stroke="#0070a8" stroke-width="1.2" opacity="0.5" stroke-linecap="round"/>
+        <line x1="72" y1="28" x2="67" y2="33" stroke="#c45a00" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+        <line x1="28" y1="28" x2="33" y2="33" stroke="#c45a00" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+        <circle class="ring-ping" cx="50" cy="50" r="10" fill="none" stroke="#007a56" stroke-width="1"/>
+        <circle class="core" cx="50" cy="50" r="4" fill="#007a56"/>
+      </svg>
+      <div class="wordmark-text" style="color:#0a1828;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;">Observ<span style="color:#007a56">Agent</span></div>
+    </div>
+  </div>
+  <div class="label">On light background</div>
+</div>
+
+</body>
+</html>
