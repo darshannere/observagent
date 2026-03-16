@@ -645,23 +645,6 @@
       return `<pre data-lang="${language}"><code class="hljs language-${language}">${highlighted}</code></pre>`
     }
 
-    renderer.table = (token) => {
-      const header = token.header.map(cell => {
-        const text = cell.tokens.map(t => t.text || t.raw || '').join('')
-        return `<th>${text}</th>`
-      }).join('')
-
-      const rows = token.rows.map(row => {
-        const cells = row.map(cell => {
-          const text = cell.tokens.map(t => t.text || t.raw || '').join('')
-          return `<td>${text}</td>`
-        }).join('')
-        return `<tr>${cells}</tr>`
-      }).join('')
-
-      return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`
-    }
-
     marked.use({ renderer })
 
     // ─── Navigation ──────────────────────────────────────────
