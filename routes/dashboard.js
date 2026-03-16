@@ -24,6 +24,13 @@ export async function dashboardRoutes(fastify, options) {
     wildcard: false,
   })
 
+  // Serve developer docs as static files at /docs/
+  await fastify.register(fastifyStatic, {
+    root: join(__dirname, '../docs/dev'),
+    prefix: '/docs/',
+    decorateReply: false,
+  })
+
   // Explicit route for Vite-built static assets (JS, CSS, images)
   fastify.get('/assets/*', (request, reply) => {
     return reply.sendFile('assets/' + request.params['*'])
@@ -36,7 +43,8 @@ export async function dashboardRoutes(fastify, options) {
       url.startsWith('/api') ||
       url === '/events' ||
       url.startsWith('/ingest') ||
-      url.startsWith('/legacy')
+      url.startsWith('/legacy') ||
+      url.startsWith('/docs')
     ) {
       reply.code(404).send({ error: 'Not found' })
       return

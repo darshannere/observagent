@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ObservAgent — Developer Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,600;12..96,700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.2.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #07090e;
+      --bg-sidebar:   #080b14;
+      --bg-card:      #0c1120;
+      --bg-code:      #0a0d15;
+      --border:       rgba(255,255,255,0.055);
+      --border-soft:  rgba(255,255,255,0.03);
+      --accent:       #00d4b4;
+      --accent-glow:  rgba(0,212,180,0.12);
+      --accent-dim:   rgba(0,212,180,0.06);
+      --accent2:      #818cf8;
+      --accent2-dim:  rgba(129,140,248,0.08);
+      --warn:         #f59e0b;
+      --text:         #dde5f4;
+      --text-muted:   #64748b;
+      --text-dim:     #3d4f6a;
+      --sidebar-w:    268px;
+      --header-h:     56px;
+      --font-head:    'Bricolage Grotesque', sans-serif;
+      --font-body:    'Plus Jakarta Sans', sans-serif;
+      --font-code:    'Fira Code', monospace;
+    }
+
+    html { font-size: 15px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.75;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────── */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: rgba(7,9,14,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+      gap: 16px;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .header-sigil {
+      width: 28px; height: 28px;
+      border: 1.5px solid var(--accent);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-sigil::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent-glow);
+    }
+    .header-sigil-inner {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 2px;
+      position: relative;
+      z-index: 1;
+      animation: pulse-sigil 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse-sigil {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    .header-name {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .header-sub {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      letter-spacing: 0.04em;
+      font-family: var(--font-code);
+    }
+
+    .header-spacer { flex: 1; }
+
+    .header-badge {
+      font-size: 0.7rem;
+      font-family: var(--font-code);
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,212,180,0.2);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    .header-link {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .header-link:hover { color: var(--text); }
+    .header-link svg { opacity: 0.6; }
+
+    /* ─── LAYOUT ─────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      padding-top: var(--header-h);
+      min-height: 100vh;
+    }
+
+    /* ─── SIDEBAR ────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 20px 0 40px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-section-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 16px 20px 6px;
+    }
+
+    .nav-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      font-weight: 400;
+      border-left: 2px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+      background: var(--accent-dim);
+      border-left-color: var(--accent);
+    }
+
+    .nav-item-icon {
+      font-size: 0.75rem;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+    .nav-item.active .nav-item-icon { opacity: 1; }
+
+    /* ─── CONTENT ────────────────────────────────────────── */
+    .content-wrap {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .content {
+      max-width: 820px;
+      padding: 52px 64px 100px;
+      margin: 0 auto;
+    }
+
+    /* Loading state */
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 60px 0;
+      font-family: var(--font-code);
+    }
+    .loading-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: blink 1.2s ease infinite;
+    }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%,80%,100% { opacity: 0.15; }
+      40%          { opacity: 1; }
+    }
+
+    /* ─── MARKDOWN STYLES ────────────────────────────────── */
+    .md-body h1 {
+      font-family: var(--font-head);
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      color: #f0f6ff;
+      margin-bottom: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .md-body h1::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 48px;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+    }
+
+    .md-body h2 {
+      font-family: var(--font-head);
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #e2ecff;
+      margin: 44px 0 14px;
+      padding-left: 14px;
+      border-left: 3px solid var(--accent);
+      line-height: 1.35;
+    }
+
+    .md-body h3 {
+      font-family: var(--font-head);
+      font-size: 1.0rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #c8d8f0;
+      margin: 28px 0 10px;
+    }
+
+    .md-body h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 20px 0 8px;
+    }
+
+    .md-body p {
+      margin-bottom: 1rem;
+      color: var(--text);
+      font-weight: 300;
+    }
+
+    .md-body strong { font-weight: 600; color: #e8f0ff; }
+    .md-body em { font-style: italic; color: var(--text); }
+
+    .md-body a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,212,180,0.25);
+      transition: border-color 0.15s;
+    }
+    .md-body a:hover { border-bottom-color: var(--accent); }
+
+    .md-body ul, .md-body ol {
+      padding-left: 1.4em;
+      margin-bottom: 1rem;
+    }
+    .md-body li { margin-bottom: 0.3rem; font-weight: 300; }
+    .md-body li > p { margin-bottom: 0.2rem; }
+
+    .md-body ul li::marker { color: var(--accent); }
+    .md-body ol li::marker { color: var(--text-muted); }
+
+    .md-body blockquote {
+      border-left: 3px solid var(--accent2);
+      padding: 10px 16px;
+      margin: 1.2rem 0;
+      background: var(--accent2-dim);
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    .md-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 36px 0;
+    }
+
+    /* Inline code */
+    .md-body :not(pre) > code {
+      font-family: var(--font-code);
+      font-size: 0.83em;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* Code blocks */
+    .md-body pre {
+      position: relative;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 1.2rem 0;
+      overflow: hidden;
+    }
+    .md-body pre::before {
+      content: attr(data-lang);
+      position: absolute;
+      top: 0; right: 0;
+      font-family: var(--font-code);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border-soft);
+      border-left: 1px solid var(--border-soft);
+      padding: 3px 10px;
+      border-radius: 0 8px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .md-body pre code {
+      display: block;
+      padding: 20px;
+      font-family: var(--font-code);
+      font-size: 0.82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      background: transparent !important;
+      color: #c9d1d9;
+      border: none !important;
+    }
+
+    /* Tables */
+    .md-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+      font-size: 0.875rem;
+    }
+    .md-body thead th {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      text-align: left;
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .md-body tbody tr {
+      border-bottom: 1px solid var(--border-soft);
+      transition: background 0.1s;
+    }
+    .md-body tbody tr:hover { background: rgba(255,255,255,0.018); }
+    .md-body tbody td {
+      border: 1px solid var(--border-soft);
+      padding: 8px 14px;
+      vertical-align: top;
+      font-weight: 300;
+    }
+    .md-body tbody td:first-child {
+      font-family: var(--font-code);
+      font-size: 0.8rem;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* ─── SECTION FADE-IN ────────────────────────────────── */
+    .md-body {
+      animation: fadein 0.3s ease;
+    }
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── DIAGRAM BLOCKS (ascii art) ────────────────────── */
+    .md-body pre code.language-\  { white-space: pre; }
+
+    /* ─── SCROLLBAR ──────────────────────────────────────── */
+    .content-wrap { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ─── MOBILE ─────────────────────────────────────────── */
+    .menu-btn {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 820px) {
+      :root { --sidebar-w: 240px; }
+      .content { padding: 36px 24px 80px; }
+    }
+
+    @media (max-width: 640px) {
+      .menu-btn { display: flex; align-items: center; }
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 90;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .content-wrap { margin-left: 0; }
+      .content { padding: 28px 18px 60px; }
+      .md-body h1 { font-size: 1.7rem; }
+      .md-body pre code { font-size: 0.75rem; }
+      .md-body table { font-size: 0.78rem; }
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    .doc-footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .doc-footer-nav {
+      display: flex;
+      gap: 12px;
+    }
+    .doc-footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-body);
+    }
+    .doc-footer-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .doc-footer-btn span { font-size: 0.75rem; opacity: 0.6; }
+    .doc-footer-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      font-family: var(--font-code);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menu">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <rect width="16" height="2" rx="1" fill="currentColor"/>
+        <rect y="5" width="12" height="2" rx="1" fill="currentColor"/>
+        <rect y="10" width="16" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <a class="header-logo" onclick="navigate('index'); return false;" href="#" role="button">
+      <div class="header-sigil"><div class="header-sigil-inner"></div></div>
+      <span class="header-name">ObservAgent</span>
+    </a>
+    <span class="header-sub">DEV DOCS</span>
+    <div class="header-spacer"></div>
+    <span class="header-badge" id="versionBadge">v2.4.3</span>
+    <a class="header-link" href="http://localhost:4999" target="_blank">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,12"/></svg>
+      Dashboard
+    </a>
+    <a class="header-link" href="https://github.com/darshannere/observagent" target="_blank">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-section-label">Getting Started</div>
+      <a class="nav-item" data-page="index" onclick="navigate('index'); return false;" href="#">
+        <span class="nav-item-icon">◈</span> Overview
+      </a>
+      <a class="nav-item" data-page="architecture" onclick="navigate('architecture'); return false;" href="#">
+        <span class="nav-item-icon">⬡</span> Architecture
+      </a>
+
+      <div class="sidebar-section-label">Reference</div>
+      <a class="nav-item" data-page="cli" onclick="navigate('cli'); return false;" href="#">
+        <span class="nav-item-icon">$</span> CLI Reference
+      </a>
+      <a class="nav-item" data-page="server" onclick="navigate('server'); return false;" href="#">
+        <span class="nav-item-icon">⚙</span> Server
+      </a>
+      <a class="nav-item" data-page="api-reference" onclick="navigate('api-reference'); return false;" href="#">
+        <span class="nav-item-icon">⇌</span> API Reference
+      </a>
+      <a class="nav-item" data-page="database" onclick="navigate('database'); return false;" href="#">
+        <span class="nav-item-icon">▦</span> Database Schema
+      </a>
+
+      <div class="sidebar-section-label">Internals</div>
+      <a class="nav-item" data-page="hooks" onclick="navigate('hooks'); return false;" href="#">
+        <span class="nav-item-icon">↯</span> Hook Relay
+      </a>
+      <a class="nav-item" data-page="frontend" onclick="navigate('frontend'); return false;" href="#">
+        <span class="nav-item-icon">◱</span> Frontend
+      </a>
+
+      <div class="sidebar-section-label">Contributing</div>
+      <a class="nav-item" data-page="contributing" onclick="navigate('contributing'); return false;" href="#">
+        <span class="nav-item-icon">⊕</span> Contributing
+      </a>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="content-wrap">
+      <div class="content">
+        <div id="docContent">
+          <div class="loading">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <span>Loading docs…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────
+    const PAGES = [
+      'index', 'architecture', 'cli', 'server',
+      'api-reference', 'database', 'hooks', 'frontend', 'contributing'
+    ]
+
+    const PAGE_LABELS = {
+      'index':        'Overview',
+      'architecture': 'Architecture',
+      'cli':          'CLI Reference',
+      'server':       'Server',
+      'api-reference':'API Reference',
+      'database':     'Database Schema',
+      'hooks':        'Hook Relay',
+      'frontend':     'Frontend',
+      'contributing': 'Contributing',
+    }
+
+    let currentPage = null
+    const cache = {}
+
+    // ─── Marked config ──────────────────────────────────────
+    marked.setOptions({
+      highlight: null,
+      gfm: true,
+      breaks: false,
+    })
+
+    const renderer = new marked.Renderer()
+
+    renderer.code = ({ text, lang }) => {
+      const language = lang || 'text'
+      let highlighted = text
+      try {
+        if (lang && hljs.getLanguage(lang)) {
+          highlighted = hljs.highlight(text, { language: lang }).value
+        } else {
+          highlighted = hljs.highlightAuto(text).value
+        }
+      } catch (_) {}
+      return `<pre data-lang="${language}"><code class="hljs language-${language}">${highlighted}</code></pre>`
+    }
+
+    renderer.table = (token) => {
+      const header = token.header.map(cell => {
+        const text = cell.tokens.map(t => t.text || t.raw || '').join('')
+        return `<th>${text}</th>`
+      }).join('')
+
+      const rows = token.rows.map(row => {
+        const cells = row.map(cell => {
+          const text = cell.tokens.map(t => t.text || t.raw || '').join('')
+          return `<td>${text}</td>`
+        }).join('')
+        return `<tr>${cells}</tr>`
+      }).join('')
+
+      return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`
+    }
+
+    marked.use({ renderer })
+
+    // ─── Navigation ──────────────────────────────────────────
+    async function navigate(page) {
+      if (!PAGES.includes(page)) page = 'index'
+      if (page === currentPage) return
+
+      // Update active state
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === page)
+      })
+
+      // Show loading
+      const container = document.getElementById('docContent')
+      container.innerHTML = `
+        <div class="loading">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <span>Loading ${PAGE_LABELS[page]}…</span>
+        </div>`
+
+      // Fetch or use cache
+      try {
+        if (!cache[page]) {
+          const res = await fetch(`/docs/${page}.md`)
+          if (!res.ok) throw new Error(`${res.status}`)
+          cache[page] = await res.text()
+        }
+
+        const html = marked.parse(cache[page])
+        const idx = PAGES.indexOf(page)
+        const prev = idx > 0 ? PAGES[idx - 1] : null
+        const next = idx < PAGES.length - 1 ? PAGES[idx + 1] : null
+
+        const footer = `
+          <div class="doc-footer">
+            <span class="doc-footer-label">${page}.md</span>
+            <div class="doc-footer-nav">
+              ${prev ? `<button class="doc-footer-btn" onclick="navigate('${prev}')">
+                <span>←</span> ${PAGE_LABELS[prev]}
+              </button>` : ''}
+              ${next ? `<button class="doc-footer-btn" onclick="navigate('${next}')">
+                ${PAGE_LABELS[next]} <span>→</span>
+              </button>` : ''}
+            </div>
+          </div>`
+
+        container.innerHTML = `<div class="md-body">${html}</div>${footer}`
+        currentPage = page
+        window.scrollTo({ top: 0 })
+
+        // Close mobile sidebar
+        document.getElementById('sidebar').classList.remove('open')
+
+        // Update URL hash
+        history.replaceState(null, '', `#${page}`)
+      } catch (err) {
+        container.innerHTML = `
+          <div class="md-body">
+            <h1>Failed to load</h1>
+            <p>Could not fetch <code>${page}.md</code>: ${err.message}</p>
+            <p>Make sure the ObservAgent server is running at <a href="http://localhost:4999">localhost:4999</a>.</p>
+          </div>`
+      }
+    }
+
+    // ─── Mobile sidebar ───────────────────────────────────────
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open')
+    }
+
+    // ─── Version badge ───────────────────────────────────────
+    fetch('/api/meta')
+      .then(r => r.json())
+      .then(d => {
+        if (d.version) document.getElementById('versionBadge').textContent = `v${d.version}`
+      })
+      .catch(() => {})
+
+    // ─── Init ─────────────────────────────────────────────────
+    const hash = location.hash.replace('#', '')
+    navigate(PAGES.includes(hash) ? hash : 'index')
+  </script>
+</body>
+</html>
