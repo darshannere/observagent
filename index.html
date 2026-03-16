@@ -98,10 +98,13 @@
       text-decoration: none; color: white;
     }
     .nav-logo-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-      animation: pulse-dot 2s ease-in-out infinite;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-logo-dot img {
+      width: 28px; height: 28px;
+      object-fit: contain;
     }
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--green); }
@@ -109,7 +112,7 @@
     }
     .nav-logo-text {
       font-family: 'Syne', sans-serif;
-      font-weight: 700; font-size: 18px;
+      font-weight: 700; font-size: 20px;
       letter-spacing: -0.01em;
     }
     .nav-logo-text span { color: var(--cyan); }
@@ -656,7 +659,7 @@
   <nav>
     <div class="nav-inner">
       <a href="#" class="nav-logo">
-        <div class="nav-logo-dot"></div>
+        <div class="nav-logo-dot"><img src="logo/logo.svg" alt="ObservAgent logo" /></div>
         <span class="nav-logo-text">Observ<span>Agent</span></span>
       </a>
       <div class="nav-links">
@@ -676,7 +679,7 @@
         <div>
           <div class="badge">
             <div class="badge-dot"></div>
-            v2.1 · beta · local-first
+            2.4.3 · beta · local-first
           </div>
           <h1>Watch Every<br><span class="accent">AI Agent.</span><br>In Real Time.</h1>
           <p class="hero-sub">
@@ -966,7 +969,7 @@
               <span class="term-cmd"><span class="kw">npm</span> install -g @darshannere/observagent</span>
             </div>
             <div class="term-output">
-              <div><span class="ok">+</span> @darshannere/observagent@2.1.0</div>
+              <div><span class="ok">+</span> @darshannere/observagent@2.4.3</div>
               <div class="dim">added 12 packages in 3.2s</div>
             </div>
 
