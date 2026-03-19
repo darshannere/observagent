@@ -4,6 +4,7 @@ import { formatRelativeTime, formatUptime } from '@/utils/format'
 
 export function HealthPanel() {
   const health = useObservStore((s) => s.health)
+  const setHealth = useObservStore((s) => s.setHealth)
   const sseConnected = useObservStore((s) => s.sseConnected)
   const [uptime, setUptime] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
@@ -14,17 +15,29 @@ export function HealthPanel() {
     return () => clearInterval(t)
   }, [])
 
-  // Fetch server uptime once on mount
+  // Fetch server health (stats + uptime) once on mount and every 30s
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((data) => {
-        if (typeof data?.uptime_seconds === 'number') {
-          setUptime(data.uptime_seconds)
-        }
-      })
-      .catch(() => {})
-  }, [])
+    const fetchHealth = () => {
+      fetch('/api/health')
+        .then((r) => r.json())
+        .then((data) => {
+          if (typeof data?.serverUptimeS === 'number') {
+            setUptime(data.serverUptimeS)
+          }
+          // Update store so health panel reflects real data even without SSE health_update
+          setHealth({
+            totalCalls: data?.totalCalls ?? 0,
+            errorCount: data?.errorCount ?? 0,
+            errorRate: (data?.errorRate ?? 0) / 100,
+            lastEventTs: data?.lastEventTs ?? null,
+          })
+        })
+        .catch(() => {})
+    }
+    fetchHealth()
+    const t = setInterval(fetchHealth, 30_000)
+    return () => clearInterval(t)
+  }, [setHealth])
 
   const lastEventAgo =
     health?.lastEventTs != null
