@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.5
 milestone_name: Developer Experience
-status: Roadmap ready
-stopped_at: Phase 15 context gathered
-last_updated: "2026-03-19T05:12:56.638Z"
-last_activity: 2026-03-11 — Roadmap created for v2.5 (phases 15-20)
+status: Milestone shipped
+stopped_at: v2.5 complete (Phase 14.1 only; phases 15-20 removed from roadmap)
+last_updated: "2026-03-19T05:35:00.000Z"
+last_activity: 2026-03-19 — v2.5 milestone shipped (Phase 14.1 only)
 progress:
-  total_phases: 7
+  total_phases: 1
   completed_phases: 1
   total_plans: 1
   completed_plans: 1
@@ -20,29 +20,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** See exactly which Claude Code agent is doing what, how much it costs, and whether it's healthy — in real time, without changing any agent code.
-**Current focus:** v2.5 Developer Experience — roadmap ready, beginning Phase 15
+**Current focus:** v2.5 shipped, ready for new milestone
 
 ## Current Position
 
-Phase: 15 — Foundation + Static Data Layer (not started)
-Plan: —
-Status: Roadmap ready
-Last activity: 2026-03-11 — Roadmap created for v2.5 (phases 15-20)
+Milestone: v2.5 — Complete
+Status: Shipped (Phase 14.1 only; phases 15-20 removed by user)
+Last activity: 2026-03-19 — v2.5 milestone shipped
 
 ```
-v2.5 Progress: [                    ] 0% (0/6 phases)
+v2.5 Progress: [████████████████████] 100% (1/1 phases)
 ```
 
 ## Phase Summary
 
-| Phase | Goal | Requirements | Status |
-|-------|------|--------------|--------|
-| 15. Foundation + Static Data Layer | State + changelog infrastructure available | (foundation) | Not started |
-| 16. CLI Improvements | Users can diagnose failures and check for updates in terminal | VER-01, VER-02, CLI-01, CLI-02, CLI-03 | Not started |
-| 17. Dashboard Version + What's New | Version badge and navigable release notes with auto-show | VER-03 | Not started |
-| 18. Empty States | Contextual no-data guidance distinguishes misconfigured vs. waiting | DASH-01 | Not started |
-| 19. Feature Tooltips | Hover explanations for domain-specific metrics | DASH-02 | Not started |
-| 20. Onboarding Walkthrough | First-run guided tour with skip/replay/persistence | DASH-03 | Not started |
+v2.5 shipped with Phase 14.1 only. Phases 15-20 removed from roadmap.
 
 ## Accumulated Context
 
@@ -60,12 +52,7 @@ v2.5 Progress: [                    ] 0% (0/6 phases)
 - [v2.1] NTILE(100) for p50/p95 in SQLite — no external stats lib needed
 - [v2.1] Always-on stalled-agents poll (empty deps) keeps badge live across tab switches
 - [v2.1] Tab-gated polling with [activeTab, latestSessionId] deps — stops API calls when tab not visible
-- [v2.5 research] Use `update-notifier@^7.3.1` (unref'd child process) — never blocks CLI startup
-- [v2.5 research] Use `driver.js@^1.4.0` for onboarding tour (MIT, React 19 safe, ~15KB) — NOT react-joyride (React 18/19 incompatibility confirmed)
-- [v2.5 research] Changelog data bundled as `lib/changelog.json` — served locally, works offline, no remote fetch dependency
-- [v2.5 research] First-run state in `~/.local/share/observagent/state.json` via `lib/state.js` — same directory as DB
-- [v2.5 research] Tooltip triggers placed outside `<ResponsiveContainer>` to avoid Recharts z-index conflict
-- [v2.5 research] Onboarding localStorage key includes version string — allows re-show on major upgrades
+- [v2.5] Phase 14.1 (Landing Page) shipped 2026-03-19
 
 ### Blockers
 
@@ -79,6 +66,6 @@ v2.5 Progress: [                    ] 0% (0/6 phases)
 
 ## Session Continuity
 
-Last session: 2026-03-19T05:12:56.630Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-foundation-static-data-layer/15-CONTEXT.md
+Last session: 2026-03-19
+Stopped at: v2.5 milestone shipped
+Resume file: none
