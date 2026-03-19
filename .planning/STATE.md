@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 
 Milestone: v2.5 — Complete
 Status: Shipped (Phase 14.1 only; phases 15-20 removed by user)
-Last activity: 2026-03-19 — v2.5 milestone shipped
+Last activity: 2026-03-19 — Completed quick task 260319-295: Fix cost by model panel showing no data
 
 ```
 v2.5 Progress: [████████████████████] 100% (1/1 phases)
@@ -63,6 +63,8 @@ v2.5 shipped with Phase 14.1 only. Phases 15-20 removed from roadmap.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Implement CLI version banner and dashboard version badge | 2026-03-15 | b79a292 | [1-implement-cli-version-banner-and-dashboa](./quick/1-implement-cli-version-banner-and-dashboa/) |
+
+| 260319-295 | Fix cost by model panel showing no data | 2026-03-19 | 7399791 | [260319-295-fix-cost-by-model-panel-showing-no-data](./quick/260319-295-fix-cost-by-model-panel-showing-no-data/) |
 
 ## Session Continuity
 
