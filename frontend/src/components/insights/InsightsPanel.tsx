@@ -479,9 +479,9 @@ export function InsightsPanel() {
                     <p className="text-xs text-muted-foreground">No data yet</p>
                   ) : (
                     <>
-                      <div style={{ height: 140 }}>
+                      <div className="h-[140px]">
                         <p className="text-[10px] text-muted-foreground mb-1">Input Tokens</p>
-                        <ResponsiveContainer width="100%" height="calc(100% - 16px)">
+                        <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
                             {GRID}
                             <XAxis
@@ -506,9 +506,9 @@ export function InsightsPanel() {
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
-                      <div style={{ height: 140 }}>
+                      <div className="h-[140px]">
                         <p className="text-[10px] text-muted-foreground mb-1">Output Tokens</p>
-                        <ResponsiveContainer width="100%" height="calc(100% - 16px)">
+                        <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
                             {GRID}
                             <XAxis
