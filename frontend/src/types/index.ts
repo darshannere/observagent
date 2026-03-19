@@ -64,6 +64,8 @@ export interface Config {
   budget_tokens?: number | null
   context_max_tokens?: number
   autocompact_buffer?: number
+  /** User-selected context window size for context fill % calculation (200000 or 1000000) */
+  context_window_tokens?: number
 }
 
 export type AgentState = 'active' | 'idle' | 'errored'

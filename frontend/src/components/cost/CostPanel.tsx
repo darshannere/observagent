@@ -23,6 +23,8 @@ export function CostPanel() {
   const config = useObservStore((s) => s.config)
   const activeFilter = useObservStore((s) => s.activeSessionFilter)
   const contextFillPct = useObservStore((s) => s.contextFillPct)
+  const contextWindowTokens = useObservStore((s) => s.contextWindowTokens)
+  const setContextWindowTokens = useObservStore((s) => s.setContextWindowTokens)
 
   const postConfig = useDebouncedPost('/api/config')
 
@@ -117,8 +119,7 @@ export function CostPanel() {
         </div>
       )}
 
-      {/* Context fill % bar — populated from live cost_update SSE events */}
-      {/* DASH2-04: contextFillPct is set from SSE cost_update events via useSSE.ts. CALC-01 fix (Phase 8) resolved the ~10% discrepancy. */}
+      {/* Context fill % bar — contextFillPct is recalculated locally when context window changes */}
       <div>
         <div
           className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1"
@@ -137,10 +138,24 @@ export function CostPanel() {
             style={{ width: `${Math.min(contextFillPct, 100)}%` }}
           />
         </div>
-        <div
-          className={['text-[10px] mt-0.5', fillRed ? 'text-red-400' : 'text-muted-foreground'].join(' ')}
-        >
-          {contextFillPct.toFixed(1)}%
+        <div className="flex items-center justify-between mt-0.5">
+          <span
+            className={['text-[10px]', fillRed ? 'text-red-400' : 'text-muted-foreground'].join(' ')}
+          >
+            {contextFillPct.toFixed(1)}%
+          </span>
+          <select
+            value={contextWindowTokens}
+            onChange={(e) => {
+              const tokens = Number(e.target.value)
+              setContextWindowTokens(tokens)
+              postConfig({ context_window_tokens: tokens })
+            }}
+            className="text-[9px] rounded border border-border bg-background px-1 py-0.5 text-muted-foreground"
+          >
+            <option value={200_000}>200K ctx</option>
+            <option value={1_000_000}>1M ctx</option>
+          </select>
         </div>
       </div>
 

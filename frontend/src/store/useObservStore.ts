@@ -65,6 +65,8 @@ interface ObservStore {
   health: HealthState | null
   sseConnected: boolean
   contextFillPct: number
+  totalInputTokens: number  // raw input tokens for local context fill % recalculation
+  contextWindowTokens: number  // user-selected context window (200000 or 1000000)
   timeFilter: TimeFilter
 
   // Actions
@@ -94,6 +96,8 @@ interface ObservStore {
   setHealth(h: HealthState): void
   setSseConnected(v: boolean): void
   setContextFillPct(pct: number): void
+  setTotalInputTokens(tokens: number): void
+  setContextWindowTokens(tokens: number): void
   setTimeFilter(filter: TimeFilter): void
 }
 
@@ -113,6 +117,8 @@ export const useObservStore = create<ObservStore>()((set) => ({
   health: null,
   sseConnected: false,
   contextFillPct: 0,
+  totalInputTokens: 0,
+  contextWindowTokens: 200_000,
   timeFilter: 'all',
 
   // Actions
@@ -291,15 +297,27 @@ export const useObservStore = create<ObservStore>()((set) => ({
           ? [updated, ...s.sessionCosts.slice(0, index), ...s.sessionCosts.slice(index + 1)]
           : [updated, ...s.sessionCosts]
 
+      // Track raw input tokens for local context fill % recalculation when context window changes.
+      // Only update if this is the active session (or no filter set, meaning the most recent).
+      const isActiveSession = !s.activeSessionFilter || sessionId === s.activeSessionFilter
+      const newTotalInputTokens = isActiveSession
+        ? Math.max(prevInput, newInput) + Math.max(prevCacheRead, newCacheRead) +
+          Math.max(prevCacheWrite, newCacheWrite)
+        : s.totalInputTokens
+
       // Note: todayCost is NOT recalculated here. It is only set by setCostData() which
       // uses the server's todayTotal (filtered by date). Recalculating from all cached
       // sessions would inflate today's cost with sessions from other dates.
-      return { sessionCosts }
+      return { sessionCosts, totalInputTokens: newTotalInputTokens }
     })
   },
 
   setConfig(config) {
-    set({ config })
+    set({
+      config,
+      // Sync context window tokens from persisted config
+      contextWindowTokens: config?.context_window_tokens ?? 200_000,
+    })
   },
 
   setSessionFilter(sessionId) {
@@ -324,6 +342,21 @@ export const useObservStore = create<ObservStore>()((set) => ({
 
   setContextFillPct(pct) {
     set({ contextFillPct: pct })
+  },
+
+  setTotalInputTokens(tokens) {
+    set({ totalInputTokens: tokens })
+  },
+
+  setContextWindowTokens(tokens) {
+    set((s) => {
+      const effectiveWindow = tokens - 40_000 // 40K autocompact buffer
+      const contextFillPct = Math.min(
+        100,
+        Math.round((s.totalInputTokens / effectiveWindow) * 100),
+      )
+      return { contextWindowTokens: tokens, contextFillPct }
+    })
   },
 
   setTimeFilter(filter) {
