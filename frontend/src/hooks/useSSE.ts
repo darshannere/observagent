@@ -148,14 +148,15 @@ export function useSSE(isReplay = false): void {
         if (msg.contextFillPct != null) {
           store.setContextFillPct(msg.contextFillPct)
         }
-        // Update agent cost if agentId present
         if (agentId) {
+          // Subagent cost — update only the agent entry, NOT the parent session.
+          // Applying subagent costs to the parent session via Math.max caused the
+          // session cost to jump when any subagent's cost exceeded the parent's.
           const t = msg.tokens ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
           const totalTokens = t.input + t.output + t.cacheRead + t.cacheWrite
           store.updateAgentCost(agentId, msg.cost ?? 0, totalTokens)
-        }
-        // Update session cost if sessionId present
-        if (sessionId) {
+        } else if (sessionId) {
+          // Parent session cost — update session cost only for parent (agentId empty)
           store.updateSessionCost(sessionId, {
             cost: msg.cost,
             tokens: msg.tokens,
