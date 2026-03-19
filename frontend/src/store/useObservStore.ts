@@ -258,25 +258,30 @@ export const useObservStore = create<ObservStore>()((set) => ({
           ? s.sessionCosts[index]
           : normalizeSessionCostEntry({ session_id: sessionId })
 
-      // Treat cost/tokens as deltas (incoming incremental values) and accumulate.
-      // This handles out-of-order SSE events gracefully — a late-arriving earlier event
-      // with lower delta won't reset a later event's accumulated totals.
+      // The server sends cumulative totals (re-computed from all JSONL records on each change),
+      // NOT deltas. We use Math.max to handle out-of-order SSE events gracefully —
+      // a late-arriving earlier event with lower totals won't overwrite a later event's higher totals.
       const prevCost = asNumber(existing.total_cost_usd)
-      const deltaCost = costUpdate.cost ?? 0
+      const newCost = costUpdate.cost ?? 0
+      const prevInput = existing.input_tokens ?? 0
+      const newInput = costUpdate.tokens?.input ?? 0
+      const prevOutput = existing.output_tokens ?? 0
+      const newOutput = costUpdate.tokens?.output ?? 0
+      const prevCacheRead = existing.cache_read_tokens ?? 0
+      const newCacheRead = costUpdate.tokens?.cacheRead ?? 0
+      const prevCacheWrite = existing.cache_write_tokens ?? 0
+      const newCacheWrite = costUpdate.tokens?.cacheWrite ?? 0
       const updated: CostStateEntry = {
         ...existing,
         session_id: sessionId,
         project_name: costUpdate.projectName ?? existing.project_name,
-        total_cost_usd: prevCost + deltaCost,
-        input_tokens: (existing.input_tokens ?? 0) + (costUpdate.tokens?.input ?? 0),
-        output_tokens: (existing.output_tokens ?? 0) + (costUpdate.tokens?.output ?? 0),
-        cache_read_tokens: (existing.cache_read_tokens ?? 0) + (costUpdate.tokens?.cacheRead ?? 0),
-        cache_write_tokens: (existing.cache_write_tokens ?? 0) + (costUpdate.tokens?.cacheWrite ?? 0),
-        total_tokens:
-          (existing.input_tokens ?? 0) + (existing.output_tokens ?? 0) +
-          (existing.cache_read_tokens ?? 0) + (existing.cache_write_tokens ?? 0) +
-          (costUpdate.tokens?.input ?? 0) + (costUpdate.tokens?.output ?? 0) +
-          (costUpdate.tokens?.cacheRead ?? 0) + (costUpdate.tokens?.cacheWrite ?? 0),
+        total_cost_usd: Math.max(prevCost, newCost),
+        input_tokens: Math.max(prevInput, newInput),
+        output_tokens: Math.max(prevOutput, newOutput),
+        cache_read_tokens: Math.max(prevCacheRead, newCacheRead),
+        cache_write_tokens: Math.max(prevCacheWrite, newCacheWrite),
+        total_tokens: Math.max(prevInput, newInput) + Math.max(prevOutput, newOutput) +
+          Math.max(prevCacheRead, newCacheRead) + Math.max(prevCacheWrite, newCacheWrite),
         context_fill_pct: costUpdate.contextFillPct ?? existing.context_fill_pct,
       }
 

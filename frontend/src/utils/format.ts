@@ -52,7 +52,10 @@ export function formatRelativeTime(ms: number): string {
 }
 
 export function formatUptime(sec: number): string {
-  if (sec < 60) return `${sec}s`
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ${sec % 60}s`
+  if (sec < 60) {
+    const rounded = Math.round(sec * 100) / 100
+    return rounded % 1 === 0 ? `${rounded}s` : `${rounded.toFixed(2)}s`
+  }
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s`
   return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`
 }

@@ -478,42 +478,62 @@ export function InsightsPanel() {
                   ) : tokensData.length === 0 && tokensStatus === 'ok' ? (
                     <p className="text-xs text-muted-foreground">No data yet</p>
                   ) : (
-                    <div style={{ height: 160 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
-                          {GRID}
-                          <XAxis
-                            dataKey="bucket_ms"
-                            tick={TICK_STYLE}
-                            tickFormatter={(v: number) =>
-                              new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
-                            }
-                          />
-                          <YAxis tick={TICK_STYLE} allowDecimals={false} />
-                          <Tooltip
-                            formatter={(v: any, name: any) => [`${v}`, name]}
-                            contentStyle={TOOLTIP_STYLE}
-                          />
-                          <Legend wrapperStyle={{ fontSize: 9 }} />
-                          <Area
-                            dataKey="input_tokens"
-                            fill="#00d4ff"
-                            stroke="#00d4ff"
-                            fillOpacity={0.20}
-                            type="monotone"
-                            name="Input"
-                          />
-                          <Area
-                            dataKey="output_tokens"
-                            fill="#00ffb2"
-                            stroke="#00ffb2"
-                            fillOpacity={0.15}
-                            type="monotone"
-                            name="Output"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <>
+                      <div style={{ height: 140 }}>
+                        <p className="text-[10px] text-muted-foreground mb-1">Input Tokens</p>
+                        <ResponsiveContainer width="100%" height="calc(100% - 16px)">
+                          <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                            {GRID}
+                            <XAxis
+                              dataKey="bucket_ms"
+                              tick={TICK_STYLE}
+                              tickFormatter={(v: number) =>
+                                new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+                              }
+                            />
+                            <YAxis tick={TICK_STYLE} allowDecimals={false} />
+                            <Tooltip
+                              formatter={(v: any) => [`${v}`, 'Input']}
+                              contentStyle={TOOLTIP_STYLE}
+                            />
+                            <Area
+                              dataKey="input_tokens"
+                              fill="#00d4ff"
+                              stroke="#00d4ff"
+                              fillOpacity={0.25}
+                              type="monotone"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{ height: 140 }}>
+                        <p className="text-[10px] text-muted-foreground mb-1">Output Tokens</p>
+                        <ResponsiveContainer width="100%" height="calc(100% - 16px)">
+                          <AreaChart data={tokensData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                            {GRID}
+                            <XAxis
+                              dataKey="bucket_ms"
+                              tick={TICK_STYLE}
+                              tickFormatter={(v: number) =>
+                                new Date(v).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+                              }
+                            />
+                            <YAxis tick={TICK_STYLE} allowDecimals={false} />
+                            <Tooltip
+                              formatter={(v: any) => [`${v}`, 'Output']}
+                              contentStyle={TOOLTIP_STYLE}
+                            />
+                            <Area
+                              dataKey="output_tokens"
+                              fill="#00ffb2"
+                              stroke="#00ffb2"
+                              fillOpacity={0.25}
+                              type="monotone"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </>
                   )}
                 </div>
               </>
