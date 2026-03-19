@@ -291,9 +291,10 @@ export const useObservStore = create<ObservStore>()((set) => ({
           ? [updated, ...s.sessionCosts.slice(0, index), ...s.sessionCosts.slice(index + 1)]
           : [updated, ...s.sessionCosts]
 
-      const todayCost = sessionCosts.reduce((sum, sc) => sum + asNumber(sc.total_cost_usd), 0)
-
-      return { sessionCosts, todayCost }
+      // Note: todayCost is NOT recalculated here. It is only set by setCostData() which
+      // uses the server's todayTotal (filtered by date). Recalculating from all cached
+      // sessions would inflate today's cost with sessions from other dates.
+      return { sessionCosts }
     })
   },
 
