@@ -62,6 +62,16 @@ export async function apiRoutes(fastify, options) {
       AND date(last_event_ts) = date('now')
   `);
 
+  const stmtCostByModel = db.prepare(`
+    SELECT
+      model,
+      SUM(total_cost_usd) AS cost,
+      COUNT(DISTINCT session_id) AS sessions
+    FROM session_cost
+    WHERE agent_id = ''
+    GROUP BY model
+  `);
+
   const stmtAgents = db.prepare(`
     SELECT
       an.agent_id, an.parent_session_id, an.agent_type, an.state,
@@ -173,9 +183,11 @@ export async function apiRoutes(fastify, options) {
   fastify.get('/api/cost', (request, reply) => {
     const sessions = stmtSessionCost.all();
     const todayRow = stmtTodayCost.get();
+    const models = stmtCostByModel.all();
     reply.send({
       sessions,
       todayTotal: todayRow.total,
+      models,
     });
   });
 
