@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { Sun, Moon } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 import {
   Card,
   CardContent,
@@ -61,11 +63,11 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
     <div className="border-b border-border last:border-b-0">
       {/* Main row — click to expand */}
       <div
-        className="px-2 py-1 font-mono text-xs flex items-center gap-2 cursor-pointer hover:bg-[rgba(0,212,255,0.04)] min-w-0"
+        className="px-2 py-1 font-mono text-xs flex items-center gap-2 cursor-pointer hover:bg-primary/[0.04] min-w-0"
         onClick={onToggle}
       >
         {/* Session ID */}
-        <span className="text-[#00d4ff] font-mono font-semibold shrink-0 w-20 truncate">
+        <span className="text-primary font-mono font-semibold shrink-0 w-20 truncate">
           {s.session_id.slice(-8)}
         </span>
 
@@ -89,7 +91,7 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
 
         {/* Active badge */}
         {s.is_live > 0 && (
-          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2] shrink-0">LIVE</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/[0.10] border border-primary/25 text-primary shrink-0">LIVE</span>
         )}
 
         {/* Spacer */}
@@ -147,6 +149,7 @@ function SessionRow({ session: s, expanded, onToggle }: SessionRowProps) {
 }
 
 export function HistoryPage() {
+  const { theme, toggle: toggleTheme } = useTheme()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -218,23 +221,30 @@ export function HistoryPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4">
       {/* TopBar */}
-      <div className="flex items-center gap-3 px-3 py-2 -mx-4 -mt-4 mb-4 bg-[rgba(3,8,17,0.9)] backdrop-blur-xl border-b border-[rgba(0,212,255,0.15)]">
+      <div className="flex items-center gap-3 px-3 py-2 -mx-4 -mt-4 mb-4 bg-card/90 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#00ffb2] shadow-[0_0_8px_#00ffb2] animate-pulse shrink-0" />
-          <span className="font-display font-extrabold text-sm text-white">
-            Observ<span className="text-[#00ffb2]">Agent</span>
+          <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_var(--primary)] animate-pulse shrink-0" />
+          <span className="font-display font-extrabold text-sm text-foreground">
+            Observ<span className="text-primary">Agent</span>
           </span>
         </div>
         <div className="ml-auto flex items-center gap-1">
           <Link
             to="/live"
-            className="font-mono text-[10px] px-2.5 py-1 rounded text-[#3d5a7a] hover:text-[#00d4ff] transition-colors"
+            className="font-mono text-[10px] px-2.5 py-1 rounded text-muted-foreground hover:text-primary transition-colors"
           >
             Live
           </Link>
-          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-[#00d4ff] bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.18)]">
+          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-primary bg-primary/[0.08] border border-primary/[0.18]">
             History
           </span>
+          <button
+            onClick={toggleTheme}
+            className="ml-1 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
         </div>
       </div>
 
@@ -271,8 +281,8 @@ export function HistoryPage() {
               className={[
                 'px-2.5 py-1 rounded text-xs font-medium border transition-colors',
                 historyTimeFilter === value && !dateFrom && !dateTo
-                  ? 'bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2]'
-                  : 'border border-[rgba(255,255,255,0.07)] text-[#1e3a5a] hover:text-foreground',
+                  ? 'bg-primary/[0.10] border border-primary/25 text-primary'
+                  : 'border border-border text-muted-foreground hover:text-foreground',
               ].join(' ')}
             >
               {label}

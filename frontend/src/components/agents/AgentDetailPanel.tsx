@@ -44,7 +44,7 @@ export function AgentDetailPanel() {
   return (
     <div
       className={[
-        'fixed top-0 right-0 h-screen w-80 bg-[rgba(3,12,28,0.9)] border-l border-[rgba(0,212,255,0.18)] flex flex-col z-50 transition-transform duration-200',
+        'fixed top-0 right-0 h-screen w-80 bg-card/90 border-l border-border flex flex-col z-50 transition-transform duration-200',
         selectedAgent ? 'translate-x-0' : 'translate-x-full',
       ].join(' ')}
     >
@@ -69,8 +69,8 @@ export function AgentDetailPanel() {
             className={[
               'flex-1 px-2 py-1.5 text-xs font-medium border-b-2 transition-colors',
               activeTab === tab.id
-                ? 'border-[#00ffb2] text-[#00ffb2]'
-                : 'border-transparent text-[#3d5a7a] hover:text-foreground',
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
             {tab.label}

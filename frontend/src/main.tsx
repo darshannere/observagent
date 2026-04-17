@@ -4,8 +4,12 @@ import { BrowserRouter } from 'react-router'
 import App from './App'
 import './index.css'
 
-// Force dark mode always — shadcn/ui reads class="dark" from html element
-document.documentElement.classList.add('dark')
+// Apply saved theme before first render to avoid flash
+const savedTheme = (localStorage.getItem('theme') ?? 'dark') as 'dark' | 'light'
+document.documentElement.setAttribute('data-theme', savedTheme)
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark')
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

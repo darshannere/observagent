@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router'
+import { Sun, Moon } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 import { useSSE } from '@/hooks/useSSE'
 import { useObservStore, selectActiveAgentCount } from '@/store/useObservStore'
 import type { TimeFilter } from '@/store/useObservStore'
@@ -26,6 +28,7 @@ export function LiveDashboard() {
   const setTimeFilter = useObservStore((s) => s.setTimeFilter)
   const [activeTab, setActiveTab] = useState<ActiveTab>('log')
   const [version, setVersion] = useState<string | null>(null)
+  const { theme, toggle: toggleTheme } = useTheme()
 
   // Capture initial URL params once — used to restore filter on mount only.
   // Do NOT put searchParams in the effect deps: every agent/session click calls
@@ -141,34 +144,41 @@ export function LiveDashboard() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
       {/* TopBar */}
-      <div className="shrink-0 flex items-center gap-3 px-3 py-2 bg-[rgba(3,8,17,0.9)] backdrop-blur-xl border-b border-[rgba(0,212,255,0.15)]">
+      <div className="shrink-0 flex items-center gap-3 px-3 py-2 bg-card/90 backdrop-blur-xl border-b border-border">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#00ffb2] shadow-[0_0_8px_#00ffb2] animate-pulse shrink-0" />
-          <span className="font-display font-extrabold text-sm text-white">
-            Observ<span className="text-[#00ffb2]">Agent</span>
+          <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_var(--primary)] animate-pulse shrink-0" />
+          <span className="font-display font-extrabold text-sm text-foreground">
+            Observ<span className="text-primary">Agent</span>
           </span>
         </div>
         {/* LIVE badge */}
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[rgba(0,255,178,0.08)] border border-[rgba(0,255,178,0.25)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00ffb2] animate-pulse" />
-          <span className="font-mono text-[10px] text-[#00ffb2] uppercase tracking-widest">Live</span>
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-primary/[0.08] border border-primary/25">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="font-mono text-[10px] text-primary uppercase tracking-widest">Live</span>
         </div>
-        {/* Version badge — sits between LIVE badge and nav tabs */}
+        {/* Version badge */}
         {version && (
-          <span className="font-mono text-[10px] text-[#3d5a7a]">v{version}</span>
+          <span className="font-mono text-[10px] text-muted-foreground">v{version}</span>
         )}
-        {/* Nav tabs */}
+        {/* Nav tabs + theme toggle */}
         <div className="ml-auto flex items-center gap-1">
-          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-[#00d4ff] bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.18)]">
+          <span className="font-mono text-[10px] px-2.5 py-1 rounded text-primary bg-primary/[0.08] border border-primary/[0.18]">
             Live
           </span>
           <Link
             to="/history"
-            className="font-mono text-[10px] px-2.5 py-1 rounded text-[#3d5a7a] hover:text-[#00d4ff] transition-colors"
+            className="font-mono text-[10px] px-2.5 py-1 rounded text-muted-foreground hover:text-primary transition-colors"
           >
             History
           </Link>
+          <button
+            onClick={toggleTheme}
+            className="ml-1 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
         </div>
       </div>
       {/* Replay banner */}
@@ -185,10 +195,10 @@ export function LiveDashboard() {
           className="shrink-0 border-r border-border flex flex-col overflow-y-auto"
           style={{ flexBasis: '35%', minWidth: '200px', maxWidth: '400px' }}
         >
-          <div className="px-2 py-1.5 border-b border-border text-[9px] uppercase tracking-widest text-[#1e3a5a] font-mono flex items-center gap-1.5">
+          <div className="px-2 py-1.5 border-b border-border text-[9px] uppercase tracking-widest text-muted-foreground font-mono flex items-center gap-1.5">
             Agents
             {activeAgentCount > 0 && (
-              <span className="ml-auto rounded-full bg-[rgba(0,255,178,0.12)] border border-[rgba(0,255,178,0.30)] px-1.5 py-0.5 text-[9px] font-mono text-[#00ffb2] leading-none">
+              <span className="ml-auto rounded-full bg-primary/[0.12] border border-primary/30 px-1.5 py-0.5 text-[9px] font-mono text-primary leading-none">
                 {activeAgentCount} active
               </span>
             )}
@@ -205,7 +215,7 @@ export function LiveDashboard() {
                   className={[
                     'px-2 py-0.5 rounded text-[10px] font-medium transition-colors border',
                     timeFilter === value
-                      ? 'bg-[rgba(0,255,178,0.10)] border border-[rgba(0,255,178,0.25)] text-[#00ffb2]'
+                      ? 'bg-primary/[0.10] border border-primary/25 text-primary'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground',
                   ].join(' ')}
                 >
@@ -228,8 +238,8 @@ export function LiveDashboard() {
                 className={[
                   'px-4 py-1.5 text-xs font-medium capitalize border-b-2 transition-colors',
                   activeTab === tab
-                    ? 'border-[#00d4ff] text-[#00d4ff]'
-                    : 'border-transparent text-[#3d5a7a] hover:text-foreground',
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
                 ].join(' ')}
               >
                 {tab === 'log' ? 'Log' : tab === 'timeline' ? 'Timeline' : 'Insights'}

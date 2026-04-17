@@ -97,21 +97,21 @@ export function CostPanel() {
           <div className="flex flex-col gap-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Input</span>
-              <span className="tabular-nums font-display font-bold text-[#00d4ff]">{formatTokens(activeSession.input_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(activeSession.input_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Output</span>
-              <span className="tabular-nums font-display font-bold text-[#00d4ff]">{formatTokens(activeSession.output_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(activeSession.output_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache read</span>
-              <span className="tabular-nums font-display font-bold text-[#00d4ff]">
+              <span className="tabular-nums font-display font-bold text-primary">
                 {formatTokens(activeSession.cache_read_tokens)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache write</span>
-              <span className="tabular-nums font-display font-bold text-[#00d4ff]">
+              <span className="tabular-nums font-display font-bold text-primary">
                 {formatTokens(activeSession.cache_write_tokens)}
               </span>
             </div>
@@ -133,7 +133,7 @@ export function CostPanel() {
             'h-full rounded-full transition-all',
             fillRed
               ? 'bg-red-500'
-              : 'bg-gradient-to-r from-[#00d4ff] to-[#00ffb2] shadow-[0_0_8px_rgba(0,255,178,0.3)]',
+              : 'bg-gradient-to-r from-primary to-lime shadow-[0_0_8px_var(--glow-l)]',
           ].join(' ')}
             style={{ width: `${Math.min(contextFillPct, 100)}%` }}
           />

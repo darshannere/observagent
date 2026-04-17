@@ -32,7 +32,7 @@ export function PromptTab({ data }: { data: AgentDetail }) {
   const barColor =
     contextPct > 80
       ? 'bg-red-500'
-      : 'bg-gradient-to-r from-[#00d4ff] to-[#00ffb2]'
+      : 'bg-gradient-to-r from-primary to-lime'
 
   return (
     <div className="p-3 flex flex-col gap-3">
@@ -93,7 +93,7 @@ function truncate(text: string, max = 500): { text: string; truncated: boolean }
 function ToolUseBlock({ block }: { block: ContentBlock }) {
   const inputStr = block.input ? JSON.stringify(block.input).slice(0, 100) : ''
   return (
-    <div className="text-[10px] font-mono bg-[rgba(0,212,255,0.06)] text-[#00d4ff] rounded px-1.5 py-0.5 truncate">
+    <div className="text-[10px] font-mono bg-primary/[0.06] text-primary rounded px-1.5 py-0.5 truncate">
       [{block.name}] {inputStr}
     </div>
   )
@@ -127,7 +127,7 @@ function TurnRow({ turn }: { turn: ConversationTurn }) {
       <div
         className={[
           'max-w-[95%] rounded px-2 py-1.5 flex flex-col gap-1',
-          isUser ? 'bg-[rgba(0,255,178,0.06)] text-foreground' : 'bg-[rgba(0,212,255,0.04)] text-foreground',
+          isUser ? 'bg-primary/[0.06] text-foreground' : 'bg-primary/[0.04] text-foreground',
         ].join(' ')}
       >
         {turn.content.map((block, i) => {

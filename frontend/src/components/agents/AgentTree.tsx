@@ -10,9 +10,9 @@ const LS_INACTIVE_KEY = 'observagent:inactive-collapsed'
 const LS_REPO_KEY = 'observagent:collapsed-repos'
 
 function agentStateColor(state: Agent['state']): string {
-  if (state === 'active') return 'text-[#00ffb2]'
-  if (state === 'errored') return 'text-[#ff4d4d]'
-  return 'text-[#1e3a5a]'
+  if (state === 'active') return 'text-primary'
+  if (state === 'errored') return 'text-destructive'
+  return 'text-muted-foreground'
 }
 
 function agentLabel(agent: Agent): string {
@@ -24,7 +24,7 @@ function agentLabel(agent: Agent): string {
 function ToolBadge({ tool }: { tool: string | null }) {
   if (!tool) return null
   return (
-    <span className="rounded bg-[rgba(0,212,255,0.06)] px-1 text-[10px] text-[#00d4ff] font-mono truncate max-w-[80px]">
+    <span className="rounded bg-primary/[0.06] px-1 text-[10px] text-primary font-mono truncate max-w-[80px]">
       {tool}
     </span>
   )
@@ -194,9 +194,9 @@ export function AgentTree() {
                   return next
                 })
               }}
-              className="cursor-pointer select-none list-none flex items-center gap-2 px-2.5 py-1.5 rounded text-foreground border-l-4 border-[rgba(0,212,255,0.30)] bg-[rgba(0,212,255,0.04)] hover:bg-[rgba(0,212,255,0.08)] transition-colors"
+              className="cursor-pointer select-none list-none flex items-center gap-2 px-2.5 py-1.5 rounded text-foreground border-l-4 border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.08] transition-colors"
             >
-              <Folder size={12} className="text-[#00d4ff]/80" />
+              <Folder size={12} className="text-primary/80" />
               <span className="font-mono font-semibold text-sm truncate">
                 {repo.repoName}
               </span>
@@ -226,8 +226,8 @@ export function AgentTree() {
                       className={[
                         'cursor-pointer select-none list-none flex items-center gap-1.5 px-2 py-1 rounded text-muted-foreground border-l-2 text-[11px]',
                         isSessionSelected
-                          ? 'bg-[rgba(0,212,255,0.08)] border-[rgba(0,212,255,0.20)] text-white'
-                          : 'hover:bg-[rgba(0,212,255,0.04)] hover:border-[rgba(0,212,255,0.12)] border-transparent',
+                          ? 'bg-primary/[0.08] border-primary/20 text-foreground'
+                          : 'hover:bg-primary/[0.04] hover:border-primary/12 border-transparent',
                       ].join(' ')}
                     >
                       <span className="font-mono font-semibold text-foreground">
@@ -258,8 +258,8 @@ export function AgentTree() {
                               className={[
                                 'flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer text-[11px]',
                                 isSelected
-                                  ? 'bg-[rgba(0,212,255,0.08)] border-l-2 border-[rgba(0,212,255,0.20)]'
-                                  : 'hover:bg-[rgba(0,212,255,0.04)] border-l-2 border-transparent',
+                                  ? 'bg-primary/[0.08] border-l-2 border-primary/20'
+                                  : 'hover:bg-primary/[0.04] border-l-2 border-transparent',
                                 withOpacity
                                   ? 'opacity-50 hover:opacity-75 transition-opacity'
                                   : '',

@@ -64,31 +64,31 @@ export function HealthPanel() {
       <div className="flex flex-col gap-0.5">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Last event</span>
-          <span className="tabular-nums text-[#00d4ff]">{lastEventAgo}</span>
+          <span className="tabular-nums text-primary">{lastEventAgo}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total calls</span>
-          <span className="tabular-nums text-[#00d4ff]">{health?.totalCalls ?? 0}</span>
+          <span className="tabular-nums text-primary">{health?.totalCalls ?? 0}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Errors</span>
-          <span className={`tabular-nums ${(health?.errorCount ?? 0) > 0 ? 'text-[#ff7b2b]' : 'text-[#00d4ff]'}`}>{health?.errorCount ?? 0}</span>
+          <span className={`tabular-nums ${(health?.errorCount ?? 0) > 0 ? 'text-amber' : 'text-primary'}`}>{health?.errorCount ?? 0}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Error rate</span>
-          <span className="tabular-nums text-[#00d4ff]">
+          <span className="tabular-nums text-primary">
             {((health?.errorRate ?? 0) * 100).toFixed(1)}%
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Uptime</span>
-          <span className="tabular-nums text-[#00d4ff]">
+          <span className="tabular-nums text-primary">
             {uptime !== null ? formatUptime(uptime) : '—'}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Hook status</span>
-          <span className="text-[#00e887]">Installed</span>
+          <span className="text-green">Installed</span>
         </div>
       </div>
     </div>

@@ -18,15 +18,15 @@ function computeLatencyPercentiles(events: ToolEvent[]) {
 }
 
 const TOOLTIP_STYLE: React.CSSProperties = {
-  backgroundColor: '#06101e',
-  border: '1px solid rgba(0,212,255,0.25)',
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
   borderRadius: '8px',
-  color: '#c8dae8',
+  color: 'var(--foreground)',
   fontSize: '11px',
   fontFamily: "'JetBrains Mono', monospace",
 }
-const TICK_STYLE = { fill: '#3d5a7a', fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }
-const GRID = <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,255,0.06)" vertical={false} />
+const TICK_STYLE = { fill: 'var(--muted-foreground)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }
+const GRID = <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
 
 interface StalledAgent {
   agent_id: string
@@ -211,8 +211,8 @@ export function InsightsPanel() {
             className={[
               'px-4 py-2 text-xs font-medium transition-colors',
               activeTab === tab
-                ? 'border-b-2 border-[#00d4ff] text-[#00d4ff]'
-                : 'text-[#3d5a7a] hover:text-foreground',
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
             {tab === 'Health' && stalledCount > 0 ? `Health (${stalledCount})` : tab}
@@ -261,8 +261,8 @@ export function InsightsPanel() {
                       />
                       <Area
                         dataKey="cost_usd"
-                        fill="#00ffb2"
-                        stroke="#00ffb2"
+                        fill="var(--primary)"
+                        stroke="var(--primary)"
                         fillOpacity={0.20}
                         type="monotone"
                       />
@@ -306,7 +306,7 @@ export function InsightsPanel() {
                         formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']}
                         contentStyle={TOOLTIP_STYLE}
                       />
-                      <Bar dataKey="cost_usd" fill="#00d4ff" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost_usd" fill="var(--primary)" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -328,7 +328,7 @@ export function InsightsPanel() {
                       <XAxis dataKey="name" tick={TICK_STYLE} angle={-20} textAnchor="end" />
                       <YAxis tick={TICK_STYLE} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
                       <Tooltip formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="cost" fill="#00d4ff" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost" fill="var(--primary)" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -350,7 +350,7 @@ export function InsightsPanel() {
                       <XAxis dataKey="name" tick={TICK_STYLE} />
                       <YAxis tick={TICK_STYLE} width={44} tickFormatter={(v: number) => `$${v.toFixed(3)}`} />
                       <Tooltip formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="cost" fill="#00d4ff" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="cost" fill="var(--primary)" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -441,8 +441,8 @@ export function InsightsPanel() {
                           />
                           <Area
                             dataKey="tool_calls"
-                            fill="#00d4ff"
-                            stroke="#00d4ff"
+                            fill="var(--cyan)"
+                            stroke="var(--cyan)"
                             fillOpacity={0.20}
                             type="monotone"
                           />
