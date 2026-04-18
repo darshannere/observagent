@@ -26,6 +26,11 @@ interface SessionSummary {
 
 async function exportSession(sessionId: string, format: 'jsonl' | 'csv') {
   const res = await fetch(`/api/sessions/${sessionId}/export?format=${format}`)
+  if (!res.ok) {
+    const error = await res.text()
+    alert(`Export failed: ${error}`)
+    return
+  }
   const text = await res.text()
   const blob = new Blob([text], {
     type: format === 'csv' ? 'text/csv' : 'application/x-ndjson',
