@@ -12,3 +12,4 @@ darshannere-observagent-2.0.0-beta.1.tgz
 *.log
 .frontend.log
 .server.log
+.worktrees/
