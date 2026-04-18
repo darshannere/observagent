@@ -194,14 +194,16 @@ export async function apiRoutes(fastify, options) {
   fastify.get('/api/config', (request, reply) => {
     const budgetRow  = stmtGetConfig.get('budget_threshold_usd');
     const ctxRow     = stmtGetConfig.get('ctx_fill_threshold_pct');
+    const ctxWindowRow = stmtGetConfig.get('context_window_tokens');
     reply.send({
-      budget_threshold_usd:   budgetRow  ? JSON.parse(budgetRow.value)  : null,
-      ctx_fill_threshold_pct: ctxRow     ? JSON.parse(ctxRow.value)     : null,
+      budget_threshold_usd:   budgetRow     ? JSON.parse(budgetRow.value)     : null,
+      ctx_fill_threshold_pct: ctxRow        ? JSON.parse(ctxRow.value)        : null,
+      context_window_tokens:  ctxWindowRow  ? JSON.parse(ctxWindowRow.value)  : 200_000,
     });
   });
 
   fastify.post('/api/config', (request, reply) => {
-    const { budget_threshold_usd, ctx_fill_threshold_pct } = request.body ?? {};
+    const { budget_threshold_usd, ctx_fill_threshold_pct, context_window_tokens } = request.body ?? {};
     if (budget_threshold_usd !== undefined) {
       // Accept null to clear threshold
       if (budget_threshold_usd === null) {
@@ -216,6 +218,11 @@ export async function apiRoutes(fastify, options) {
       } else {
         stmtSetConfig.run('ctx_fill_threshold_pct', JSON.stringify(Number(ctx_fill_threshold_pct)));
       }
+    }
+    if (context_window_tokens !== undefined) {
+      const n = Number(context_window_tokens);
+      if (!Number.isFinite(n) || n <= 0) return reply.code(400).send({ error: 'context_window_tokens must be a positive number' });
+      stmtSetConfig.run('context_window_tokens', JSON.stringify(n));
     }
     reply.send({ ok: true });
   });
