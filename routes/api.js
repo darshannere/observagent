@@ -220,7 +220,9 @@ export async function apiRoutes(fastify, options) {
       }
     }
     if (context_window_tokens !== undefined) {
-      stmtSetConfig.run('context_window_tokens', JSON.stringify(Number(context_window_tokens)));
+      const n = Number(context_window_tokens);
+      if (!Number.isFinite(n) || n <= 0) return reply.code(400).send({ error: 'context_window_tokens must be a positive number' });
+      stmtSetConfig.run('context_window_tokens', JSON.stringify(n));
     }
     reply.send({ ok: true });
   });
