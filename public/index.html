@@ -1116,7 +1116,11 @@
       } else {
         costState.sessions.unshift(updated); // prepend — most recent first
       }
-      costState.contextFillPct = msg.contextFillPct;
+      // Only update contextFillPct from parent session events (agentId empty).
+      // Subagents have fresh contexts (low pct) and would cause the bar to jump.
+      if (!msg.agentId) {
+        costState.contextFillPct = msg.contextFillPct;
+      }
       renderCostPanel();
     }
 

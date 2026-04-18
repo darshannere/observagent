@@ -145,18 +145,20 @@ export function useSSE(isReplay = false): void {
         const sessionId = firstString(msg.sessionId, msg.session_id)
         const projectName = firstString(msg.projectName, msg.project_name)
 
-        if (msg.contextFillPct != null) {
-          store.setContextFillPct(msg.contextFillPct)
-        }
         if (agentId) {
           // Subagent cost — update only the agent entry, NOT the parent session.
           // Applying subagent costs to the parent session via Math.max caused the
           // session cost to jump when any subagent's cost exceeded the parent's.
+          // Same isolation applies to contextFillPct: subagents have fresh contexts
+          // (low pct) so including them would cause the bar to jump on every subagent call.
           const t = msg.tokens ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
           const totalTokens = t.input + t.output + t.cacheRead + t.cacheWrite
           store.updateAgentCost(agentId, msg.cost ?? 0, totalTokens)
         } else if (sessionId) {
-          // Parent session cost — update session cost only for parent (agentId empty)
+          // Parent session cost — update contextFillPct only from parent session events
+          if (msg.contextFillPct != null) {
+            store.setContextFillPct(msg.contextFillPct)
+          }
           store.updateSessionCost(sessionId, {
             cost: msg.cost,
             tokens: msg.tokens,
