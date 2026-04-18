@@ -346,13 +346,19 @@ export const useObservStore = create<ObservStore>()((set) => ({
   },
 
   setContextFillPct(sessionId, pct) {
-    set((s) => ({
-      contextFillBySession: { ...s.contextFillBySession, [sessionId]: pct },
-      // Keep global contextFillPct in sync for the currently selected session
-      contextFillPct: s.selectedCostSession === sessionId || s.selectedCostSession === null
-        ? pct
-        : s.contextFillPct,
-    }))
+    set((s) => {
+      // In auto mode (selectedCostSession === null), only update global contextFillPct
+      // if the event's sessionId is the active session. This prevents subagent sessions
+      // (which have fresh/low context fills) from jumping the bar when they report in.
+      const isAutoMode = s.selectedCostSession === null
+      const isActiveSession = s.activeSessionFilter === null || sessionId === s.activeSessionFilter
+      return {
+        contextFillBySession: { ...s.contextFillBySession, [sessionId]: pct },
+        contextFillPct: (isAutoMode && isActiveSession) || s.selectedCostSession === sessionId
+          ? pct
+          : s.contextFillPct,
+      }
+    })
   },
 
   setSelectedCostSession(sessionId: string | null) {
