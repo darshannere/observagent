@@ -589,6 +589,12 @@
           <div>Cache&#8595;: <span id="tok-cache-read">0</span></div>
         </div>
 
+        <!-- Session cost picker — controls which session the context bar tracks -->
+        <div id="cost-session-picker" style="display:none; margin-bottom:6px;">
+          <select id="cost-session-select" style="width:100%; font-size:11px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:2px 4px;">
+          </select>
+        </div>
+
         <!-- Context window fill progress bar -->
         <div class="ctx-label">
           <span>Context</span>
@@ -968,7 +974,9 @@
       sessions: [],
       todayTotal: 0,
       contextFillPct: 0,
-      thresholds: { budget_threshold_usd: null, ctx_fill_threshold_pct: null }
+      thresholds: { budget_threshold_usd: null, ctx_fill_threshold_pct: null },
+      selectedCostSession: null,  // null = auto (most recent), string = specific session id
+      contextFillBySession: {},    // per-session context fill % from SSE
     };
 
     // Format cost: always 6 decimal places, $ prefix, no label
@@ -990,30 +998,69 @@
       return sessions[0];
     }
 
+    // Get the currently tracked session: user-picked > most recent
+    function getTrackedSession() {
+      if (costState.selectedCostSession) {
+        return costState.sessions.find(s => s.session_id === costState.selectedCostSession) || null;
+      }
+      return getActiveSession(costState.sessions);
+    }
+
+    // Render session picker dropdown
+    function renderSessionPicker() {
+      const picker = document.getElementById('cost-session-picker');
+      const select = document.getElementById('cost-session-select');
+      if (!picker || !select) return;
+
+      if (costState.sessions.length === 0) {
+        picker.style.display = 'none';
+        return;
+      }
+
+      picker.style.display = 'block';
+      const autoLabel = costState.sessions[0]
+        ? (costState.sessions[0].project_name || costState.sessions[0].session_id || 'Auto').slice(0, 12)
+        : 'Auto';
+      select.innerHTML =
+        '<option value="__auto__">Auto (' + autoLabel + ')</option>' +
+        costState.sessions.map(s => {
+          const label = (s.project_name || s.session_id || '').slice(0, 12);
+          const cost = formatCost(s.total_cost_usd);
+          return '<option value="' + s.session_id + '">' + label + ' \u2014 ' + cost + '</option>';
+        }).join('');
+      select.value = costState.selectedCostSession || '__auto__';
+    }
+
     // Render cost panel from costState
     function renderCostPanel() {
-      const active = getActiveSession(costState.sessions);
+      const tracked = getTrackedSession();
 
       // Session cost
-      document.getElementById('session-cost').textContent = active
-        ? formatCost(active.total_cost_usd)
+      document.getElementById('session-cost').textContent = tracked
+        ? formatCost(tracked.total_cost_usd)
         : '$0.000000';
 
       // Today's total
       document.getElementById('today-cost').textContent = formatCost(costState.todayTotal);
 
-      // Token breakdown from active session
-      const tokIn  = active ? (active.input_tokens      || 0) : 0;
-      const tokOut = active ? (active.output_tokens     || 0) : 0;
-      const tokCR  = active ? (active.cache_read_tokens || 0) : 0;
-      const tokCW  = active ? ((active.cache_write_5m || 0) + (active.cache_write_1h || 0)) : 0;
+      // Token breakdown from tracked session
+      const tokIn  = tracked ? (tracked.input_tokens      || 0) : 0;
+      const tokOut = tracked ? (tracked.output_tokens     || 0) : 0;
+      const tokCR  = tracked ? (tracked.cache_read_tokens || 0) : 0;
+      const tokCW  = tracked ? ((tracked.cache_write_5m || 0) + (tracked.cache_write_1h || 0)) : 0;
       document.getElementById('tok-input').textContent       = formatTokens(tokIn);
       document.getElementById('tok-output').textContent      = formatTokens(tokOut);
       document.getElementById('tok-cache-read').textContent  = formatTokens(tokCR);
       document.getElementById('tok-cache-write').textContent = formatTokens(tokCW);
 
-      // Context fill bar
-      const pct = costState.contextFillPct || 0;
+      // Render session picker
+      renderSessionPicker();
+
+      // Context fill bar — use per-session value, fallback to global
+      const trackedId = tracked ? tracked.session_id : null;
+      const pct = trackedId
+        ? (costState.contextFillBySession[trackedId] ?? costState.contextFillPct)
+        : (costState.contextFillPct || 0);
       document.getElementById('ctx-pct').textContent = pct + '%';
       const bar = document.getElementById('ctx-bar');
       bar.style.width = pct + '%';
@@ -1041,7 +1088,7 @@
       }
 
       // Alert banner
-      renderAlertBanner(active);
+      renderAlertBanner(tracked);
     }
 
     function renderAlertBanner(activeSession) {
@@ -1098,7 +1145,7 @@
 
     // Handle live cost_update SSE events
     function handleCostUpdate(msg) {
-      // msg shape: { type, sessionId, cost, tokens, contextFillPct, model, ts }
+      // msg shape: { type, sessionId, cost, tokens, contextFillPct, model, ts, agentId }
       const idx = costState.sessions.findIndex(s => s.session_id === msg.sessionId);
       const updated = {
         session_id:        msg.sessionId,
@@ -1119,7 +1166,12 @@
       // Only update contextFillPct from parent session events (agentId empty).
       // Subagents have fresh contexts (low pct) and would cause the bar to jump.
       if (!msg.agentId) {
-        costState.contextFillPct = msg.contextFillPct;
+        // Store per-session value
+        costState.contextFillBySession[msg.sessionId] = msg.contextFillPct;
+        // Update global if this is the selected session or nothing is selected (auto mode)
+        if (costState.selectedCostSession === null || costState.selectedCostSession === msg.sessionId) {
+          costState.contextFillPct = msg.contextFillPct;
+        }
       }
       renderCostPanel();
     }
@@ -1160,6 +1212,19 @@
     document.addEventListener('DOMContentLoaded', () => {
       hydrateCost();
       wireThresholdInputs();
+
+      // Wire session picker
+      document.getElementById('cost-session-select')?.addEventListener('change', (e) => {
+        const val = e.target.value;
+        costState.selectedCostSession = val === '__auto__' ? null : val;
+        // Sync global contextFillPct to the newly selected session
+        if (costState.selectedCostSession) {
+          costState.contextFillPct = costState.contextFillBySession[costState.selectedCostSession] ?? 0;
+        } else {
+          costState.contextFillPct = costState.contextFillBySession[costState.sessions[0]?.session_id] ?? 0;
+        }
+        renderCostPanel();
+      });
     });
 
     // ── Agent Tree ──────────────────────────────────────────────────────────

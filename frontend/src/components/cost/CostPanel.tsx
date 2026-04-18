@@ -25,27 +25,33 @@ export function CostPanel() {
   const contextFillPct = useObservStore((s) => s.contextFillPct)
   const contextWindowTokens = useObservStore((s) => s.contextWindowTokens)
   const setContextWindowTokens = useObservStore((s) => s.setContextWindowTokens)
+  const selectedCostSession = useObservStore((s) => s.selectedCostSession)
+  const setSelectedCostSession = useObservStore((s) => s.setSelectedCostSession)
 
   const postConfig = useDebouncedPost('/api/config')
 
   const [budgetUsd, setBudgetUsd] = useState<string>('')
   const [contextBudgetPct, setContextBudgetPct] = useState<string>('')
 
-  // Derive active session: prefer filter match, else highest cost
-  const activeSession =
+  // Derive tracked session: user-picked cost session > filter match > most recent
+  const trackedSession =
+    (selectedCostSession
+      ? sessionCosts.find((s) => s.session_id === selectedCostSession)
+      : null) ??
     (activeFilter
       ? sessionCosts.find((s) => s.session_id === activeFilter)
       : null) ??
     sessionCosts[0] ??
     null
 
+
   const costBudgetUsd = config?.budget_threshold_usd ?? config?.budget_usd ?? null
   const contextBudget = config?.ctx_fill_threshold_pct ?? null
 
   const overBudget =
     costBudgetUsd != null &&
-    activeSession != null &&
-    activeSession.total_cost_usd >= costBudgetUsd
+    trackedSession != null &&
+    trackedSession.total_cost_usd >= costBudgetUsd
 
   const overContextBudget =
     contextBudget != null &&
@@ -58,9 +64,9 @@ export function CostPanel() {
       {/* Budget alert */}
       {(overBudget || overContextBudget) && (
         <div className="rounded border border-red-500 bg-red-950/30 px-3 py-2 text-red-400 font-semibold">
-          {overBudget && activeSession && (
+          {overBudget && trackedSession && (
             <div>
-              Cost budget exceeded — {formatCost(activeSession.total_cost_usd)} &ge;{' '}
+              Cost budget exceeded — {formatCost(trackedSession.total_cost_usd)} &ge;{' '}
               {formatCost(costBudgetUsd!)}
             </div>
           )}
@@ -78,7 +84,7 @@ export function CostPanel() {
           Session Cost
         </div>
         <div className="font-display font-bold text-[#ff7b2b] text-2xl tabular-nums">
-          {activeSession ? formatCost(activeSession.total_cost_usd) : '$0.000'}
+          {trackedSession ? formatCost(trackedSession.total_cost_usd) : '$0.000'}
         </div>
         <div className="text-muted-foreground text-[10px] mt-0.5">
           Today: {formatCost(todayCost)}
@@ -89,30 +95,51 @@ export function CostPanel() {
       </div>
 
       {/* Token breakdown */}
-      {activeSession && (
+      {trackedSession && (
         <div>
-          <div className="text-muted-foreground uppercase tracking-wide text-[10px] mb-1">
-            Tokens
+          <div className="flex justify-between items-center mb-1">
+            <div className="text-muted-foreground uppercase tracking-wide text-[10px]">
+              Tokens
+            </div>
+            {/* Session picker */}
+            {sessionCosts.length > 0 && (
+              <select
+                value={selectedCostSession ?? '__auto__'}
+                onChange={(e) => {
+                  setSelectedCostSession(e.target.value === '__auto__' ? null : e.target.value)
+                }}
+                className="text-[9px] rounded border border-border bg-background px-1 py-0.5 text-muted-foreground max-w-[120px]"
+              >
+                <option value="__auto__">
+                  Auto ({sessionCosts[0]?.project_name?.slice(0, 10) ?? sessionCosts[0]?.session_id?.slice(0, 6) ?? ''})
+                </option>
+                {sessionCosts.map((s) => (
+                  <option key={s.session_id} value={s.session_id}>
+                    {s.project_name?.slice(0, 10) ?? s.session_id?.slice(0, 6)} — {formatCost(s.total_cost_usd)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="flex flex-col gap-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Input</span>
-              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(activeSession.input_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(trackedSession.input_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Output</span>
-              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(activeSession.output_tokens)}</span>
+              <span className="tabular-nums font-display font-bold text-primary">{formatTokens(trackedSession.output_tokens)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache read</span>
               <span className="tabular-nums font-display font-bold text-primary">
-                {formatTokens(activeSession.cache_read_tokens)}
+                {formatTokens(trackedSession.cache_read_tokens)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cache write</span>
               <span className="tabular-nums font-display font-bold text-primary">
-                {formatTokens(activeSession.cache_write_tokens)}
+                {formatTokens(trackedSession.cache_write_tokens)}
               </span>
             </div>
           </div>

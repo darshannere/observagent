@@ -157,7 +157,7 @@ export function useSSE(isReplay = false): void {
         } else if (sessionId) {
           // Parent session cost — update contextFillPct only from parent session events
           if (msg.contextFillPct != null) {
-            store.setContextFillPct(msg.contextFillPct)
+            store.setContextFillPct(sessionId, msg.contextFillPct)
           }
           store.updateSessionCost(sessionId, {
             cost: msg.cost,

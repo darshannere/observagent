@@ -68,6 +68,8 @@ interface ObservStore {
   totalInputTokens: number  // raw input tokens for local context fill % recalculation
   contextWindowTokens: number  // user-selected context window (200000 or 1000000)
   timeFilter: TimeFilter
+  selectedCostSession: string | null  // session the cost panel tracks
+  contextFillBySession: Record<string, number>  // per-session context fill % from SSE
 
   // Actions
   setSelectedAgent(agentId: string | null): void
@@ -95,7 +97,8 @@ interface ObservStore {
   setAgentFilter(agentId: string | null, sessionId?: string | null): void
   setHealth(h: HealthState): void
   setSseConnected(v: boolean): void
-  setContextFillPct(pct: number): void
+  setContextFillPct(sessionId: string, pct: number): void
+  setSelectedCostSession(sessionId: string | null): void
   setTotalInputTokens(tokens: number): void
   setContextWindowTokens(tokens: number): void
   setTimeFilter(filter: TimeFilter): void
@@ -120,6 +123,8 @@ export const useObservStore = create<ObservStore>()((set) => ({
   totalInputTokens: 0,
   contextWindowTokens: 200_000,
   timeFilter: 'all',
+  selectedCostSession: null,
+  contextFillBySession: {},
 
   // Actions
 
@@ -340,22 +345,50 @@ export const useObservStore = create<ObservStore>()((set) => ({
     set({ sseConnected: v })
   },
 
-  setContextFillPct(pct) {
-    set({ contextFillPct: pct })
+  setContextFillPct(sessionId, pct) {
+    set((s) => ({
+      contextFillBySession: { ...s.contextFillBySession, [sessionId]: pct },
+      // Keep global contextFillPct in sync for the currently selected session
+      contextFillPct: s.selectedCostSession === sessionId || s.selectedCostSession === null
+        ? pct
+        : s.contextFillPct,
+    }))
+  },
+
+  setSelectedCostSession(sessionId: string | null) {
+    set((s) => {
+      const fill = sessionId ? (s.contextFillBySession[sessionId] ?? s.sessionCosts.find(sc => sc.session_id === sessionId)?.context_fill_pct ?? 0) : 0
+      return {
+        selectedCostSession: sessionId,
+        contextFillPct: fill,
+      }
+    })
   },
 
   setTotalInputTokens(tokens) {
-    set({ totalInputTokens: tokens })
+    set((s) => {
+      const effectiveWindow = s.contextWindowTokens - 40_000
+      const contextFillPct = Math.min(
+        100,
+        Math.round((tokens / effectiveWindow) * 100),
+      )
+      return { totalInputTokens: tokens, contextFillPct }
+    })
   },
 
   setContextWindowTokens(tokens) {
     set((s) => {
       const effectiveWindow = tokens - 40_000 // 40K autocompact buffer
-      const contextFillPct = Math.min(
-        100,
-        Math.round((s.totalInputTokens / effectiveWindow) * 100),
-      )
-      return { contextWindowTokens: tokens, contextFillPct }
+      // Recalculate fill % for all tracked sessions using the new window size
+      const updatedBySession = { ...s.contextFillBySession }
+      for (const sid of Object.keys(updatedBySession)) {
+        const inputTokens = s.totalInputTokens // Use current global input (approx)
+        updatedBySession[sid] = Math.min(100, Math.round((inputTokens / effectiveWindow) * 100))
+      }
+      const contextFillPct = s.selectedCostSession
+        ? (updatedBySession[s.selectedCostSession] ?? s.contextFillPct)
+        : Math.min(100, Math.round((s.totalInputTokens / effectiveWindow) * 100))
+      return { contextWindowTokens: tokens, contextFillBySession: updatedBySession, contextFillPct }
     })
   },
 
