@@ -258,9 +258,20 @@ export async function apiRoutes(fastify, options) {
 
   fastify.get('/api/sessions/:id/export', (request, reply) => {
     const { id } = request.params;
+    const { format } = request.query;
     const session = stmtSessionById.get(id);
     if (!session) return reply.code(404).send({ error: 'Session not found' });
     const events = stmtExportEvents.all(id);
+
+    if (format === 'csv') {
+      const header = 'tool_name,timestamp,duration_ms,exit_status,tool_summary\n';
+      const rows = events.map(e =>
+        `${e.tool_name ?? ''},${e.timestamp ?? ''},${e.duration_ms ?? ''},${e.exit_status ?? ''},${(e.tool_summary ?? '').replace(/"/g, '""')}`
+      ).join('\n');
+      reply.header('Content-Type', 'text/csv');
+      return reply.send(header + rows);
+    }
+
     reply.send({ session, events });
   });
 
