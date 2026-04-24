@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="./ss/insights2.png" alt="Live dashboard" width="400" /> &nbsp;
+  <img src="./ss/Insights2.png" alt="Live dashboard" width="400" /> &nbsp;
   <img src="./ss/image_light.png" alt="History Panel" width="400" />
 </p>
 
