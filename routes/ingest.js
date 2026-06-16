@@ -75,6 +75,11 @@ export async function ingestRoutes(fastify, options) {
     `UPDATE agent_nodes SET last_activity_ts = @last_activity_ts WHERE agent_id = @agent_id AND state = 'active'`
   );
 
+  // Config flag for full_tool_input_enabled — prepared once at registration
+  const getFullToolInputEnabled = db.prepare(
+    `SELECT value FROM observagent_config WHERE key = 'full_tool_input_enabled'`
+  );
+
   fastify.post('/ingest', async (request, reply) => {
     const raw = request.body;
 
@@ -93,7 +98,7 @@ export async function ingestRoutes(fastify, options) {
 
     // full_tool_input_enabled toggle — API-controlled, default off
     // When enabled, raw tool_input JSON is logged to console for debugging (not stored in events table)
-    const fullInputEnabled = db.prepare(`SELECT value FROM observagent_config WHERE key = 'full_tool_input_enabled'`).get()?.value === '1';
+    const fullInputEnabled = getFullToolInputEnabled.get()?.value === '1';
     if (fullInputEnabled && raw.tool_input) {
       console.log('[ingest] full_tool_input:', JSON.stringify(raw.tool_input));
     }
